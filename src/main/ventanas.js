@@ -11,7 +11,9 @@ export function crearVentana({ ruta, preload, mensaje }) {
     title: 'liberadoPDF',
     autoHideMenuBar: false,
     backgroundColor: '#ffffff',
-    webPreferences: { preload, contextIsolation: true, nodeIntegration: false, sandbox: true },
+    // backgroundThrottling: false → las animaciones (temporizadores del sandbox de pdf.js) no se frenan
+    // si la ventana queda tapada un momento (un diálogo, otra ventana) durante una presentación.
+    webPreferences: { preload, contextIsolation: true, nodeIntegration: false, sandbox: true, backgroundThrottling: false },
   });
   // Nunca se navega la ventana: los enlaces externos van al navegador del sistema.
   win.webContents.setWindowOpenHandler(({ url }) => {

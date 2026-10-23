@@ -60,15 +60,20 @@ async function faseBasica({ ruta, preload, salida }) {
   const { win, js, tecla, pagina, presentar } = abrirVentanaDePrueba({ ruta, preload, salida });
   await esperarEvento('primera-pagina', 10_000);
   r.msPrimeraPagina = Date.now() - process.getCreationTime();
+  win.show(); win.focus(); win.moveTop(); // la ventana al frente: las capturas deben ver la animación
 
   await js('PDFViewerApplication.page = 2');
-  await espera(1500);
-  const a = await win.webContents.capturePage();
-  await espera(400);
-  const b = await win.webContents.capturePage();
-  writeFileSync(path.join(salida, 't1.png'), a.toPNG());
-  writeFileSync(path.join(salida, 't2.png'), b.toPNG());
-  r.animacion = difieren(a, b);
+  await espera(1800);
+  // Tres capturas separadas 400 ms: basta con que dos difieran (en Windows, justo tras un arranque
+  // frío o con el antivirus activo, una captura aislada puede repetir el fotograma anterior).
+  const capturas = [];
+  for (let i = 0; i < 3; i++) {
+    if (i) await espera(400);
+    capturas.push(await win.webContents.capturePage());
+  }
+  writeFileSync(path.join(salida, 't1.png'), capturas[0].toPNG());
+  writeFileSync(path.join(salida, 't2.png'), capturas[2].toPNG());
+  r.animacion = difieren(capturas[0], capturas[1]) || difieren(capturas[1], capturas[2]);
 
   tecla('PageDown');
   await espera(300);
@@ -143,7 +148,29 @@ async function faseInexistente({ ruta, preload, salida }) {
   return r;
 }
 
-const FASES = { basica: faseBasica, bucle: faseBucle, inexistente: faseInexistente };
+// La animación de la página indicada (LIBERADOPDF_HUMO_PAGINA, por defecto 2) sigue moviéndose
+// dentro de la presentación a pantalla completa. Sirve también con un PDF real.
+async function fasePresentacionAnimada({ ruta, preload, salida }) {
+  const paginaAnimada = Number(process.env.LIBERADOPDF_HUMO_PAGINA || 2);
+  const r = { pagina: paginaAnimada, presentacion: false, animacionEnPresentacion: false };
+  const { win, js, presentar } = abrirVentanaDePrueba({ ruta, preload, salida });
+  await esperarEvento('primera-pagina', 10_000);
+  win.show(); win.focus(); win.moveTop();
+  await js(`PDFViewerApplication.page = ${paginaAnimada}`);
+  await espera(500);
+  r.presentacion = await presentar();
+  await espera(1500);
+  const a = await win.webContents.capturePage();
+  await espera(400);
+  const b = await win.webContents.capturePage();
+  writeFileSync(path.join(salida, 'p1.png'), a.toPNG());
+  writeFileSync(path.join(salida, 'p2.png'), b.toPNG());
+  r.animacionEnPresentacion = difieren(a, b);
+  r.ok = r.presentacion && r.animacionEnPresentacion;
+  return r;
+}
+
+const FASES = { basica: faseBasica, bucle: faseBucle, inexistente: faseInexistente, presentacionAnimada: fasePresentacionAnimada };
 
 export async function ejecutarHumo({ ruta, salida, fase, preload }) {
   mkdirSync(salida, { recursive: true });
