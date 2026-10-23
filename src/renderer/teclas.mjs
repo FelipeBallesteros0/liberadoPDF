@@ -1,5 +1,6 @@
 // Instala el manejo de teclas de liberadoPDF por delante de pdf.js (fase de captura).
 import { accionDeTecla } from '../comun/teclas.mjs';
+import { raizDeCapas } from './capas.mjs';
 
 const ESPERA_DIGITOS_MS = 1500;
 
@@ -13,7 +14,7 @@ export function instalarTeclas({ acciones, modoActual }) {
   const indicador = document.createElement('div');
   indicador.className = 'liberadopdf-digitos';
   indicador.hidden = true;
-  document.body.append(indicador);
+  raizDeCapas().append(indicador);
 
   const limpiar = () => { digitos = ''; indicador.hidden = true; clearTimeout(temporizador); };
   const mostrar = () => {

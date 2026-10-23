@@ -33,9 +33,9 @@ export function difieren(a, b) {
 
 export async function ejecutarHumo({ ruta, salida, preload }) {
   mkdirSync(salida, { recursive: true });
-  const resultado = { ok: false, msPrimeraPagina: null, animacion: false, pagina3: false, flechaEnEntrada: false, presentacion: false, errores: [] };
+  const resultado = { ok: false, msPrimeraPagina: null, animacion: false, pagina3: false, flechaEnEntrada: false, presentacion: false, contadorYSaltos: false, errores: [] };
   const terminar = () => {
-    resultado.ok = resultado.errores.length === 0 && resultado.msPrimeraPagina < 3000 && resultado.animacion && resultado.pagina3 && resultado.flechaEnEntrada && resultado.presentacion;
+    resultado.ok = resultado.errores.length === 0 && resultado.msPrimeraPagina < 3000 && resultado.animacion && resultado.pagina3 && resultado.flechaEnEntrada && resultado.presentacion && resultado.contadorYSaltos;
     writeFileSync(path.join(salida, 'resultado.json'), JSON.stringify(resultado, null, 2));
     app.exit(resultado.ok ? 0 : 1);
   };
@@ -78,6 +78,14 @@ export async function ejecutarHumo({ ruta, salida, preload }) {
     await espera(1000);
     const activa = await js('PDFViewerApplication.pdfPresentationMode.active');
     resultado.presentacion = Boolean(activa) && win.isFullScreen();
+    // En la página 4 (etiquetas 1,2,3,3) el contador dice «lámina 3 / 3 · paso 2 / 2» y Mayús+← lleva a la 2.
+    await espera(300);
+    const textoContador = await js('document.querySelector(".liberadopdf-contador")?.textContent ?? ""');
+    win.webContents.sendInputEvent({ type: 'keyDown', keyCode: 'Left', modifiers: ['shift'] });
+    win.webContents.sendInputEvent({ type: 'keyUp', keyCode: 'Left', modifiers: ['shift'] });
+    await espera(300);
+    resultado.contadorYSaltos = textoContador === 'lámina 3 / 3 · paso 2 / 2' && (await js('PDFViewerApplication.page')) === 2;
+    resultado.textoContador = textoContador;
   } catch (e) {
     resultado.errores.push(String(e?.stack || e));
     // Diagnóstico del estado del renderer para entender el fallo

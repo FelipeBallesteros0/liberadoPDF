@@ -1,4 +1,5 @@
 // Ayuda de teclas (F1): tabla fija en español según §4.5 del diseño.
+import { raizDeCapas } from './capas.mjs';
 const FILAS = [
   ['→ ↓ PgDn Espacio Enter', 'Página siguiente'],
   ['← ↑ PgUp Retroceso', 'Página anterior'],
@@ -34,7 +35,7 @@ export function mostrarAyuda() {
   pie.textContent = 'Esc o clic para cerrar. Los clickers envían PgUp / PgDn.';
   capa.append(titulo, tabla, pie);
   capa.addEventListener('click', ocultarAyuda);
-  document.body.append(capa);
+  raizDeCapas().append(capa);
   window.addEventListener('keydown', cerrarConEscape, { capture: true });
 }
 

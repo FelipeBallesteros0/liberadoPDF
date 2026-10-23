@@ -34,3 +34,16 @@
 .liberadopdf-ayuda td { padding: 5px 16px; border-bottom: 1px solid rgba(255, 255, 255, 0.15); }
 .liberadopdf-ayuda td:first-child { color: #9bd3f0; font-weight: 600; white-space: nowrap; }
 .liberadopdf-ayuda p { margin: 12px 0 0; opacity: 0.8; }
+
+.liberadopdf-contador {
+  position: fixed;
+  left: 20px;
+  bottom: 16px;
+  z-index: 10000;
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.45);
+  color: rgba(255, 255, 255, 0.85);
+  font: 14px system-ui, sans-serif;
+  pointer-events: none;
+}
