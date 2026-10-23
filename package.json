@@ -1,0 +1,23 @@
+{
+  "name": "liberadopdf",
+  "version": "0.1.0",
+  "description": "Visor y presentador de PDF que reproduce las animaciones del paquete animate",
+  "main": "src/main/main.js",
+  "type": "module",
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test \"test/**/*.test.mjs\"",
+    "humo": "node scripts/humo.mjs",
+    "construir": "bash scripts/construir.sh"
+  },
+  "author": "Felipe Ballesteros",
+  "license": "MIT",
+  "private": true,
+  "devDependencies": {
+    "@electron/packager": "20.3.0",
+    "electron": "45.0.0"
+  },
+  "dependencies": {
+    "pdfjs-dist": "6.4.299"
+  }
+}
