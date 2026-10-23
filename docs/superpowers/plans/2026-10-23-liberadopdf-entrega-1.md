@@ -30,7 +30,7 @@
 
 ---
 
-### Tarea 1: Esqueleto del proyecto y pdf.js vendored
+### Task 1: Esqueleto del proyecto y pdf.js vendored
 
 **Files:**
 - Create: `package.json`, `.gitignore`, `LICENSE`, `README.md`, `vendor/pdfjs/` (copia de `build/`, `web/` y `LICENSE` del zip `pdfjs-6.4.299-dist.zip`, sin `web/compressed.tracemonkey-pldi-09.pdf`), `test/.gitkeep`
@@ -85,7 +85,7 @@ git add -A && git commit -m "Esqueleto del proyecto y pdf.js 6.4.299 vendored"
 
 ---
 
-### Tarea 2: Configuración y recientes (lógica pura)
+### Task 2: Configuración y recientes (lógica pura)
 
 **Files:**
 - Create: `src/comun/config.mjs`
@@ -155,7 +155,7 @@ git add src/comun/config.mjs test/config.test.mjs && git commit -m "Configuraci�
 
 ---
 
-### Tarea 3: Lectura y escritura de `config.json` (modo portable)
+### Task 3: Lectura y escritura de `config.json` (modo portable)
 
 **Files:**
 - Create: `src/main/config.js`
@@ -211,7 +211,7 @@ test('cargar: ausente, vacío o corrupto → valores por defecto; guardar: atóm
 
 ---
 
-### Tarea 4: Resolución de rutas y tipos MIME del protocolo (lógica pura)
+### Task 4: Resolución de rutas y tipos MIME del protocolo (lógica pura)
 
 **Files:**
 - Create: `src/comun/rutas.mjs`
@@ -257,7 +257,7 @@ test('resolver dentro de las raíces y rechazar escapes', () => {
 
 ---
 
-### Tarea 5: PDF de ejemplo con animación
+### Task 5: PDF de ejemplo con animación
 
 **Files:**
 - Create: `recursos/ejemplo_animado.tex`, `recursos/ejemplo_animado.pdf`, `scripts/generar_ejemplo.sh`
@@ -294,7 +294,7 @@ test('el PDF de ejemplo existe, es pequeño y trae la animación', () => {
 
 ---
 
-### Tarea 6: Proceso principal, protocolo, ventana del visor y prueba de humo
+### Task 6: Proceso principal, protocolo, ventana del visor y prueba de humo
 
 **Files:**
 - Create: `src/main/main.js`, `src/main/protocolo.js`, `src/main/ventanas.js`, `src/main/ipc.js`, `src/main/humo.js`, `src/preload/preload.cjs`, `src/renderer/visor.html`, `src/renderer/visor.css`, `src/renderer/visor.mjs`, `scripts/humo.mjs`, `scripts/humo.sh`
@@ -333,7 +333,7 @@ Expected: `{"ok":true,"msPrimeraPagina":<3000,"animacion":true,"pagina3":true,"p
 
 ---
 
-### Tarea 7: Teclas y ayuda
+### Task 7: Teclas y ayuda
 
 **Files:**
 - Create: `src/comun/teclas.mjs`, `src/renderer/teclas.mjs`, `src/renderer/ayuda.mjs`
@@ -406,7 +406,7 @@ test('atajos con Ctrl y Escape', () => {
 
 ---
 
-### Tarea 8: Etiquetas de página: láminas y pasos
+### Task 8: Etiquetas de página: láminas y pasos
 
 **Files:**
 - Create: `src/comun/etiquetas.mjs`, `src/renderer/contador.mjs`
@@ -465,7 +465,7 @@ test('etiquetas no numéricas: saltar por etiqueta cuando el número no es índi
 
 ---
 
-### Tarea 9: Modo presentación: entrada, fondo, cursor, negro/blanco, reloj, avance automático y bucle
+### Task 9: Modo presentación: entrada, fondo, cursor, negro/blanco, reloj, avance automático y bucle
 
 **Files:**
 - Create: `src/comun/presentacion.mjs`, `src/renderer/presentacion.mjs`
@@ -509,7 +509,7 @@ test('textoReloj', () => {
 
 ---
 
-### Tarea 10: Pantalla de inicio, recientes, menú, argumentos, segunda instancia y arrastrar
+### Task 10: Pantalla de inicio, recientes, menú, argumentos, segunda instancia y arrastrar
 
 **Files:**
 - Create: `src/comun/argumentos.mjs`, `src/renderer/inicio.html`, `src/renderer/inicio.css`, `src/renderer/inicio.mjs`, `src/main/menu.js`
@@ -561,7 +561,7 @@ test('errores: inexistente y no PDF', () => {
 
 ---
 
-### Tarea 11: Ejecutable portable para Windows y README
+### Task 11: Ejecutable portable para Windows y README
 
 **Files:**
 - Create: `scripts/construir.sh`, `scripts/icono.py`, `recursos/icono.png`, `recursos/icono.ico`, `scripts/humo_windows.sh`
