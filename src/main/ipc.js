@@ -9,7 +9,7 @@ import { abrirEnVentana } from './ventanas.js';
 export const eventosHumo = new EventEmitter();
 const ENLACE_EXTERNO = /^(https?:|mailto:)/i;
 
-export function instalarIpc({ obtenerConfig, guardar, abrirEnNueva }) {
+export function instalarIpc({ obtenerConfig, obtenerConfigBase = obtenerConfig, guardar, abrirEnNueva, alCambiarRecientes = () => {} }) {
   const ventanaDe = evento => BrowserWindow.fromWebContents(evento.sender);
 
   ipcMain.handle('abrir-dialogo', async (evento) => {
@@ -25,7 +25,7 @@ export function instalarIpc({ obtenerConfig, guardar, abrirEnNueva }) {
   ipcMain.handle('recientes', () => obtenerConfig().recientes.filter(r => existsSync(r.ruta)));
   ipcMain.handle('config', () => obtenerConfig());
   ipcMain.handle('guardar-config', (evento, parcial) => {
-    const config = obtenerConfig();
+    const config = obtenerConfigBase();
     guardar({ ...config, ...parcial, presentacion: { ...config.presentacion, ...(parcial?.presentacion ?? {}) } });
   });
   ipcMain.handle('abrir-externo', (evento, url) => {
@@ -33,8 +33,9 @@ export function instalarIpc({ obtenerConfig, guardar, abrirEnNueva }) {
   });
   ipcMain.handle('documento-abierto', (evento, { ruta, nombre }) => {
     if (typeof ruta !== 'string' || !ruta) return;
-    const config = obtenerConfig();
+    const config = obtenerConfigBase();
     guardar({ ...config, recientes: agregarReciente(config.recientes, { ruta, nombre: nombre || path.basename(ruta), fecha: Date.now() }) });
+    alCambiarRecientes();
   });
   ipcMain.on('humo-evento', (evento, { nombre, t }) => { eventosHumo.emit(nombre, t); });
 }

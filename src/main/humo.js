@@ -6,6 +6,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { crearVentana } from './ventanas.js';
 import { eventosHumo } from './ipc.js';
+import { abrirDesdeArgumentos } from './apertura.js';
 
 const espera = ms => new Promise(r => setTimeout(r, ms));
 
@@ -83,8 +84,9 @@ async function faseBasica({ ruta, preload, salida }) {
   await espera(300);
   r.flechaEnEntrada = sigueEn3 && (await pagina()) === 4;
 
+  r.paginaAntesDePresentar = await pagina();
   r.presentacion = await presentar();
-
+  r.paginaTrasPresentar = await pagina();
   // En la página 4 (etiquetas 1,2,3,3) el contador dice «lámina 3 / 3 · paso 2 / 2» y Mayús+← lleva a la 2.
   await espera(300);
   r.textoContador = await js('document.querySelector(".liberadopdf-contador")?.textContent ?? ""');
@@ -119,7 +121,29 @@ async function faseBucle({ ruta, preload, salida }) {
   return r;
 }
 
-const FASES = { basica: faseBasica, bucle: faseBucle };
+// Una ruta inexistente por argumento abre la pantalla de inicio con el mensaje, sin diálogo ni cierre.
+async function faseInexistente({ ruta, preload, salida }) {
+  const r = { inicioConMensaje: false };
+  const { ventanas, errores } = abrirDesdeArgumentos({ argv: ['exe', ruta], cwd: process.cwd(), empaquetada: true, preload });
+  r.errores = errores;
+  const win = ventanas[0];
+  await new Promise(resolver => win.webContents.once('did-finish-load', resolver));
+  await espera(300);
+  const estado = await win.webContents.executeJavaScript(`JSON.stringify({
+    ruta: location.pathname,
+    mensaje: document.querySelector('.liberadopdf-mensaje')?.textContent ?? '',
+    oculto: document.querySelector('.liberadopdf-mensaje')?.hidden ?? true,
+  })`);
+  writeFileSync(path.join(salida, 'inicio.png'), (await win.webContents.capturePage()).toPNG());
+  const { ruta: pathname, mensaje, oculto } = JSON.parse(estado);
+  r.pathname = pathname;
+  r.mensaje = mensaje;
+  r.inicioConMensaje = pathname.endsWith('/inicio.html') && !oculto && mensaje.startsWith('No existe el archivo');
+  r.ok = r.inicioConMensaje;
+  return r;
+}
+
+const FASES = { basica: faseBasica, bucle: faseBucle, inexistente: faseInexistente };
 
 export async function ejecutarHumo({ ruta, salida, fase, preload }) {
   mkdirSync(salida, { recursive: true });

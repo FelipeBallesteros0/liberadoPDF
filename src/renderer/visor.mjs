@@ -57,6 +57,17 @@ for (const nombre of ['siguiente', 'anterior', 'siguienteLamina', 'anteriorLamin
 const contador = instalarContador({ app, obtenerGrupos: () => grupos, modoActual });
 instalarTeclas({ acciones, modoActual, interceptor: presentacion.interceptor });
 window.liberadopdf.alAccion(nombre => acciones[nombre]?.());
+
+// Arrastrar un PDF sobre la ventana lo abre aquí (pdf.js no llega a ver el drop).
+window.addEventListener('dragover', (ev) => { ev.preventDefault(); ev.stopPropagation(); }, { capture: true });
+window.addEventListener('drop', (ev) => {
+  ev.preventDefault();
+  ev.stopPropagation();
+  const archivo = ev.dataTransfer?.files?.[0];
+  if (!archivo) return;
+  const rutaSoltada = window.liberadopdf.rutaDeArchivo(archivo);
+  if (/\.pdf$/i.test(rutaSoltada)) window.liberadopdf.abrirEnEstaVentana(rutaSoltada);
+}, { capture: true });
 window.liberadopdfAcciones = { presentacion: acciones.presentacion, ayuda: acciones.ayuda };
 
 const ponerTitulo = () => { document.title = nombre ? `${nombre} · liberadoPDF` : 'liberadoPDF'; };
