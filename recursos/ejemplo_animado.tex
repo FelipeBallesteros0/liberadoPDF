@@ -1,0 +1,45 @@
+% PDF de ejemplo de liberadoPDF: 4 páginas con una animación del paquete animate.
+% Se genera con scripts/generar_ejemplo.sh (pdfLaTeX). Sin compresión de objetos para que
+% las pruebas puedan leer /Count, /PageLabels y el widget de animate como texto: PDF 1.4 (sin
+% flujos de objetos), fijado antes de \documentclass porque beamer ya escribe datos al cargarse.
+\pdfminorversion=4
+\pdfobjcompresslevel=0
+\documentclass[aspectratio=169]{beamer}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{tikz}
+\usepackage{animate}
+\definecolor{azul}{HTML}{0077B6}
+\setbeamertemplate{navigation symbols}{}
+\title{liberadoPDF: PDF de ejemplo}
+\subtitle{Cuatro páginas para la prueba de humo}
+\author{liberadoPDF}
+\date{}
+\begin{document}
+
+\begin{frame}
+  \titlepage
+\end{frame}
+
+\begin{frame}{Animación}
+  \centering
+  % 24 fotogramas a 12 por segundo: una vuelta completa cada 2 s, en bucle y con arranque automático.
+  \begin{animateinline}[autoplay,loop,poster=first]{12}
+    \multiframe{24}{iAngulo=0+15}{%
+      \begin{tikzpicture}
+        \useasboundingbox (-3,-3) rectangle (3,3);
+        \fill[azul, rotate=\iAngulo] (-1.5,-1.5) rectangle (1.5,1.5);
+      \end{tikzpicture}}
+  \end{animateinline}
+  \par Un cuadrado que gira (24 fotogramas a 12 por segundo).
+\end{frame}
+
+\begin{frame}{Pasos}
+  \begin{itemize}
+    \item Primer paso: esta página tiene la etiqueta 3.
+    \pause
+    \item Segundo paso: esta también (misma lámina, otro paso).
+  \end{itemize}
+\end{frame}
+
+\end{document}

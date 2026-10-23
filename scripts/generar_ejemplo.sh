@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# Genera recursos/ejemplo_animado.pdf con pdfLaTeX (TeX Live local con beamer, tikz y animate).
+set -euo pipefail
+export PATH="$HOME/.local/bin:$PATH"
+RAIZ="$(cd "$(dirname "$0")/.." && pwd)"
+SALIDA="$(mktemp -d)"
+for i in 1 2; do
+  pdflatex -interaction=nonstopmode -halt-on-error -output-directory="$SALIDA" "$RAIZ/recursos/ejemplo_animado.tex" > "$SALIDA/log.txt" 2>&1 \
+    || { tail -30 "$SALIDA/log.txt"; exit 1; }
+done
+cp "$SALIDA/ejemplo_animado.pdf" "$RAIZ/recursos/ejemplo_animado.pdf"
+rm -rf "$SALIDA"
+ls -la "$RAIZ/recursos/ejemplo_animado.pdf"
