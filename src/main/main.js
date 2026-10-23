@@ -6,6 +6,7 @@ import { crearVentana } from './ventanas.js';
 import { instalarIpc } from './ipc.js';
 import { carpetaDatos, puedeEscribirCarpeta, cargarConfig, guardarConfig, archivoConfig } from './config.js';
 import { ejecutarHumo } from './humo.js';
+import { normalizarConfig } from '../comun/config.mjs';
 
 const raiz = app.getAppPath(); // carpeta del proyecto en desarrollo; app.asar empaquetada
 const preload = path.join(raiz, 'src', 'preload', 'preload.cjs');
@@ -33,7 +34,14 @@ if (!app.requestSingleInstanceLock()) {
   app.setPath('userData', datos);
   const archivo = archivoConfig(datos);
   let config = cargarConfig(archivo);
-  const obtenerConfig = () => config;
+  // En modo humo se puede superponer una configuración de prueba (JSON) sin tocar config.json.
+  let configPrueba = null;
+  if (process.env.LIBERADOPDF_CONFIG_PRUEBA) {
+    try { configPrueba = JSON.parse(process.env.LIBERADOPDF_CONFIG_PRUEBA); } catch { configPrueba = null; }
+  }
+  const obtenerConfig = () => (configPrueba
+    ? normalizarConfig({ ...config, ...configPrueba, presentacion: { ...config.presentacion, ...(configPrueba.presentacion ?? {}) } })
+    : config);
   const guardar = (nueva) => { guardarConfig(archivo, nueva); config = cargarConfig(archivo); };
 
   // Provisional hasta la Tarea 10 (rutasDeArgumentos): argumentos que terminan en .pdf
@@ -43,7 +51,7 @@ if (!app.requestSingleInstanceLock()) {
     instalarProtocolo({ raices });
     instalarIpc({ obtenerConfig, guardar, abrirEnNueva: ruta => crearVentana({ ruta, preload }) });
     if (process.env.LIBERADOPDF_HUMO) {
-      ejecutarHumo({ ruta: process.env.LIBERADOPDF_PDF, salida: process.env.LIBERADOPDF_HUMO, preload });
+      ejecutarHumo({ ruta: process.env.LIBERADOPDF_PDF, salida: process.env.LIBERADOPDF_HUMO, fase: process.env.LIBERADOPDF_HUMO_FASE || 'basica', preload });
       return;
     }
     const rutas = rutasDeArgv(process.argv);

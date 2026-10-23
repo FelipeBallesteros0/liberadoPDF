@@ -1,4 +1,4 @@
-// Prueba de humo: lanza liberadoPDF (Electron) con el PDF de ejemplo en modo humo y evalúa el resultado.
+// Prueba de humo: lanza liberadoPDF (Electron) por fases con el PDF de ejemplo y agrega los resultados.
 // Uso: npm run humo   (necesita pantalla: WSLg o escritorio Linux)
 import { spawn } from 'node:child_process';
 import { copyFileSync, mkdirSync, readFileSync, rmSync, existsSync } from 'node:fs';
@@ -14,26 +14,40 @@ mkdirSync(salida, { recursive: true });
 rmSync(carpetaHumo, { recursive: true, force: true });
 copyFileSync(path.join(raiz, 'recursos', 'ejemplo_animado.pdf'), pdfPrueba);
 
-const electron = path.join(raiz, 'node_modules', '.bin', process.platform === 'win32' ? 'electron.cmd' : 'electron');
-const hijo = spawn(electron, ['.'], {
-  cwd: raiz,
-  env: { ...process.env, LIBERADOPDF_HUMO: carpetaHumo, LIBERADOPDF_PDF: pdfPrueba },
-  stdio: ['ignore', 'pipe', 'pipe'],
-});
-let registro = '';
-hijo.stdout.on('data', d => { registro += d; });
-hijo.stderr.on('data', d => { registro += d; });
-const temporizador = setTimeout(() => { hijo.kill('SIGKILL'); }, 40_000);
+const FASES = [
+  { nombre: 'basica', env: {} },
+  { nombre: 'bucle', env: { LIBERADOPDF_CONFIG_PRUEBA: JSON.stringify({ presentacion: { avanceSegundos: 1, bucle: true } }) } },
+];
 
-hijo.on('exit', (codigo) => {
-  clearTimeout(temporizador);
-  const archivo = path.join(carpetaHumo, 'resultado.json');
-  if (!existsSync(archivo)) {
-    console.error('Sin resultado.json. Código de salida:', codigo);
-    console.error(registro.split('\n').filter(l => !/^\[\d+:\d+:\d{4}\/\d+\.\d+:(INFO|WARNING)/.test(l)).slice(-25).join('\n'));
-    process.exit(1);
-  }
-  const resultado = JSON.parse(readFileSync(archivo, 'utf8'));
-  console.log(JSON.stringify(resultado));
-  process.exit(resultado.ok ? 0 : 1);
-});
+const electron = path.join(raiz, 'node_modules', '.bin', process.platform === 'win32' ? 'electron.cmd' : 'electron');
+
+function lanzar(fase) {
+  return new Promise((resolver) => {
+    const carpeta = path.join(carpetaHumo, fase.nombre);
+    const hijo = spawn(electron, ['.'], {
+      cwd: raiz,
+      env: { ...process.env, LIBERADOPDF_HUMO: carpeta, LIBERADOPDF_HUMO_FASE: fase.nombre, LIBERADOPDF_PDF: pdfPrueba, ...fase.env },
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+    let registro = '';
+    hijo.stdout.on('data', d => { registro += d; });
+    hijo.stderr.on('data', d => { registro += d; });
+    const temporizador = setTimeout(() => hijo.kill('SIGKILL'), 40_000);
+    hijo.on('exit', (codigo) => {
+      clearTimeout(temporizador);
+      const archivo = path.join(carpeta, 'resultado.json');
+      if (!existsSync(archivo)) {
+        const lineas = registro.split('\n').filter(l => !/^\[\d+:\d+:\d{4}\/\d+\.\d+:(INFO|WARNING)/.test(l)).slice(-15).join('\n');
+        resolver({ ok: false, fase: fase.nombre, errores: [`sin resultado.json (código ${codigo})`, lineas] });
+        return;
+      }
+      resolver(JSON.parse(readFileSync(archivo, 'utf8')));
+    });
+  });
+}
+
+const resultados = {};
+for (const fase of FASES) resultados[fase.nombre] = await lanzar(fase);
+const ok = Object.values(resultados).every(r => r.ok);
+console.log(JSON.stringify({ ok, ...resultados }));
+process.exit(ok ? 0 : 1);

@@ -47,3 +47,28 @@
   font: 14px system-ui, sans-serif;
   pointer-events: none;
 }
+
+/* Modo presentación */
+#viewerContainer.pdfPresentationMode:fullscreen { background-color: var(--liberadopdf-fondo, #000) !important; }
+#viewerContainer.liberadopdf-sin-cursor, #viewerContainer.liberadopdf-sin-cursor * { cursor: none !important; }
+#viewerContainer.liberadopdf-cursor-visible, #viewerContainer.liberadopdf-cursor-visible * { cursor: default !important; }
+
+.liberadopdf-pantalla {
+  position: fixed;
+  inset: 0;
+  z-index: 10002;
+}
+
+.liberadopdf-reloj {
+  position: fixed;
+  right: 20px;
+  bottom: 16px;
+  z-index: 10000;
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.45);
+  color: rgba(255, 255, 255, 0.85);
+  font: 14px system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
