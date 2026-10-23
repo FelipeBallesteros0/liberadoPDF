@@ -1,1 +1,36 @@
-/* Capa de liberadoPDF sobre el visor de pdf.js. Los módulos añaden sus propias reglas aquí. */
+/* Capa de liberadoPDF sobre el visor de pdf.js. */
+:root {
+  --liberadopdf-acento: #0077b6;
+}
+
+.liberadopdf-digitos {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 10000;
+  padding: 6px 14px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.7);
+  color: #fff;
+  font: 600 22px system-ui, sans-serif;
+  pointer-events: none;
+}
+
+.liberadopdf-ayuda {
+  position: fixed;
+  inset: 0;
+  z-index: 10001;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.75);
+  color: #fff;
+  font: 15px system-ui, sans-serif;
+  cursor: pointer;
+}
+.liberadopdf-ayuda h2 { margin: 0 0 12px; font-size: 20px; font-weight: 600; }
+.liberadopdf-ayuda table { border-collapse: collapse; background: rgba(0, 0, 0, 0.5); border-radius: 8px; }
+.liberadopdf-ayuda td { padding: 5px 16px; border-bottom: 1px solid rgba(255, 255, 255, 0.15); }
+.liberadopdf-ayuda td:first-child { color: #9bd3f0; font-weight: 600; white-space: nowrap; }
+.liberadopdf-ayuda p { margin: 12px 0 0; opacity: 0.8; }

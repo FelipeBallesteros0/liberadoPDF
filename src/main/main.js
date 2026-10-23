@@ -11,6 +11,7 @@ const raiz = app.getAppPath(); // carpeta del proyecto en desarrollo; app.asar e
 const preload = path.join(raiz, 'src', 'preload', 'preload.cjs');
 const raices = [
   { prefijo: '/vendor/pdfjs/', carpeta: path.join(raiz, 'vendor', 'pdfjs') },
+  { prefijo: '/comun/', carpeta: path.join(raiz, 'src', 'comun') }, // lógica pura compartida con el renderer
   { prefijo: '/', carpeta: path.join(raiz, 'src', 'renderer') },
 ];
 
