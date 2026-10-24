@@ -56,3 +56,10 @@ test('fusionarConfigGuardada: los recientes son del main y porDocumento se fusio
   assert.equal(r.nocturno, true);
   assert.equal(fusionarConfigGuardada(base, { presentacion: { bucle: true } }).presentacion.fondo, '#000000');
 });
+
+test('idioma: inglés por defecto, español si se pide, cualquier otra cosa vuelve a inglés', () => {
+  assert.equal(normalizarConfig({}).idioma, 'en');
+  assert.equal(normalizarConfig({ idioma: 'es' }).idioma, 'es');
+  assert.equal(normalizarConfig({ idioma: 'fr' }).idioma, 'en');
+  assert.equal(normalizarConfig({ idioma: 7 }).idioma, 'en');
+});

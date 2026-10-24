@@ -21,6 +21,8 @@ export function valoresPorDefecto() {
     monitorPresentador: 'auto',
     porDocumento: {},
     barra: { presentationMode: true }, // id de botón de pdf.js → ¿en la barra principal?
+    idioma: 'en', // 'en' | 'es' (ver src/comun/i18n.mjs)
+    video: { autoarranque: true, bucle: true }, // videos incrustados en el PDF (siempre sin audio)
   };
 }
 
@@ -68,6 +70,7 @@ export function normalizarConfig(entrada) {
     const v = esObjetoPlano(entrada) ? entrada[clave] : undefined;
     config[clave] = Number.isInteger(v) ? v : 'auto';
   }
+  if (!['en', 'es'].includes(config.idioma)) config.idioma = 'en';
   // fondo: solo colores #rrggbb
   if (!/^#[0-9a-f]{6}$/i.test(config.presentacion.fondo)) config.presentacion.fondo = valoresPorDefecto().presentacion.fondo;
   // barra: mapa libre id → booleano (fusionar solo conserva las claves por defecto)
