@@ -24,7 +24,7 @@ try { idiomaInicial = ipcRenderer.sendSync('config-inicial').idioma ?? 'en'; } c
 
 contextBridge.exposeInMainWorld('liberadopdf', {
   idioma: idiomaInicial,
-  cambiarIdioma: idioma => ipcRenderer.invoke('cambiar-idioma', idioma),
+  cambiarIdioma: (idioma, pagina) => ipcRenderer.invoke('cambiar-idioma', idioma, pagina),
   abrirDialogo: () => ipcRenderer.invoke('abrir-dialogo'),
   abrirEnEstaVentana: ruta => ipcRenderer.invoke('abrir-en-esta', ruta),
   abrirEnVentanaNueva: ruta => ipcRenderer.invoke('abrir-en-nueva', ruta),

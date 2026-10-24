@@ -14,6 +14,17 @@ export function crearTraductor(idioma, diccionarios = DICCIONARIOS) {
   };
 }
 
+// Mensajes que vienen del worker o del main en español: se traduce entero o, si llevan detalle tras «: », solo la parte fija.
+export function crearTraductorDeMensajes(t) {
+  return (mensaje) => {
+    const m = String(mensaje ?? '');
+    const traducido = t(m);
+    if (traducido !== m) return traducido;
+    const i = m.indexOf(': ');
+    return i > 0 ? `${t(m.slice(0, i))}: ${m.slice(i + 2)}` : m;
+  };
+}
+
 // El idioma efectivo: en modo humo manda LIBERADOPDF_IDIOMA (para probar en español sin tocar la configuración).
 export function claveDeIdioma(config, env = {}) {
   const forzado = env.LIBERADOPDF_HUMO ? env.LIBERADOPDF_IDIOMA : null;

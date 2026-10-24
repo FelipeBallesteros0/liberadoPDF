@@ -3,18 +3,12 @@ import { raizDeCapas } from '../capas.mjs';
 import { mostrarToast } from '../instantanea.mjs';
 import { analizarRangos } from '../comun/herramientas/rangos.mjs';
 import { t } from '../i18n.mjs';
+import { crearTraductorDeMensajes } from '../../comun/i18n.mjs';
 
 // Última ejecución de cada herramienta (para la prueba de humo: demuestra que una cancelación asienta la promesa).
 const anotarEjecucion = (clave, estado) => { if (window.liberadopdfHerramientas) window.liberadopdfHerramientas.ultimaEjecucion = { clave, estado, cuando: Date.now() }; };
 
-// Un mensaje del worker o del main viene en español: se traduce entero o, si lleva detalle tras «: », solo la parte fija.
-export function traducirMensaje(mensaje) {
-  const m = String(mensaje ?? '');
-  const traducido = t(m);
-  if (traducido !== m) return traducido;
-  const i = m.indexOf(': ');
-  return i > 0 ? `${t(m.slice(0, i))}: ${m.slice(i + 2)}` : m;
-}
+export const traducirMensaje = crearTraductorDeMensajes(t);
 
 export const MENSAJE_CIFRADO = 'Este PDF está cifrado: primero desbloquéalo (Herramientas ▸ Desbloquear). Si abrió sin pedir contraseña, deja la contraseña vacía.';
 

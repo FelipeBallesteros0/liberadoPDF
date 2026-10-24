@@ -1026,7 +1026,7 @@ async function faseComprimir({ ruta, preload, salida }) {
 async function faseIdioma({ ruta, preload, salida }) {
   const esperado = process.env.LIBERADOPDF_HUMO_IDIOMA_ESPERADO || 'en';
   const r = { esperado, menu: null, pdfjs: null, ayuda: null, numerarTitulo: null, numerarFormato: null, inicio: null, idiomaGuardado: null, relanzado: null };
-  const { js } = abrirVentanaDePrueba({ ruta, preload, salida });
+  const { win, js } = abrirVentanaDePrueba({ ruta, preload, salida });
   await esperarEvento('primera-pagina', 10_000);
   r.menu = Menu.getApplicationMenu()?.items.map(i => i.label) ?? null;
   r.pdfjs = await js(`document.getElementById('previous')?.title ?? null`);
@@ -1040,15 +1040,18 @@ async function faseIdioma({ ruta, preload, salida }) {
   await js(`document.querySelector('.liberadopdf-herramienta .pie button')?.click()`, true);
   // Un guardado real (rotar) muestra el aviso «Saved in …» / «Guardado en …» del diálogo base.
   await abrirYEjecutarHerramienta(js, 'rotar', { grados: 90, paginas: '' });
-  for (let i = 0; i < 40 && !r.toast; i++) { await espera(250); r.toast = await js(`[...document.querySelectorAll('.liberadopdf-toast')].map(e => e.textContent).find(x => /Saved in|Guardado en/.test(x)) ?? null`); }
+  for (let i = 0; i < 40 && !r.toast; i++) { await espera(250); r.toast = await js(`[...document.querySelectorAll('.liberadopdf-toast')].map(e => e.textContent).find(x => /Saved to|Guardado en/.test(x)) ?? null`); }
   // Pantalla de inicio en una segunda ventana
   const { js: js2 } = abrirVentanaDePrueba({ ruta: null, preload, salida });
   await espera(1500);
   r.inicio = await js2(`document.getElementById('abrir')?.textContent ?? null`);
-  // Cambio de idioma: guarda y «relanza» (en humo, el relanzado se registra en vez de ejecutarse)
+  // Cambio de idioma desde la página 2 y con ediciones pendientes: guarda y «relanza» (en humo, el relanzado se
+  // registra en vez de ejecutarse) con el documento, --pagina=2 y la detección de ediciones sin guardar.
   const otro = esperado === 'en' ? 'es' : 'en';
+  await js('PDFViewerApplication.page = 2'); await espera(300);
+  win.liberadopdfEdiciones = true;
   const relanzar = new Promise(res => eventosHumo.once('relanzar', res));
-  await js(`window.liberadopdf.cambiarIdioma(${JSON.stringify(otro)})`, true);
+  await js(`window.liberadopdf.cambiarIdioma(${JSON.stringify(otro)}, PDFViewerApplication.page)`, true);
   r.relanzado = await Promise.race([relanzar, espera(5000).then(() => null)]);
   r.idiomaGuardado = JSON.parse(readFileSync(path.join(salida, 'datos', 'config.json'), 'utf8')).idioma;
   const en = esperado === 'en';
@@ -1056,8 +1059,8 @@ async function faseIdioma({ ruta, preload, salida }) {
     && (en ? /Previous/ : /anterior/).test(r.pdfjs ?? '')
     && r.ayuda === (en ? 'liberadoPDF keys' : 'Teclas de liberadoPDF')
     && r.numerarTitulo === (en ? 'Page numbers' : 'Números de página') && r.numerarFormato === (en ? 'Page {n} / {total}' : 'Página {n} / {total}')
-    && r.inicio === (en ? 'Open PDF' : 'Abrir PDF') && (en ? /^Saved in / : /^Guardado en /).test(r.toast ?? '')
-    && r.idiomaGuardado === otro && Array.isArray(r.relanzado?.args) && r.relanzado.args.includes(ruta);
+    && r.inicio === (en ? 'Open PDF' : 'Abrir PDF') && (en ? /^Saved to / : /^Guardado en /).test(r.toast ?? '')
+    && r.idiomaGuardado === otro && Array.isArray(r.relanzado?.args) && r.relanzado.args.includes(ruta) && r.relanzado.args.includes('--pagina=2') && r.relanzado.conEdiciones === true;
   return r;
 }
 
@@ -1079,6 +1082,8 @@ async function faseVideo({ ruta, preload, salida }) {
       dentro: cr.left >= pr.left - 2 && cr.top >= pr.top - 2 && cr.right <= pr.right + 2 && cr.bottom <= pr.bottom + 2 && cr.width > 40 && cr.height > 40 };
   })()`).then(JSON.stringify).then(JSON.parse);
   const bien = e => Boolean(e?.existe && e.readyState >= 2 && e.paused === false && e.muted === true && e.avanza && e.dentro);
+  // La configuración de prueba apaga el autoarranque: Screen (sin opciones propias) queda en pausa; \\movie y media9 arrancan por su anotación.
+  const bienParado = e => Boolean(e?.existe && e.readyState >= 2 && e.paused === true && e.muted === true && e.dentro);
   const { win, js, presentar } = abrirVentanaDePrueba({ ruta, preload, salida });
   await esperarEvento('primera-pagina', 15_000);
   win.show(); win.focus();
@@ -1091,10 +1096,23 @@ async function faseVideo({ ruta, preload, salida }) {
   await js('PDFViewerApplication.page = 1'); await espera(800);
   r.zoom = await estadoVideo(js, 1);
   r.presentacion = (await presentar()) ? await estadoVideo(js, 1) : null;
+  // Clic sobre el video en presentación: pausa (y no pasa de lámina); otro clic reanuda.
+  const centro = JSON.parse(await js(`JSON.stringify((r => ({ x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2) }))(document.querySelector('.page[data-page-number="1"] .liberadopdf-video').getBoundingClientRect()))`));
+  const clic = () => { win.webContents.sendInputEvent({ type: 'mouseDown', x: centro.x, y: centro.y, button: 'left', clickCount: 1 }); win.webContents.sendInputEvent({ type: 'mouseUp', x: centro.x, y: centro.y, button: 'left', clickCount: 1 }); };
+  clic(); await espera(600);
+  r.clic1 = { pagina: await js('PDFViewerApplication.page'), paused: await js(`document.querySelector('.page[data-page-number="1"] .liberadopdf-video video')?.paused`) };
+  clic(); await espera(600);
+  r.clic2 = { pagina: await js('PDFViewerApplication.page'), paused: await js(`document.querySelector('.page[data-page-number="1"] .liberadopdf-video video')?.paused`) };
   const { js: js2 } = abrirVentanaDePrueba({ ruta: process.env.LIBERADOPDF_HUMO_VIDEO_SCREEN, preload, salida });
   await esperarEvento('primera-pagina', 15_000);
   r.screen = await estadoVideo(js2, 1);
-  r.ok = bien(r.externo) && bien(r.incrustado) && Boolean(r.inexistente?.existe && /no_existe\.mp4/.test(r.inexistente.aviso ?? '')) && bien(r.zoom) && bien(r.presentacion) && bien(r.screen);
+  // La caja debe medir lo que el /Rect [100 40 350 180] a la escala del viewport: 250×140 pt.
+  const escala = Number(await js2('PDFViewerApplication.pdfViewer.getPageView(0).viewport.scale'));
+  r.screenCajaEsperada = [Math.round(250 * escala), Math.round(140 * escala)];
+  r.screenCajaOk = Boolean(r.screen?.caja) && Math.abs(r.screen.caja[0] - r.screenCajaEsperada[0]) <= 3 && Math.abs(r.screen.caja[1] - r.screenCajaEsperada[1]) <= 3;
+  r.ok = bien(r.externo) && bien(r.incrustado) && Boolean(r.inexistente?.existe && /no_existe\.mp4/.test(r.inexistente.aviso ?? '')) && bien(r.zoom) && bien(r.presentacion)
+    && r.clic1.pagina === 1 && r.clic1.paused === true && r.clic2.pagina === 1 && r.clic2.paused === false
+    && bienParado(r.screen) && r.screenCajaOk;
   return r;
 }
 

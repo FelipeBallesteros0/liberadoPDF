@@ -10,7 +10,7 @@ import { instalarIpc } from './ipc.js';
 import { carpetaDatos, puedeEscribirCarpeta, cargarConfig, guardarConfig, archivoConfig } from './config.js';
 import { ejecutarHumo } from './humo.js';
 import { normalizarConfig } from '../comun/config.mjs';
-import { crearTraductor, claveDeIdioma } from '../comun/i18n.mjs';
+import { crearTraductor, claveDeIdioma, crearTraductorDeMensajes } from '../comun/i18n.mjs';
 
 const raiz = app.getAppPath(); // carpeta del proyecto en desarrollo; app.asar empaquetada
 const preload = path.join(raiz, 'src', 'preload', 'preload.cjs');
@@ -60,6 +60,7 @@ if (!process.env.LIBERADOPDF_HUMO && !app.requestSingleInstanceLock()) {
   // Idioma efectivo (configuración, o LIBERADOPDF_IDIOMA en humo); el de pdf.js y Electron se fija aquí, antes de `ready`.
   const idioma = claveDeIdioma(obtenerConfig(), process.env);
   const t = crearTraductor(idioma);
+  const traducirMensaje = crearTraductorDeMensajes(t);
   usarTraductor(t);
   app.commandLine.appendSwitch('lang', idioma === 'es' ? 'es-ES' : 'en-US');
   const guardar = (nueva) => {
@@ -96,17 +97,17 @@ if (!process.env.LIBERADOPDF_HUMO && !app.requestSingleInstanceLock()) {
   app.whenReady().then(() => {
     instalarProtocolo({ raices });
     instalarGuardado();
-    instalarIpc({ idioma, t, obtenerConfig, obtenerConfigBase, guardar, abrirEnNueva: abrirNueva, alCambiarRecientes: menu, preload });
+    instalarIpc({ idioma, t, traducirMensaje, obtenerConfig, obtenerConfigBase, guardar, abrirEnNueva: abrirNueva, alCambiarRecientes: menu, preload });
     menu();
     if (process.env.LIBERADOPDF_HUMO) {
       ejecutarHumo({ ruta: process.env.LIBERADOPDF_PDF, salida: process.env.LIBERADOPDF_HUMO, fase: process.env.LIBERADOPDF_HUMO_FASE || 'basica', preload });
       return;
     }
-    abrirDesdeArgumentos({ argv: process.argv, cwd: process.cwd(), empaquetada: app.isPackaged, preload });
+    abrirDesdeArgumentos({ argv: process.argv, cwd: process.cwd(), empaquetada: app.isPackaged, preload, traducir: traducirMensaje });
   });
 
   app.on('second-instance', (evento, argv, directorio) => {
-    const { ventanas } = abrirDesdeArgumentos({ argv, cwd: directorio, empaquetada: app.isPackaged, preload });
+    const { ventanas } = abrirDesdeArgumentos({ argv, cwd: directorio, empaquetada: app.isPackaged, preload, traducir: traducirMensaje });
     ventanas[0]?.focus();
   });
 

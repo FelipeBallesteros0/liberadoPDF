@@ -32,14 +32,17 @@ export function instalarAjustes({ obtenerConfig, guardar, aplicar, pantallas, do
       for (const [v, etiqueta] of opciones) {
         const opcion = document.createElement('option');
         opcion.value = v;
-        opcion.textContent = t(etiqueta);
+        opcion.textContent = campo.clave === 'idioma' ? etiqueta : t(etiqueta); // el selector de idioma muestra endónimos
         entrada.append(opcion);
       }
       entrada.value = String(valor ?? 'auto');
     }
     entrada.addEventListener('change', () => {
       const nuevo = entrada.type === 'checkbox' ? entrada.checked : entrada.value;
-      if (campo.ruta === 'idioma') { window.liberadopdf.cambiarIdioma(nuevo); return; } // guarda y relanza con el mismo documento
+      if (campo.ruta === 'idioma') { // guarda y relanza con el mismo documento y la misma página; si se cancela, el selector vuelve atrás
+        window.liberadopdf.cambiarIdioma(nuevo, globalThis.PDFViewerApplication?.page ?? null).then(ok => { if (!ok) entrada.value = obtenerConfig().idioma; });
+        return;
+      }
       const config = escribirCampo(obtenerConfig(), campo.ruta, nuevo);
       guardar(config);
       aplicar(config);
@@ -95,7 +98,7 @@ export function instalarAjustes({ obtenerConfig, guardar, aplicar, pantallas, do
     restablecer.textContent = t('Restablecer');
     restablecer.addEventListener('click', () => {
       const actual = obtenerConfig();
-      const config = { ...valoresPorDefecto(), recientes: actual.recientes, barra: actual.barra, porDocumento: actual.porDocumento };
+      const config = { ...valoresPorDefecto(), recientes: actual.recientes, barra: actual.barra, porDocumento: actual.porDocumento, idioma: actual.idioma }; // el idioma solo cambia relanzando
       guardar(config);
       aplicar(config);
       cerrar();

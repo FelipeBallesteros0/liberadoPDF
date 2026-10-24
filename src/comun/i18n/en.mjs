@@ -31,7 +31,7 @@ export const en = {
   'Transiciones entre páginas (/Trans del PDF)': 'Page transitions (/Trans in the PDF)', 'Color de fondo en presentación': 'Background color in presentation',
   'Ocultar el cursor tras 2 s sin moverlo': 'Hide the cursor after 2 s without moving it', 'Pantalla de la presentación': 'Presentation display',
   'Pantalla de la vista de presentador': 'Presenter view display', 'Unidad de medida': 'Measurement unit', 'milímetros': 'millimeters', 'centímetros': 'centimeters', 'pulgadas': 'inches',
-  'Modo nocturno (colores invertidos)': 'Night mode (inverted colors)', 'Tema de la interfaz': 'Interface theme', 'Como el sistema': 'Like the system', 'Claro': 'Light', 'Oscuro': 'Dark',
+  'Modo nocturno (colores invertidos)': 'Night mode (inverted colors)', 'Tema de la interfaz': 'Interface theme', 'Como el sistema': 'Same as the system', 'Claro': 'Light', 'Oscuro': 'Dark',
   'Idioma / Language': 'Language / Idioma', 'Videos del PDF: reproducir solos': 'PDF videos: play automatically', 'Videos del PDF: en bucle': 'PDF videos: loop',
   'Pantallas': 'Displays', 'Apariencia y herramientas': 'Appearance and tools',
   // Ayuda (F1)
@@ -50,7 +50,7 @@ export const en = {
   'Texto': 'Text', 'Posición': 'Position', 'Tamaño (pt)': 'Size (pt)', 'Número de la primera página': 'Number of the first page', 'Páginas': 'Pages',
   'Abajo, centro': 'Bottom, center', 'Abajo, derecha': 'Bottom, right', 'Abajo, izquierda': 'Bottom, left', 'Arriba, centro': 'Top, center', 'Arriba, derecha': 'Top, right', 'Arriba, izquierda': 'Top, left',
   'Página {n} / {total}': 'Page {n} / {total}', '{n} páginas numeradas': '{n} pages numbered', 'numerado': 'numbered',
-  'Guardado en {ruta}': 'Saved in {ruta}',
+  'Guardado en {ruta}': 'Saved to {ruta}',
 
   // Ventanas nativas
   'Cambios sin guardar': 'Unsaved changes', 'Hay anotaciones o campos modificados sin guardar.': 'There are unsaved annotations or modified fields.',
@@ -139,6 +139,12 @@ export const en = {
   'Imagen {i} de {n} ({ancho}×{alto})…': 'Image {i} of {n} ({ancho}×{alto})…', 'Comprimir': 'Compress', 'Reduce las fotos (JPEG) y recomprime la estructura con qpdf. El texto y los dibujos no cambian. Si no se consigue reducir, no se guarda nada.': 'Shrinks the photos (JPEG) and recompresses the structure with qpdf. Text and drawings do not change. If it cannot be reduced, nothing is saved.',
   'Calidad de las imágenes': 'Image quality', 'Alta (mismo tamaño, JPEG 85 %)': 'High (same size, JPEG 85 %)', 'Media (70 % del tamaño, JPEG 70 %)': 'Medium (70 % of the size, JPEG 70 %)', 'Baja (mitad del tamaño, JPEG 50 %)': 'Low (half the size, JPEG 50 %)',
   'Buscando imágenes…': 'Looking for images…',
+  // Teclas de la ayuda (columna izquierda) y mensajes de ruta
+  '→ ↓ PgDn Espacio Enter': '→ ↓ PgDn Space Enter', '← ↑ PgUp Retroceso': '← ↑ PgUp Backspace', 'Mayús + → / ←': 'Shift + → / ←', 'Inicio / Fin': 'Home / End',
+  'Ctrl + S / Ctrl + Mayús + G': 'Ctrl + S / Ctrl + Shift + G', 'Ctrl + Mayús + S': 'Ctrl + Shift + S', 'Ctrl + Mayús + P': 'Ctrl + Shift + P',
+  'Esc': 'Esc', 'T': 'T', 'B / W': 'B / W', 'L / S / D': 'L / S / D', 'G / Tab': 'G / Tab', 'N': 'N', 'Ctrl + O / Ctrl + N': 'Ctrl + O / Ctrl + N', 'Ctrl + ,': 'Ctrl + ,', 'Ctrl + F': 'Ctrl + F', 'Ctrl + P': 'Ctrl + P', 'F1': 'F1',
+  'Ruta no válida': 'Invalid path', 'No existe el archivo': 'The file does not exist', 'No es un PDF': 'Not a PDF', 'English': 'English',
+  'Si cambias el idioma ahora se perderán. Pulsa Cancelar y usa Guardar (Ctrl+S) para conservarlos.': 'If you change the language now they will be lost. Press Cancel and use Save (Ctrl+S) to keep them.', 'Cambiar de idioma': 'Change language',
   // Video
   'Videos del PDF': 'PDF videos', 'Se reproducen solos, sin audio, sobre su rectángulo (Movie, Screen y RichMedia/media9); clic para pausar o reanudar; opciones en Ajustes': 'They play by themselves, without audio, on their rectangle (Movie, Screen and RichMedia/media9); click to pause or resume; options in Settings',
   'Video en un formato que no se puede reproducir': 'Video in a format that cannot be played', 'No se encontró el video «{archivo}» junto al PDF': 'The video «{archivo}» was not found next to the PDF', 'Reescribiendo el PDF…': 'Rewriting the PDF…', 'No se pudo reducir ({informe}).': 'Could not reduce ({informe}).', '{n} imágenes recodificadas': '{n} images re-encoded',

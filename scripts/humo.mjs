@@ -35,7 +35,7 @@ const FASES = [
   { nombre: 'rotar', env: { LIBERADOPDF_HUMO_GUARDAR: path.join(carpetaHumo, 'rotar', 'rotado.pdf') } },
   { nombre: 'cifrado', env: {} },
   { nombre: 'organizar', env: {} },
-  { nombre: 'video', env: { LIBERADOPDF_PDF: path.join(raiz, 'recursos', 'ejemplo_video.pdf'), LIBERADOPDF_HUMO_VIDEO_SCREEN: videoScreen } },
+  { nombre: 'video', env: { LIBERADOPDF_PDF: path.join(raiz, 'recursos', 'ejemplo_video.pdf'), LIBERADOPDF_HUMO_VIDEO_SCREEN: videoScreen, LIBERADOPDF_CONFIG_PRUEBA: JSON.stringify({ video: { autoarranque: false } }) } },
   { nombre: 'idioma', env: { LIBERADOPDF_IDIOMA: '', LIBERADOPDF_HUMO_GUARDAR: path.join(carpetaHumo, 'idioma', 'rotado.pdf') } },
   { nombre: 'idiomaEs', fase: 'idioma', env: { LIBERADOPDF_IDIOMA: '', LIBERADOPDF_HUMO_IDIOMA_ESPERADO: 'es', LIBERADOPDF_CONFIG_PRUEBA: JSON.stringify({ idioma: 'es' }), LIBERADOPDF_HUMO_GUARDAR: path.join(carpetaHumo, 'idiomaEs', 'rotado.pdf') } },
   { nombre: 'comprimir', env: { LIBERADOPDF_PDF: path.join(raiz, 'recursos', 'ejemplo_fotos.pdf'), LIBERADOPDF_HUMO_OPTIMIZADO: optimizadoPrueba, LIBERADOPDF_HUMO_GUARDAR: path.join(carpetaHumo, 'comprimir', 'comprimido.pdf') } },

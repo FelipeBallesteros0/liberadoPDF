@@ -9,6 +9,13 @@ export function errorDeRutaPdf(ruta, existe) {
   return null;
 }
 
+// `--pagina=N` (lo pone el relanzado por cambio de idioma): página en la que abrir el primer documento.
+export function paginaDeArgumentos(argv) {
+  const m = (argv ?? []).map(String).find(a => /^--pagina=\d+$/.test(a));
+  const n = m ? Number(m.split('=')[1]) : 0;
+  return n > 0 ? n : null;
+}
+
 export function rutasDeArgumentos(argv, { empaquetada, existe, cwd }) {
   // argv[0] es el ejecutable; en desarrollo argv[1] es la ruta del proyecto ("." con `electron .`)
   const candidatos = argv.slice(empaquetada ? 1 : 2).filter(a => typeof a === 'string' && a.length > 0 && !a.startsWith('-'));

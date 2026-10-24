@@ -39,3 +39,19 @@ test('una operación normal resuelve con el resultado y el progreso llega al oye
   assert.equal(await p, 'hola');
   assert.deepEqual(progresos, [{ hecho: 1, total: 2 }]);
 });
+
+test('si el worker falla, las pendientes se rechazan y la siguiente operación crea un worker nuevo', async () => {
+  let creados = 0;
+  const fabricar = () => { creados++; return workerFalso(); };
+  const cliente = crearCliente({ crearWorker: fabricar });
+  const p = cliente.ejecutar('eco', {});
+  await new Promise(r => setTimeout(r, 0));
+  assert.equal(creados, 1);
+  // el primer worker muere
+  const primero = cliente.worker();
+  primero.onerror({ message: 'sin memoria' });
+  await assert.rejects(p, /sin memoria/);
+  cliente.ejecutar('eco', {});
+  await new Promise(r => setTimeout(r, 0));
+  assert.equal(creados, 2);
+});

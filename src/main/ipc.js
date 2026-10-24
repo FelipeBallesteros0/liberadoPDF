@@ -15,7 +15,7 @@ import { elegirPantallas } from '../comun/pantallas.mjs';
 export const eventosHumo = new EventEmitter();
 const ENLACE_EXTERNO = /^(https?:|mailto:)/i;
 
-export function instalarIpc({ idioma = 'en', t = x => x, obtenerConfig, obtenerConfigBase = obtenerConfig, guardar, abrirEnNueva, alCambiarRecientes = () => {}, preload }) {
+export function instalarIpc({ idioma = 'en', t = x => x, traducirMensaje = x => x, obtenerConfig, obtenerConfigBase = obtenerConfig, guardar, abrirEnNueva, alCambiarRecientes = () => {}, preload }) {
   const ventanaDe = evento => BrowserWindow.fromWebContents(evento.sender);
   const pantallasSimples = () => { const principal = screen.getPrimaryDisplay().id; return screen.getAllDisplays().map(d => ({ id: d.id, principal: d.id === principal })); };
   const pantallaPorId = id => screen.getAllDisplays().find(d => d.id === id);
@@ -44,11 +44,11 @@ export function instalarIpc({ idioma = 'en', t = x => x, obtenerConfig, obtenerC
   // la pantalla de inicio con el motivo. Así un renderer comprometido tampoco puede pedir archivos arbitrarios.
   ipcMain.handle('abrir-en-esta', (evento, ruta) => {
     const error = errorDeRutaPdf(ruta, existsSync);
-    if (error) abrirInicioEnVentana(ventanaDe(evento), error); else abrirEnVentana(ventanaDe(evento), ruta);
+    if (error) abrirInicioEnVentana(ventanaDe(evento), traducirMensaje(error)); else abrirEnVentana(ventanaDe(evento), ruta);
   });
   ipcMain.handle('abrir-en-nueva', (evento, ruta) => {
     const error = errorDeRutaPdf(ruta, existsSync);
-    if (error) abrirInicioEnVentana(ventanaDe(evento), error); else abrirEnNueva(ruta);
+    if (error) abrirInicioEnVentana(ventanaDe(evento), traducirMensaje(error)); else abrirEnNueva(ruta);
   });
   // Modo del próximo guardado que pedirá pdf.js (Ctrl+S → sobrescribir; botón o Guardar como → diálogo)
   ipcMain.handle('modo-guardado', (evento, modo) => {
@@ -230,12 +230,25 @@ export function instalarIpc({ idioma = 'en', t = x => x, obtenerConfig, obtenerC
     evento.returnValue = { tema: tema === 'claro' ? 1 : tema === 'oscuro' ? 2 : 0, idioma };
   });
   // Cambiar de idioma: se guarda y la app se relanza con el mismo documento (pdf.js solo cambia de idioma al arrancar).
-  ipcMain.handle('cambiar-idioma', (evento, nuevo) => {
+  ipcMain.handle('cambiar-idioma', async (evento, nuevo, pagina) => {
     if (!['en', 'es'].includes(nuevo)) return false;
+    const win = ventanaDe(evento);
+    // Todas las ventanas con documento se reabren tras el relanzado; la que pidió el cambio va primera y en su página.
+    const conDocumento = BrowserWindow.getAllWindows().filter(w => w.liberadopdfRuta && !w.liberadopdfVisor);
+    const conEdiciones = conDocumento.some(w => w.liberadopdfEdiciones);
+    if (conEdiciones && !process.env.LIBERADOPDF_HUMO) {
+      const { response } = await dialog.showMessageBox(win, {
+        type: 'warning', title: t('Cambios sin guardar'), message: t('Hay anotaciones o campos modificados sin guardar.'),
+        detail: t('Si cambias el idioma ahora se perderán. Pulsa Cancelar y usa Guardar (Ctrl+S) para conservarlos.'),
+        buttons: [t('Cambiar de idioma'), t('Cancelar')], defaultId: 1, cancelId: 1, noLink: true,
+      });
+      if (response !== 0) return false;
+    }
     guardar(fusionarConfigGuardada(obtenerConfigBase(), { idioma: nuevo }));
-    const ruta = ventanaDe(evento)?.liberadopdfRuta;
-    const args = [...process.argv.slice(1).filter(a => !/\.pdf$/i.test(a)), ...(ruta ? [ruta] : [])];
-    if (process.env.LIBERADOPDF_HUMO) { eventosHumo.emit('relanzar', { args }); return true; }
+    const rutas = [...new Set([win?.liberadopdfRuta, ...conDocumento.map(w => w.liberadopdfRuta)].filter(Boolean))];
+    const paginaValida = Number.isInteger(pagina) && pagina > 0 && win?.liberadopdfRuta ? pagina : null;
+    const args = [...process.argv.slice(1).filter(a => !/\.pdf$/i.test(a) && !/^--pagina=/.test(a)), ...rutas, ...(paginaValida ? [`--pagina=${paginaValida}`] : [])];
+    if (process.env.LIBERADOPDF_HUMO) { eventosHumo.emit('relanzar', { args, conEdiciones }); return true; }
     app.relaunch({ args });
     app.exit(0);
     return true;

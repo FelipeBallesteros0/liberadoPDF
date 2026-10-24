@@ -77,10 +77,11 @@ export function urlDeToken(token) { return `${ESQUEMA}://${HOST}/pdf/${token}`; 
 
 // El visor es el viewer.html de pdf.js tal cual: sus rutas relativas (../build, locale/, ../web/cmaps)
 // se resuelven contra esta URL. La ruta real viaja en `ruta` (pdf.js ignora los parámetros que no conoce).
-export function urlVisor(ruta) {
+export function urlVisor(ruta, pagina = null) {
   const token = registrarPdf(ruta);
   const archivo = encodeURIComponent(`${ESQUEMA}://${HOST}/pdf/${token}`);
-  return `${ESQUEMA}://${HOST}/vendor/pdfjs/web/viewer.html?file=${archivo}&ruta=${encodeURIComponent(ruta)}#zoom=page-fit`;
+  const hash = Number.isInteger(pagina) && pagina > 0 ? `#page=${pagina}&zoom=page-fit` : '#zoom=page-fit';
+  return `${ESQUEMA}://${HOST}/vendor/pdfjs/web/viewer.html?file=${archivo}&ruta=${encodeURIComponent(ruta)}${hash}`;
 }
 
 export function urlInicio(mensaje) {

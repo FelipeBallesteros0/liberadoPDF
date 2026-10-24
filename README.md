@@ -142,7 +142,7 @@ En Linux/WSLg Electron se lanza con `ELECTRON_DISABLE_SANDBOX=1` (lo ponen `npm 
 ```bash
 npm install
 npm test            # pruebas unitarias (node --test)
-npm run humo        # prueba de humo (40 fases): visor, presentación, presentador, idioma, video y una fase por herramienta; genera sus PDF de prueba
+npm run humo        # prueba de humo (39 fases): visor, presentación, presentador, idioma, video y una fase por herramienta; genera sus PDF de prueba
 npm run construir   # dist/liberadoPDF-win32-x64/ y dist/liberadoPDF-win32-x64.zip
 scripts/humo_windows.sh                                         # prueba de humo sobre el .exe, lanzado desde WSL
 scripts/humo_windows.sh presentacionAnimada "ruta/al/pdf" 11    # ¿la animación de la página 11 corre en presentación?

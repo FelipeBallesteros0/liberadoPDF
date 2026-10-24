@@ -95,7 +95,7 @@ Requirements: Node 24, a display (WSLg) for the smoke test, Python 3 with Pillow
 ```bash
 npm install
 npm test            # unit tests (node --test)
-npm run humo        # smoke test (40 phases) under WSLg
+npm run humo        # smoke test (39 phases) under WSLg
 npm run construir   # dist/liberadoPDF-win32-x64/ and the .zip
 scripts/humo_windows.sh [phase] [pdf] [page]   # smoke phases on the real .exe, launched from WSL
 ```

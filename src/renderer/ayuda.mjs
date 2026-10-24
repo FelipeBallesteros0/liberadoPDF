@@ -1,7 +1,7 @@
 // Ayuda de teclas (F1): tabla fija en español según §4.5 del diseño.
 import { raizDeCapas } from './capas.mjs';
 import { t } from './i18n.mjs';
-const FILAS = [
+export const FILAS = [
   ['→ ↓ PgDn Espacio Enter', 'Página siguiente'],
   ['← ↑ PgUp Retroceso', 'Página anterior'],
   ['Mayús + → / ←', 'Lámina siguiente / anterior (salta los pasos)'],

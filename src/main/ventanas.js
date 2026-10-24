@@ -8,7 +8,7 @@ const ENLACE_EXTERNO = /^(https?:|mailto:)/i;
 let t = x => x;
 export function usarTraductor(fn) { t = fn; }
 
-export function crearVentana({ ruta, preload, mensaje }) {
+export function crearVentana({ ruta, preload, mensaje, pagina = null }) {
   const win = new BrowserWindow({
     width: 1280,
     height: 800,
@@ -53,7 +53,7 @@ export function crearVentana({ ruta, preload, mensaje }) {
   win.on('enter-html-full-screen', () => win.setMenuBarVisibility(false));
   win.on('leave-html-full-screen', () => win.setMenuBarVisibility(true));
   win.liberadopdfRuta = ruta ?? null;
-  win.loadURL(ruta ? urlVisor(ruta) : urlInicio(mensaje));
+  win.loadURL(ruta ? urlVisor(ruta, pagina) : urlInicio(mensaje));
   return win;
 }
 

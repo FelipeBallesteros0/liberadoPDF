@@ -17,7 +17,7 @@ export function crearCliente({ crearWorker = () => new Worker('/herramientas/tra
       else if (data.cancelado) p.rechazar(cancelacion());
       else p.resolver(data.resultado);
     };
-    worker.onerror = (e) => { for (const p of pendientes.values()) p.rechazar(new Error(e.message || 'El worker falló')); pendientes.clear(); };
+    worker.onerror = (e) => { for (const p of pendientes.values()) p.rechazar(new Error(e.message || 'El worker falló')); pendientes.clear(); worker = null; }; // la próxima operación crea otro
     return worker;
   };
 
@@ -37,5 +37,5 @@ export function crearCliente({ crearWorker = () => new Worker('/herramientas/tra
     return resultado;
   };
 
-  return { ejecutar, terminar: () => { worker?.terminate(); worker = null; pendientes.clear(); } };
+  return { ejecutar, terminar: () => { worker?.terminate(); worker = null; pendientes.clear(); }, worker: () => worker };
 }

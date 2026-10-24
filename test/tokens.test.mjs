@@ -25,3 +25,12 @@ test('volver a registrar una ruta la renueva (no se olvida antes que las recién
   const a = r.registrar('/a'); r.registrar('/b'); r.registrar('/a'); r.registrar('/c');
   assert.equal(r.rutaDe(a), '/a');
 });
+
+test('consultar un token lo renueva: el documento abierto no se expulsa por registrar muchos archivos', () => {
+  const r = crearRegistroDeTokens({ maximo: 2 });
+  const abierto = r.registrar('/abierto.pdf');
+  r.registrar('/b');
+  assert.equal(r.rutaDe(abierto), '/abierto.pdf'); // uso → renovado
+  r.registrar('/c'); // expulsa /b, no /abierto.pdf
+  assert.equal(r.rutaDe(abierto), '/abierto.pdf');
+});

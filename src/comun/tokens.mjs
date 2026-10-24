@@ -13,5 +13,7 @@ export function crearRegistroDeTokens({ maximo = 500, generar = () => Array.from
     while (porToken.size > maximo) { const [viejo, rutaVieja] = porToken.entries().next().value; porToken.delete(viejo); porRuta.delete(rutaVieja); }
     return token;
   };
-  return { registrar, rutaDe: token => porToken.get(token), tamano: () => porToken.size };
+  // Consultar un token lo renueva: el documento abierto (que se consulta al leerlo) no se expulsa por registrar otros.
+  const rutaDe = (token) => { const ruta = porToken.get(token); if (ruta !== undefined) { porToken.delete(token); porToken.set(token, ruta); } return ruta; };
+  return { registrar, rutaDe, tamano: () => porToken.size };
 }

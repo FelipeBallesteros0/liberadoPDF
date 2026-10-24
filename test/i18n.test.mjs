@@ -2,7 +2,11 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
-import { crearTraductor, IDIOMAS, claveDeIdioma } from '../src/comun/i18n.mjs';
+import * as i18nModulo from '../src/comun/i18n.mjs';
+import { fileURLToPath } from 'node:url';
+import { CAMPOS } from '../src/comun/ajustes.mjs';
+import { FILAS } from '../src/renderer/ayuda.mjs';
+const { crearTraductor, IDIOMAS, claveDeIdioma } = i18nModulo;
 import { en } from '../src/comun/i18n/en.mjs';
 
 test('crearTraductor: en inglés traduce, en español devuelve el texto, y una clave ausente queda en español', () => {
@@ -16,7 +20,7 @@ test('crearTraductor: en inglés traduce, en español devuelve el texto, y una c
 test('t sustituye parámetros {clave} en los dos idiomas', () => {
   assert.equal(crearTraductor('en')('Página {n} / {total}', { n: 2, total: 4 }), 'Page 2 / 4');
   assert.equal(crearTraductor('es')('Página {n} / {total}', { n: 2, total: 4 }), 'Página 2 / 4');
-  assert.equal(crearTraductor('en')('Guardado en {ruta}', { ruta: 'C:\\x.pdf' }), 'Saved in C:\\x.pdf');
+  assert.equal(crearTraductor('en')('Guardado en {ruta}', { ruta: 'C:\\x.pdf' }), 'Saved to C:\\x.pdf');
 });
 
 test('IDIOMAS y claveDeIdioma (la variable de entorno solo manda en modo humo)', () => {
@@ -38,7 +42,7 @@ function archivosDe(carpeta) {
   return salida;
 }
 test('toda clave t(\'…\') del código tiene entrada en en.mjs', () => {
-  const raiz = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..', 'src');
+  const raiz = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'src');
   const faltan = new Set();
   let usadas = 0;
   for (const archivo of archivosDe(raiz)) {
@@ -51,3 +55,26 @@ test('toda clave t(\'…\') del código tiene entrada en en.mjs', () => {
   }
   assert.deepEqual([...faltan], [], `${faltan.size} claves sin traducción (de ${usadas})`);
 });
+
+// Las tablas de datos cuyas cadenas pasan por t() en tiempo de ejecución (no como literal t('…')) también deben estar.
+test('las tablas de datos (ayuda, ajustes, mensajes de ruta) tienen sus claves en en.mjs', () => {
+  const claves = [];
+  for (const [tecla, que] of FILAS) claves.push(tecla, que);
+  for (const campo of CAMPOS) {
+    claves.push(campo.etiqueta, campo.seccion);
+    if (campo.opciones && campo.clave !== 'idioma') for (const [, etiqueta] of campo.opciones) claves.push(etiqueta); // el selector de idioma muestra endónimos
+  }
+  claves.push('Ruta no válida', 'No existe el archivo', 'No es un PDF', 'Automático');
+  const faltan = claves.filter(c => !(c in en));
+  assert.deepEqual(faltan, [], `${faltan.length} claves de tablas sin traducción`);
+});
+
+test('crearTraductorDeMensajes traduce el mensaje entero o la parte fija antes de «: »', () => {
+  const { crearTraductorDeMensajes } = awaitImport();
+  const tm = crearTraductorDeMensajes(crearTraductor('en'));
+  assert.equal(tm('Contraseña incorrecta'), 'Wrong password');
+  assert.equal(tm('No existe el archivo: C:\\x.pdf'), 'The file does not exist: C:\\x.pdf');
+  assert.equal(tm('texto sin traducción: detalle'), 'texto sin traducción: detalle');
+  assert.equal(crearTraductorDeMensajes(crearTraductor('es'))('No existe el archivo: /x'), 'No existe el archivo: /x');
+});
+function awaitImport() { return i18nModulo; }
