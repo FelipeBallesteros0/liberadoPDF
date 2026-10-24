@@ -145,3 +145,8 @@
 @keyframes liberadopdf-salir-90 { to { transform: translateY(-100%); } }
 @keyframes liberadopdf-salir-180 { to { transform: translateX(-100%); } }
 @keyframes liberadopdf-salir-270 { to { transform: translateY(100%); } }
+
+/* Puntero láser, foco y dibujo */
+.liberadopdf-laser { position: fixed; z-index: 10006; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%; background: #ff2020; box-shadow: 0 0 10px 3px rgba(255, 32, 32, 0.7); pointer-events: none; transition: opacity 0.3s; }
+.liberadopdf-foco { position: fixed; inset: 0; z-index: 10005; background: radial-gradient(circle at var(--x, 50%) var(--y, 50%), transparent 0, transparent 110px, rgba(0, 0, 0, 0.78) 140px); cursor: none; }
+.liberadopdf-dibujo { position: fixed; inset: 0; z-index: 10005; cursor: crosshair; }

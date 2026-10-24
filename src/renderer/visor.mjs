@@ -11,6 +11,7 @@ import { instalarAjustes } from '/ajustes.mjs';
 import { instalarNocturno } from '/nocturno.mjs';
 import { instalarInstantanea, mostrarToast } from '/instantanea.mjs';
 import { instalarTransiciones } from '/transiciones.mjs';
+import { instalarPunteros } from '/punteros.mjs';
 
 const app = window.PDFViewerApplication;
 const parametros = new URLSearchParams(location.search);
@@ -55,6 +56,11 @@ const acciones = {
   nocturno() { nocturno.alternar(); },
   instantanea() { if (modoActual() === 'ventana') instantanea.iniciar(); },
   ajustes() { ajustes.abrir(); },
+  laser() { punteros.laser(); },
+  foco() { punteros.foco(); },
+  dibujo() { punteros.dibujo(); },
+  limpiarDibujo() { punteros.limpiar(); },
+  deshacerDibujo() { punteros.deshacer(); },
   async guardar() { await window.liberadopdf.modoGuardado('sobrescribir'); await guardarConPdfjs(); },
   async guardarComo() { await window.liberadopdf.modoGuardado('como'); await guardarConPdfjs(); },
   async abrir() { const r = await window.liberadopdf.abrirDialogo(); if (r) window.liberadopdf.abrirEnEstaVentana(r); },
@@ -78,6 +84,7 @@ aplicarTema(config.tema);
 const nocturno = instalarNocturno({ obtenerConfig, guardar: nueva => { config = nueva; window.liberadopdf.guardarConfig(nueva); } });
 const instantanea = instalarInstantanea();
 const transiciones = instalarTransiciones({ app, obtenerConfig, modoActual });
+const punteros = instalarPunteros({ app, modoActual });
 window.liberadopdfAplicarExtra = (nueva) => nocturno.aplicar(nueva.nocturno);
 // pdf.js: save() incorpora formularios y anotaciones; download() baja el original si no hay cambios.
 const guardarConPdfjs = async () => {

@@ -56,3 +56,13 @@ test('Ctrl+S guarda y Ctrl+Mayús+G guarda como, solo en ventana', () => {
   assert.equal(accionDeTecla(ev('G', { ctrlKey: true, shiftKey: true }), ventana).accion, 'guardarComo');
   assert.equal(accionDeTecla(ev('s', { ctrlKey: true }), presentacion), null);
 });
+
+test('L, S, D, C y Ctrl+Z solo en presentación', () => {
+  assert.equal(accionDeTecla(ev('l'), presentacion).accion, 'laser');
+  assert.equal(accionDeTecla(ev('s'), presentacion).accion, 'foco');
+  assert.equal(accionDeTecla(ev('d'), presentacion).accion, 'dibujo');
+  assert.equal(accionDeTecla(ev('c'), presentacion).accion, 'limpiarDibujo');
+  assert.equal(accionDeTecla(ev('z', { ctrlKey: true }), presentacion).accion, 'deshacerDibujo');
+  for (const k of ['l', 'd', 'c']) assert.equal(accionDeTecla(ev(k), ventana), null, k);
+  assert.equal(accionDeTecla(ev('z', { ctrlKey: true }), ventana), null);
+});

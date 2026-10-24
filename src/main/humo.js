@@ -169,13 +169,15 @@ async function fasePresentacionAnimada({ ruta, preload, salida }) {
   await js(`PDFViewerApplication.page = ${paginaAnimada}`);
   await espera(500);
   r.presentacion = await presentar();
-  await espera(1500);
-  const a = await win.webContents.capturePage();
-  await espera(400);
-  const b = await win.webContents.capturePage();
-  writeFileSync(path.join(salida, 'p1.png'), a.toPNG());
-  writeFileSync(path.join(salida, 'p2.png'), b.toPNG());
-  r.animacionEnPresentacion = difieren(a, b);
+  await espera(2000); // pdf.js vuelve a pintar la página a la escala de pantalla completa
+  const capturas = [];
+  for (let i = 0; i < 3; i++) {
+    if (i) await espera(400);
+    capturas.push(await win.webContents.capturePage());
+  }
+  writeFileSync(path.join(salida, 'p1.png'), capturas[0].toPNG());
+  writeFileSync(path.join(salida, 'p2.png'), capturas[2].toPNG());
+  r.animacionEnPresentacion = difieren(capturas[0], capturas[1]) || difieren(capturas[1], capturas[2]);
   r.ok = r.presentacion && r.animacionEnPresentacion;
   return r;
 }
@@ -336,7 +338,40 @@ async function faseTransiciones({ ruta, preload, salida }) {
   return r;
 }
 
-const FASES = { basica: faseBasica, bucle: faseBucle, inexistente: faseInexistente, presentacionAnimada: fasePresentacionAnimada, cierre: faseCierre, corrupto: faseCorrupto, ajustes: faseAjustes, nocturno: faseNocturno, instantanea: faseInstantanea, guardar: faseGuardar, transiciones: faseTransiciones };
+// Punteros: L sigue al ratón; D dibuja y el trazo se borra al cambiar de página.
+async function fasePunteros({ ruta, preload, salida }) {
+  const r = { laser: false, laserSigue: false, dibujo: false, trazo: false, borradoAlCambiar: false };
+  const { win, js, tecla, presentar } = abrirVentanaDePrueba({ ruta, preload, salida });
+  await esperarEvento('primera-pagina', 10_000);
+  win.show(); win.focus(); win.moveTop();
+  r.presentacion = await presentar();
+  const raton = (type, x, y) => win.webContents.sendInputEvent({ type, x, y, button: 'left', clickCount: 1 });
+  tecla('L');
+  await espera(200);
+  r.laser = Boolean(await js('document.querySelector(".liberadopdf-laser")'));
+  raton('mouseMove', 400, 300);
+  await espera(200);
+  const pos = JSON.parse(await js('JSON.stringify({ l: parseFloat(document.querySelector(".liberadopdf-laser")?.style.left), t: parseFloat(document.querySelector(".liberadopdf-laser")?.style.top) })'));
+  r.laserSigue = Math.abs(pos.l - 400) <= 2 && Math.abs(pos.t - 300) <= 2;
+  tecla('D');
+  await espera(200);
+  r.dibujo = Boolean(await js('document.querySelector("canvas.liberadopdf-dibujo")')) && !(await js('document.querySelector(".liberadopdf-laser")'));
+  raton('mouseDown', 200, 200); await espera(50);
+  raton('mouseMove', 250, 230); await espera(50);
+  raton('mouseMove', 300, 260); await espera(50);
+  raton('mouseUp', 300, 260);
+  await espera(200);
+  const pixel = () => js('(() => { const c = document.querySelector("canvas.liberadopdf-dibujo"); return c ? c.getContext("2d").getImageData(250, 230, 1, 1).data[3] : -1; })()');
+  r.trazo = (await pixel()) > 0;
+  const paginaAntes = await js('PDFViewerApplication.page');
+  tecla('Right');
+  await espera(400);
+  r.borradoAlCambiar = (await js('PDFViewerApplication.page')) === paginaAntes + 1 && (await pixel()) === 0;
+  r.ok = r.presentacion && r.laser && r.laserSigue && r.dibujo && r.trazo && r.borradoAlCambiar;
+  return r;
+}
+
+const FASES = { basica: faseBasica, bucle: faseBucle, inexistente: faseInexistente, presentacionAnimada: fasePresentacionAnimada, cierre: faseCierre, corrupto: faseCorrupto, ajustes: faseAjustes, nocturno: faseNocturno, instantanea: faseInstantanea, guardar: faseGuardar, transiciones: faseTransiciones, punteros: fasePunteros };
 
 export async function ejecutarHumo({ ruta, salida, fase, preload }) {
   mkdirSync(salida, { recursive: true });

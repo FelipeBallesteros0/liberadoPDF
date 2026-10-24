@@ -3,7 +3,7 @@
 
 const SIGUIENTE = new Set(['ArrowRight', 'ArrowDown', 'PageDown', ' ']);
 const ANTERIOR = new Set(['ArrowLeft', 'ArrowUp', 'PageUp', 'Backspace']);
-const ANULADAS_EN_PRESENTACION = new Set(['r', 'h', 's']); // rotar, mano y selección de pdf.js
+const ANULADAS_EN_PRESENTACION = new Set(['r', 'h']); // rotar y mano de pdf.js (s pasa a ser foco)
 
 export function accionDeTecla(ev, { modo, enEntrada, digitos = '' }) {
   const { key, shiftKey, ctrlKey, altKey, metaKey } = ev;
@@ -15,6 +15,7 @@ export function accionDeTecla(ev, { modo, enEntrada, digitos = '' }) {
     return null;
   }
   if (ctrlKey && !altKey && !metaKey && !shiftKey) {
+    if (minuscula === 'z' && modo === 'presentacion') return { accion: 'deshacerDibujo' };
     if (minuscula === 'o') return { accion: 'abrir' };
     if (minuscula === 's') return modo === 'ventana' ? { accion: 'guardar' } : null;
     if (minuscula === 'n') return { accion: 'abrirNueva' };
@@ -44,6 +45,10 @@ export function accionDeTecla(ev, { modo, enEntrada, digitos = '' }) {
     if (minuscula === 't') return { accion: 'reloj' };
     if (minuscula === 'b') return { accion: 'negro' };
     if (minuscula === 'w') return { accion: 'blanco' };
+    if (minuscula === 'l') return { accion: 'laser' };
+    if (minuscula === 's') return { accion: 'foco' };
+    if (minuscula === 'd') return { accion: 'dibujo' };
+    if (minuscula === 'c') return { accion: 'limpiarDibujo' };
     if (ANULADAS_EN_PRESENTACION.has(minuscula)) return { accion: 'nada' };
   }
   return null;
