@@ -19,11 +19,6 @@ export function estiloDeTransicion(t) {
   return {
     clase: 'liberadopdf-trans-' + t.tipo.toLowerCase(),
     duracionMs: Math.round(t.duracion * 1000),
-    variables: {
-      '--liberadopdf-trans-dir': `${t.direccion}deg`,
-      '--liberadopdf-trans-dim': t.dimension,
-      '--liberadopdf-trans-mov': t.movimiento,
-    },
   };
 }
 

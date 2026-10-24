@@ -1,6 +1,7 @@
 // Traducción de la interfaz: la clave es el texto en español y el diccionario da el inglés. Lógica pura.
 // Una clave sin traducción se muestra en español (nunca en blanco); `{clave}` se sustituye por el parámetro.
 import { en } from './i18n/en.mjs';
+import { singulares } from './i18n/singulares.mjs';
 
 export const IDIOMAS = ['en', 'es'];
 const DICCIONARIOS = { en, es: null };
@@ -8,8 +9,10 @@ const DICCIONARIOS = { en, es: null };
 export function crearTraductor(idioma, diccionarios = DICCIONARIOS) {
   const clave = IDIOMAS.includes(idioma) ? idioma : 'en';
   const dic = diccionarios[clave] ?? null;
+  const singular = singulares[clave] ?? {};
   return (texto, params = {}) => {
-    const base = dic && Object.hasOwn(dic, texto) ? dic[texto] : texto;
+    // Con n = 1 se usa la forma singular si existe (en los dos idiomas); si no, la traducción o el texto tal cual.
+    const base = params.n === 1 && Object.hasOwn(singular, texto) ? singular[texto] : dic && Object.hasOwn(dic, texto) ? dic[texto] : texto;
     return String(base).replace(/\{(\w+)\}/g, (m, k) => (k in params ? String(params[k]) : m));
   };
 }

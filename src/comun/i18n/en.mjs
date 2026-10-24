@@ -145,6 +145,7 @@ export const en = {
   'Esc': 'Esc', 'T': 'T', 'B / W': 'B / W', 'L / S / D': 'L / S / D', 'G / Tab': 'G / Tab', 'N': 'N', 'Ctrl + O / Ctrl + N': 'Ctrl + O / Ctrl + N', 'Ctrl + ,': 'Ctrl + ,', 'Ctrl + F': 'Ctrl + F', 'Ctrl + P': 'Ctrl + P', 'F1': 'F1',
   'Ruta no válida': 'Invalid path', 'No existe el archivo': 'The file does not exist', 'No es un PDF': 'Not a PDF', 'English': 'English',
   'Si cambias el idioma ahora se perderán. Pulsa Cancelar y usa Guardar (Ctrl+S) para conservarlos.': 'If you change the language now they will be lost. Press Cancel and use Save (Ctrl+S) to keep them.', 'Cambiar de idioma': 'Change language',
+  'El visor falló varias veces seguidas ({motivo}); vuelve a abrir el documento.': 'The viewer crashed several times in a row ({motivo}); open the document again.',
   // Video
   'Videos del PDF': 'PDF videos', 'Se reproducen solos, sin audio, sobre su rectángulo (Movie, Screen y RichMedia/media9); clic para pausar o reanudar; opciones en Ajustes': 'They play by themselves, without audio, on their rectangle (Movie, Screen and RichMedia/media9); click to pause or resume; options in Settings',
   'Video en un formato que no se puede reproducir': 'Video in a format that cannot be played', 'No se encontró el video «{archivo}» junto al PDF': 'The video «{archivo}» was not found next to the PDF', 'Reescribiendo el PDF…': 'Rewriting the PDF…', 'No se pudo reducir ({informe}).': 'Could not reduce ({informe}).', '{n} imágenes recodificadas': '{n} images re-encoded',

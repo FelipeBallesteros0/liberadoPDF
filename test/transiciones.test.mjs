@@ -17,5 +17,5 @@ test('valores por defecto y acotados', () => {
 });
 test('estilo', () => {
   assert.deepEqual(estiloDeTransicion({ tipo: 'Wipe', duracion: 0.5, dimension: 'H', movimiento: 'I', direccion: 90 }),
-    { clase: 'liberadopdf-trans-wipe', duracionMs: 500, variables: { '--liberadopdf-trans-dir': '90deg', '--liberadopdf-trans-dim': 'H', '--liberadopdf-trans-mov': 'I' } });
+    { clase: 'liberadopdf-trans-wipe', duracionMs: 500 });
 });

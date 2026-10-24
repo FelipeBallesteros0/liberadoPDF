@@ -1,6 +1,6 @@
-import { crearTraductor } from './i18n.mjs';
 // Láminas y pasos a partir de /PageLabels (Beamer repite la etiqueta en las páginas de una misma lámina).
 // Lógica pura. Páginas y láminas son 1-based.
+import { crearTraductor } from './i18n.mjs';
 
 export function agruparEtiquetas(etiquetas, totalPaginas) {
   const validas = Array.isArray(etiquetas) && etiquetas.length === totalPaginas;

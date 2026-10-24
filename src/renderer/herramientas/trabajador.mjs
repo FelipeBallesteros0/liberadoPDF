@@ -8,6 +8,7 @@ import { expandirObjectStreams } from '../comun/herramientas/reparacion.mjs';
 import { argumentosDeCifrado, argumentosDeDescifrado } from '../comun/herramientas/qpdf.mjs';
 import { crearRegistroDeCancelaciones } from '../comun/herramientas/cancelaciones.mjs';
 import { mimeDeVideo } from '../comun/video.mjs';
+import { paresDelArbolDeNombres } from '../comun/herramientas/arbolNombres.mjs';
 import { textoDeNumero, posicionDeTexto, mosaicoDeMarca, colorHex, origenCentrado, aCoordenadasSinRotar, tamanoVisual } from '../comun/herramientas/estampar.mjs';
 // Protocolo: { id, operacion, argumentos } → mensajes { id, progreso } y al final { id, resultado } | { id, error } | { id, cancelado }.
 let pdfLib = null;
@@ -328,8 +329,8 @@ const operaciones = {
         } else if (subtipo === 'RichMedia') {
           const contenido = dict(d.get(PDFName.of('RichMediaContent')));
           const assets = contenido && dict(contenido.get(PDFName.of('Assets')));
-          const names = assets && ctx.lookup(assets.get(PDFName.of('Names')));
-          const pares = names instanceof PDFArray ? names.asArray() : [];
+          const paresNombres = assets ? paresDelArbolDeNombres(assets, { lookup: v => ctx.lookup(v), PDFName, PDFArray, PDFDict }) : []; // también con /Kids (Acrobat)
+          const pares = paresNombres.flat();
           const confs = contenido && ctx.lookup(contenido.get(PDFName.of('Configurations')));
           const conf = confs instanceof PDFArray ? dict(confs.get(0)) : null;
           const insts = conf && ctx.lookup(conf.get(PDFName.of('Instances')));
@@ -424,6 +425,13 @@ const operaciones = {
     const q = await qpdf(['--object-streams=generate', '--recompress-flate', '--compression-level=9', 'entrada.pdf', 'salida.pdf'], { entradas: { 'entrada.pdf': intermedio } });
     const salida = q.codigo === 0 && q.bytes?.length ? q.bytes : intermedio; // si qpdf se queja, vale lo de pdf-lib
     return { bytes: salida, avisos: q.avisos };
+  },
+  // Un PDF hecho por otro motor (printToPDF de Chromium): se le ponen el Producer y el Creator de liberadoPDF.
+  async marcarProductor({ bytes }) {
+    const doc = await cargarDocumento(bytes);
+    doc.setProducer('liberadoPDF');
+    doc.setCreator('liberadoPDF');
+    return await doc.save();
   },
   // --- qpdf ---
   async proteger({ bytes, usuario, propietario, imprimir, copiar, modificar }, { progreso }) {

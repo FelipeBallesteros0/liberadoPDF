@@ -2,11 +2,14 @@
 // sobre el visor genérico de pdf.js (que se carga tal cual, sin modificar).
 const { contextBridge, ipcRenderer, webUtils } = require('electron');
 
+// Tema e idioma iniciales, de una sola vez y de forma síncrona (antes de que arranque pdf.js).
+let configInicial = { tema: 0, idioma: 'en' };
+try { configInicial = ipcRenderer.sendSync('config-inicial') ?? configInicial; } catch { /* sin main: valores por defecto */ }
+
 // Preferencias de pdf.js que deben estar fijadas antes de que el visor arranque.
 try {
   const actuales = JSON.parse(localStorage.getItem('pdfjs.preferences') || '{}');
-  let viewerCssTheme = 0;
-  try { viewerCssTheme = ipcRenderer.sendSync('config-inicial').tema; } catch { viewerCssTheme = 0; }
+  const viewerCssTheme = configInicial.tema ?? 0;
   localStorage.setItem('pdfjs.preferences', JSON.stringify({
     ...actuales,
     viewerCssTheme,
@@ -19,8 +22,7 @@ try {
   // sin localStorage no hay preferencias: pdf.js usa las suyas por defecto (scripting activo)
 }
 
-let idiomaInicial = 'en';
-try { idiomaInicial = ipcRenderer.sendSync('config-inicial').idioma ?? 'en'; } catch { idiomaInicial = 'en'; }
+const idiomaInicial = configInicial.idioma ?? 'en';
 
 contextBridge.exposeInMainWorld('liberadopdf', {
   idioma: idiomaInicial,
@@ -35,6 +37,7 @@ contextBridge.exposeInMainWorld('liberadopdf', {
   instantanea: rect => ipcRenderer.invoke('instantanea', rect),
   modoGuardado: modo => ipcRenderer.invoke('modo-guardado', modo),
   antesDePresentar: () => ipcRenderer.invoke('antes-de-presentar'),
+  despuesDePresentar: () => ipcRenderer.invoke('despues-de-presentar'),
   presentadorAbrir: () => ipcRenderer.invoke('presentador-abrir'),
   presentadorCerrar: () => ipcRenderer.invoke('presentador-cerrar'),
   presentadorEstado: estado => ipcRenderer.send('presentador-estado', estado),

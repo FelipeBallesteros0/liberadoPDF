@@ -46,10 +46,16 @@ export function crearVentana({ ruta, preload, mensaje, pagina = null }) {
     if (respuesta === 0) evento.preventDefault();
   });
   // Si el renderer cae en plena charla, se recarga la ventana en vez de dejarla vacía.
+  // Si el renderer muere (sin memoria, fallo de GPU…) se recarga, pero no más de 3 veces seguidas: a la cuarta, la
+  // pantalla de inicio con el motivo, para no quedar en un bucle de recargas.
   win.webContents.on('render-process-gone', (evento, detalles) => {
     console.warn('El renderer terminó:', detalles.reason);
-    if (detalles.reason !== 'clean-exit' && !win.isDestroyed()) win.reload();
+    if (detalles.reason === 'clean-exit' || win.isDestroyed()) return;
+    win.liberadopdfRecargas = (win.liberadopdfRecargas ?? 0) + 1;
+    if (win.liberadopdfRecargas <= 3) win.reload();
+    else { win.liberadopdfRuta = null; win.loadURL(urlInicio(t('El visor falló varias veces seguidas ({motivo}); vuelve a abrir el documento.', { motivo: detalles.reason }))); }
   });
+  win.webContents.on('did-finish-load', () => { if (win.liberadopdfRecargas) setTimeout(() => { if (!win.isDestroyed()) win.liberadopdfRecargas = 0; }, 30_000); }); // 30 s estable = contador a cero
   win.on('enter-html-full-screen', () => win.setMenuBarVisibility(false));
   win.on('leave-html-full-screen', () => win.setMenuBarVisibility(true));
   win.liberadopdfRuta = ruta ?? null;

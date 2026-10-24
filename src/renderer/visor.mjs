@@ -113,11 +113,12 @@ const abrirHerramienta = (clave) => {
 const barra = instalarBarra({ config, app, guardar: parcial => window.liberadopdf.guardarConfig(parcial) });
 // Aplicación en vivo de la configuración (ajustes, nocturno…)
 const aplicarTema = (tema) => { document.documentElement.style.colorScheme = tema === 'claro' ? 'light' : tema === 'oscuro' ? 'dark' : ''; };
+let aplicarNocturno = () => {};
 const aplicarConfig = (nueva) => {
   config = nueva;
   presentacion.actualizarConfig(nueva);
   aplicarTema(nueva.tema);
-  window.liberadopdfAplicarExtra?.(nueva); // ganchos de módulos posteriores (nocturno)
+  aplicarNocturno(nueva); // el módulo nocturno se crea más abajo
   window.liberadopdfAplicarDocumento?.();
 };
 const ajustes = instalarAjustes({
@@ -159,6 +160,7 @@ const aplicarNotasDerecha = () => {
   contenedor.style.setProperty('--liberadopdf-notas-dx', `${dx}px`);
 };
 app.eventBus.on('presentationmodechanged', () => setTimeout(aplicarNotasDerecha, 50));
+app.eventBus.on('presentationmodechanged', () => setTimeout(() => { if (modoActual() !== 'presentacion') window.liberadopdf.despuesDePresentar?.().catch(() => {}); }, 400)); // tras soltar la pantalla completa, de vuelta a su pantalla
 app.eventBus.on('pagerendered', () => aplicarNotasDerecha());
 window.addEventListener('resize', () => aplicarNotasDerecha());
 // Estado para la vista de presentador
@@ -176,7 +178,7 @@ const medicion = instalarMedicion({
     window.liberadopdf.guardarConfig({ porDocumento });
   },
 });
-window.liberadopdfAplicarExtra = (nueva) => nocturno.aplicar(nueva.nocturno);
+aplicarNocturno = (nueva) => nocturno.aplicar(nueva.nocturno);
 // pdf.js: save() incorpora formularios y anotaciones; download() baja el original si no hay cambios.
 const guardarConPdfjs = async () => {
   if (!app.pdfDocument) return;

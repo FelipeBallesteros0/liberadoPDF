@@ -43,7 +43,9 @@ export function instalarHtmlAPdf(H) {
         const r = await window.liberadopdf.htmlAPdf({ origen: v.origen, valor, tamano: v.tamano, apaisado: v.apaisado, fondos: v.fondos });
         if (senal?.aborted) throw Object.assign(new Error('Cancelado'), { cancelado: true });
         if (r?.error) return { mensaje: r.error };
-        return { nombre: nombreDeHtml(v.origen, v.origen === 'url' ? valor : archivo.nombre, t('página web')), bytes: new Uint8Array(r.bytes), resumen: t('Página convertida') };
+        let bytes = new Uint8Array(r.bytes);
+        try { bytes = await H.ejecutar('marcarProductor', { bytes }, { senal }); } catch { /* si pdf-lib no lo lee, se guarda tal cual */ }
+        return { nombre: nombreDeHtml(v.origen, v.origen === 'url' ? valor : archivo.nombre, t('página web')), bytes, resumen: t('Página convertida') };
       },
     });
   });

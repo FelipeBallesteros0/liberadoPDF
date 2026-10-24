@@ -47,7 +47,6 @@ export function instalarTransiciones({ app, obtenerConfig, modoActual }) {
     const estilo = estiloDeTransicion(t);
     capa = document.createElement('div');
     capa.className = `liberadopdf-transicion ${estilo.clase} liberadopdf-dir-${cuadrante(t.direccion)} liberadopdf-dim-${t.dimension} liberadopdf-mov-${t.movimiento}`;
-    for (const [k, v] of Object.entries(estilo.variables)) capa.style.setProperty(k, v);
     capa.style.setProperty('--liberadopdf-trans-dur', `${estilo.duracionMs}ms`);
     capa.append(lienzo);
     capa.addEventListener('animationend', quitar);

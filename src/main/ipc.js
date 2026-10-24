@@ -28,7 +28,22 @@ export function instalarIpc({ idioma = 'en', t = x => x, traducirMensaje = x => 
     const { presentacion } = elegirPantallas(pantallasSimples(), obtenerConfig());
     const destino = presentacion === null ? null : pantallaPorId(presentacion);
     if (!destino) return false;
-    if (screen.getDisplayMatching(win.getBounds()).id !== destino.id) { if (win.isMaximized()) win.unmaximize(); win.setBounds(destino.workArea); }
+    if (screen.getDisplayMatching(win.getBounds()).id !== destino.id) {
+      win.liberadopdfBoundsPrevios = { bounds: win.getBounds(), maximizada: win.isMaximized() }; // para volver al salir de presentación
+      if (win.isMaximized()) win.unmaximize();
+      win.setBounds(destino.workArea);
+    }
+    return true;
+  });
+  // Al salir de presentación la ventana vuelve a donde estaba (si se movió al proyector).
+  ipcMain.handle('despues-de-presentar', (evento) => {
+    const win = ventanaDe(evento);
+    const previo = win?.liberadopdfBoundsPrevios;
+    if (!win || !previo) return false;
+    win.liberadopdfBoundsPrevios = null;
+    if (win.isFullScreen()) return false; // pdf.js aún no soltó la pantalla completa: no mover
+    win.setBounds(previo.bounds);
+    if (previo.maximizada) win.maximize();
     return true;
   });
 

@@ -42,7 +42,7 @@ export function instalarDividir(H) {
       capa.querySelector('[data-clave="cada"]').closest('.fila').hidden = modo !== 'cada';
       const r = analizarRangos(texto, totalPaginas);
       const n = modo === 'rangos' ? (r.error ? 0 : 1) : gruposDeDivision({ modo, cada, total: totalPaginas }).length;
-      aviso.textContent = r.error && modo === 'rangos' ? traducirMensaje(r.error) : (n === 1 ? t('Saldrá 1 archivo.') : t('Saldrán {n} archivos.', { n }));
+      aviso.textContent = r.error && modo === 'rangos' ? traducirMensaje(r.error) : t('Saldrán {n} archivos.', { n });
     };
     capa.addEventListener('input', leer);
     capa.addEventListener('change', leer);

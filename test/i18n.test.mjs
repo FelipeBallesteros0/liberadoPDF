@@ -78,3 +78,20 @@ test('crearTraductorDeMensajes traduce el mensaje entero o la parte fija antes d
   assert.equal(crearTraductorDeMensajes(crearTraductor('es'))('No existe el archivo: /x'), 'No existe el archivo: /x');
 });
 function awaitImport() { return i18nModulo; }
+
+test('plurales: con n = 1 se usa la forma singular en los dos idiomas', () => {
+  assert.equal(crearTraductor('es')('{n} archivos', { n: 1 }), '1 archivo');
+  assert.equal(crearTraductor('es')('{n} archivos', { n: 2 }), '2 archivos');
+  assert.equal(crearTraductor('en')('{n} archivos', { n: 1 }), '1 file');
+  assert.equal(crearTraductor('en')('{n} archivos', { n: 3 }), '3 files');
+  assert.equal(crearTraductor('en')('Reparado con {n} avisos ({motor})', { n: 1, motor: 'qpdf' }), 'Repaired with 1 warning (qpdf)');
+  assert.equal(crearTraductor('es')(', {n} archivos omitidos', { n: 1 }), ', 1 archivo omitido');
+  assert.equal(crearTraductor('en')('{p} palabras reconocidas en {n} páginas', { p: 1, n: 1 }), '1 words recognized in 1 page'); // solo n cuenta
+});
+
+test('toda clave plural con {n} del diccionario tiene singular en español e inglés', async () => {
+  const { singulares } = await import('../src/comun/i18n/singulares.mjs');
+  const plurales = Object.keys(en).filter(k => /\{n\} (archivos|páginas|imágenes|avisos)/.test(k) || /{n} páginas$/.test(k));
+  const faltan = plurales.filter(k => !(k in singulares.es) || !(k in singulares.en));
+  assert.deepEqual(faltan, [], 'sin singular: ' + faltan.join(' | '));
+});

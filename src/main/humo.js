@@ -854,10 +854,10 @@ async function faseHtmlAPdf({ ruta, preload, salida }) {
   win.show(); win.focus();
   r.presentacionDespues = await presentar();
   if (!r.archivo) r.mensajeDialogo = await js(`document.querySelector('.liberadopdf-herramienta .mensaje')?.textContent ?? null`);
-  if (r.archivo) r.texto = await textoDePagina(js, destino, 1);
+  if (r.archivo) { r.texto = await textoDePagina(js, destino, 1); const { PDFDocument } = await pdfLibMain(); r.productor = (await PDFDocument.load(readFileSync(destino), { updateMetadata: false })).getProducer(); }
   // Una URL que no es http(s) se rechaza en el main sin abrir ventana.
   r.urlRechazada = JSON.parse(await js(`window.liberadopdf.htmlAPdf({ origen: 'url', valor: 'file:///etc/passwd' }).then(JSON.stringify)`));
-  r.ok = r.dialogo && r.archivo && /Hola liberadoPDF/.test(r.texto ?? '') && Boolean(r.urlRechazada?.error) && r.presentacionDespues === true;
+  r.ok = r.dialogo && r.archivo && /Hola liberadoPDF/.test(r.texto ?? '') && Boolean(r.urlRechazada?.error) && r.presentacionDespues === true && r.productor === 'liberadoPDF';
   return r;
 }
 

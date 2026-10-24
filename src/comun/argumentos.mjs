@@ -22,7 +22,7 @@ export function rutasDeArgumentos(argv, { empaquetada, existe, cwd }) {
   const rutas = [];
   const errores = [];
   for (const candidato of candidatos) {
-    const ruta = path.resolve(cwd, candidato);
+    const ruta = path.resolve(cwd, candidato); // path de la plataforma: en Windows resuelve «C:\\…» y en Linux rutas POSIX
     const error = errorDeRutaPdf(ruta, existe);
     if (error) errores.push(error); else rutas.push(ruta);
   }
