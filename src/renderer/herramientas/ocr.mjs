@@ -3,6 +3,7 @@
 import { palabrasAPdf, palabrasDeBloques } from '../comun/herramientas/ocr.mjs';
 import { escalaParaPpp } from '../comun/herramientas/imagenes.mjs';
 import { nombreResultado } from '../comun/herramientas/nombres.mjs';
+import { t } from '../i18n.mjs';
 
 const OPCIONES_TESSERACT = {
   workerPath: '/lib/tesseract-core/worker.min.js', // servido junto al núcleo para que el .wasm se resuelva en la misma carpeta
@@ -16,7 +17,7 @@ const OPCIONES_TESSERACT = {
 export async function reconocerPaginas({ app, paginas, idiomas, ppp, senal, progreso }) {
   const modulo = await import('/lib/tesseract/tesseract.esm.min.js');
   const createWorker = modulo.createWorker ?? modulo.default?.createWorker; // el bundle ESM exporta el objeto Tesseract por defecto
-  if (typeof createWorker !== 'function') throw new Error('No se pudo cargar tesseract.js');
+  if (typeof createWorker !== 'function') throw new Error(t('No se pudo cargar tesseract.js'));
   const trabajador = await createWorker(idiomas, 1, OPCIONES_TESSERACT);
   const cancelar = () => trabajador.terminate();
   senal?.addEventListener('abort', cancelar, { once: true });
@@ -26,7 +27,7 @@ export async function reconocerPaginas({ app, paginas, idiomas, ppp, senal, prog
   try {
     for (const [i, n] of paginas.entries()) {
       if (senal?.aborted) throw Object.assign(new Error('Cancelado'), { cancelado: true });
-      progreso({ hecho: i, total: paginas.length, texto: `Reconociendo la página ${n}…` });
+      progreso({ hecho: i, total: paginas.length, texto: t('Reconociendo la página {n}…', { n }) });
       const page = await app.pdfDocument.getPage(n);
       const escala = escalaParaPpp(ppp);
       const viewport = page.getViewport({ scale: escala });
@@ -59,21 +60,21 @@ export function instalarOcr(H) {
   H.registrar('ocr', ({ app, ruta, totalPaginas }) => {
     H.dialogoHerramienta({
       clave: 'ocr',
-      titulo: 'OCR (texto en PDF escaneado)',
-      descripcion: 'Reconoce el texto de las páginas (todo en este equipo, sin red) y lo añade como capa invisible: el PDF queda buscable. Tarda unos segundos por página.',
+      titulo: t('OCR (texto en PDF escaneado)'),
+      descripcion: t('Reconoce el texto de las páginas (todo en este equipo, sin red) y lo añade como capa invisible: el PDF queda buscable. Tarda unos segundos por página.'),
       campos: [
-        { clave: 'idioma', etiqueta: 'Idioma', tipo: 'opcion', valor: 'spa', opciones: [['spa', 'Español'], ['eng', 'Inglés'], ['spa+eng', 'Español e inglés']] },
-        { clave: 'ppp', etiqueta: 'Resolución de reconocimiento (ppp)', tipo: 'opcion', valor: '200', opciones: [['200', '200 (rápido)'], ['300', '300 (más preciso)']] },
-        { clave: 'paginas', etiqueta: 'Páginas', tipo: 'rangos', valor: '' },
+        { clave: 'idioma', etiqueta: t('Idioma'), tipo: 'opcion', valor: 'spa', opciones: [['spa', t('Español')], ['eng', t('Inglés')], ['spa+eng', t('Español e inglés')]] },
+        { clave: 'ppp', etiqueta: t('Resolución de reconocimiento (ppp)'), tipo: 'opcion', valor: '200', opciones: [['200', t('200 (rápido)')], ['300', t('300 (más preciso)')]] },
+        { clave: 'paginas', etiqueta: t('Páginas'), tipo: 'rangos', valor: '' },
       ],
       totalPaginas,
       alEjecutar: async (v, { senal, progreso }) => {
         const paginas = await reconocerPaginas({ app, paginas: v.paginas, idiomas: v.idioma, ppp: Number(v.ppp), senal, progreso });
         const palabras = paginas.reduce((n, p) => n + p.palabras.length, 0);
-        progreso({ hecho: v.paginas.length, total: v.paginas.length, texto: 'Escribiendo la capa de texto…' });
+        progreso({ hecho: v.paginas.length, total: v.paginas.length, texto: t('Escribiendo la capa de texto…') });
         const bytes = await H.bytesDelDocumento();
         const salida = await H.ejecutar('ocrEscribir', { bytes, paginas }, { senal });
-        return { nombre: nombreResultado(ruta, 'OCR'), bytes: salida, resumen: `${palabras} palabras reconocidas en ${paginas.length} páginas` };
+        return { nombre: nombreResultado(ruta, 'OCR'), bytes: salida, resumen: t('{p} palabras reconocidas en {n} páginas', { p: palabras, n: paginas.length }) };
       },
     });
   });

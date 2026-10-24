@@ -15,9 +15,9 @@ export function urlPermitida(texto) {
   return url.href;
 }
 
-export function nombreDeHtml(origen, valor) {
+export function nombreDeHtml(origen, valor, palabra = 'página web') {
   if (origen === 'url') {
-    try { return `${new URL(valor).hostname} - página web.pdf`; } catch { return 'página web.pdf'; }
+    try { return `${new URL(valor).hostname} - ${palabra}.pdf`; } catch { return `${palabra}.pdf`; }
   }
   const nombre = String(valor ?? '').split(/[\\/]/).pop() || 'documento';
   return `${nombre.replace(/\.[^.]+$/, '')}.pdf`;

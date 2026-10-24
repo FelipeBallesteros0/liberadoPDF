@@ -128,7 +128,7 @@ export function instalarIpc({ idioma = 'en', t = x => x, obtenerConfig, obtenerC
       if (canceled || !filePath) return null;
       destino = filePath;
     }
-    if (win?.liberadopdfRuta && mismaRuta(destino, win.liberadopdfRuta)) return { error: 'No se puede sobrescribir el documento abierto: elige otro nombre.' };
+    if (win?.liberadopdfRuta && mismaRuta(destino, win.liberadopdfRuta)) return { error: t('No se puede sobrescribir el documento abierto: elige otro nombre.') };
     mkdirSync(path.dirname(destino), { recursive: true });
     writeFileSync(destino, Buffer.from(bytes));
     return destino;
@@ -159,11 +159,11 @@ export function instalarIpc({ idioma = 'en', t = x => x, obtenerConfig, obtenerC
   // Página web o HTML a PDF: ventana oculta y aislada; solo http(s) o un archivo .html elegido con el diálogo (token).
   ipcMain.handle('html-a-pdf', async (evento, { origen, valor, tamano, apaisado, fondos } = {}) => {
     let destino;
-    if (origen === 'url') { destino = urlPermitida(valor); if (!destino) return { error: 'Dirección no permitida' }; }
+    if (origen === 'url') { destino = urlPermitida(valor); if (!destino) return { error: t('Dirección no permitida') }; }
     else {
       const token = String(valor ?? '').split('/pdf/')[1];
       const ruta = token ? rutaDeToken(token) : null;
-      if (!ruta || !/\.html?$/i.test(ruta) || !existsSync(ruta)) return { error: 'Archivo HTML no válido' };
+      if (!ruta || !/\.html?$/i.test(ruta) || !existsSync(ruta)) return { error: t('Archivo HTML no válido') };
       destino = ruta;
     }
     // Sesión propia (partition en memoria): el bloqueo de permisos de esta ventana no debe tocar la sesión del visor,
@@ -178,9 +178,9 @@ export function instalarIpc({ idioma = 'en', t = x => x, obtenerConfig, obtenerC
       const cargada = new Promise((resolver, rechazar) => {
         oculta.webContents.once('did-finish-load', resolver);
         // Solo el marco principal cuenta; un iframe roto o una carga abortada (-3) no invalidan la página.
-        oculta.webContents.on('did-fail-load', (ev, codigo, descripcion, url, esMarcoPrincipal) => { if (esMarcoPrincipal && codigo !== -3) rechazar(new Error(`No se pudo cargar (${descripcion || codigo})`)); });
+        oculta.webContents.on('did-fail-load', (ev, codigo, descripcion, url, esMarcoPrincipal) => { if (esMarcoPrincipal && codigo !== -3) rechazar(new Error(t('No se pudo cargar ({detalle})', { detalle: descripcion || codigo }))); });
       });
-      const tiempo = new Promise((_, rechazar) => { temporizador = setTimeout(() => rechazar(new Error('Tiempo agotado (30 s)')), 30_000); });
+      const tiempo = new Promise((_, rechazar) => { temporizador = setTimeout(() => rechazar(new Error(t('Tiempo agotado (30 s)'))), 30_000); });
       if (origen === 'url') oculta.loadURL(destino).catch(() => {}); else oculta.loadFile(destino).catch(() => {});
       await Promise.race([cargada, tiempo]);
       await new Promise(r => setTimeout(r, 500));
@@ -212,7 +212,7 @@ export function instalarIpc({ idioma = 'en', t = x => x, obtenerConfig, obtenerC
     return true;
   });
   ipcMain.handle('pantallas', () => screen.getAllDisplays().map((d, i) => ({
-    id: d.id, etiqueta: d.label || `Pantalla ${i + 1}`, ancho: d.size.width, alto: d.size.height, principal: d.id === screen.getPrimaryDisplay().id,
+    id: d.id, etiqueta: d.label || t('Pantalla {n}', { n: i + 1 }), ancho: d.size.width, alto: d.size.height, principal: d.id === screen.getPrimaryDisplay().id,
   })));
   // El preload lo pide de forma síncrona antes de que arranque pdf.js (viewerCssTheme: 0 sistema, 1 claro, 2 oscuro) y
   // para el idioma de la capa propia.

@@ -3,6 +3,7 @@
 // manejadores porque solo cambian de sitio en el DOM.
 import { decidirBarra, alternarBarra } from '../comun/barra.mjs';
 import { raizDeCapas } from './capas.mjs';
+import { t } from './i18n.mjs';
 
 const ID_GRUPO = 'liberadopdfBotones';
 const ID_PERSONALIZAR = 'liberadopdfPersonalizarBarra';
@@ -83,7 +84,7 @@ export function instalarBarra({ config, guardar, app }) {
   personalizar.type = 'button';
   personalizar.className = 'toolbarButton labeled';
   const etiqueta = document.createElement('span');
-  etiqueta.textContent = 'Personalizar barra…';
+  etiqueta.textContent = t('Personalizar barra…');
   personalizar.append(etiqueta);
   personalizar.addEventListener('click', () => { app?.secondaryToolbar?.close?.(); abrirDialogo(); });
   secundaria.append(personalizar);
@@ -97,17 +98,17 @@ export function instalarBarra({ config, guardar, app }) {
     const caja = document.createElement('div');
     caja.className = 'caja';
     const titulo = document.createElement('h2');
-    titulo.textContent = 'Personalizar la barra';
+    titulo.textContent = t('Personalizar la barra');
     const ayuda = document.createElement('p');
-    ayuda.textContent = 'Marca lo que quieres ver en la barra principal. Lo desmarcado del menú «»» se queda en el menú; lo desmarcado de la barra se oculta.';
+    ayuda.textContent = t('Marca lo que quieres ver en la barra principal. Lo desmarcado del menú «»» se queda en el menú; lo desmarcado de la barra se oculta.');
     caja.append(titulo, ayuda);
-    const secciones = [['Barra principal', 'principal'], ['Menú »', 'secundaria']];
+    const secciones = [[t('Barra principal'), 'principal'], [t('Menú »'), 'secundaria']];
     const cat = catalogo();
     const elementos = new Map(cat.map(f => [f.id, f.elemento]));
     const plan = decidirBarra(cat, barra).map(f => ({ ...f, elemento: elementos.get(f.id) }));
     for (const [nombre, origen] of secciones) {
       const h3 = document.createElement('h3');
-      h3.textContent = nombre;
+      h3.textContent = t(nombre);
       const lista = document.createElement('div');
       lista.className = 'lista';
       for (const fila of plan.filter(f => f.origen === origen)) {
@@ -130,11 +131,11 @@ export function instalarBarra({ config, guardar, app }) {
     pie.className = 'pie';
     const restablecer = document.createElement('button');
     restablecer.type = 'button';
-    restablecer.textContent = 'Restablecer';
+    restablecer.textContent = t('Restablecer');
     restablecer.addEventListener('click', () => { barra = { presentationMode: true }; aplicar(); guardar({ barra }); cerrarDialogo(); abrirDialogo(); });
     const cerrar = document.createElement('button');
     cerrar.type = 'button';
-    cerrar.textContent = 'Cerrar';
+    cerrar.textContent = t('Cerrar');
     cerrar.addEventListener('click', cerrarDialogo);
     pie.append(restablecer, cerrar);
     caja.append(pie);

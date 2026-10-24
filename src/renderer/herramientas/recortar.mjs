@@ -4,6 +4,8 @@ import { rectanguloDeArrastre } from '../comun/instantanea.mjs';
 import { escalaEfectiva } from '../comun/medicion.mjs';
 import { nombreResultado } from '../comun/herramientas/nombres.mjs';
 import { raizDeCapas } from '../capas.mjs';
+import { t } from '../i18n.mjs';
+import { traducirMensaje } from './base.mjs';
 
 export function instalarRecortar(H) {
   H.registrar('recortar', ({ app, ruta, totalPaginas }) => {
@@ -12,23 +14,23 @@ export function instalarRecortar(H) {
     cuerpo.className = 'botones';
     const marcar = document.createElement('button');
     marcar.type = 'button';
-    marcar.textContent = 'Marcar la zona en la página…';
+    marcar.textContent = t('Marcar la zona en la página…');
     marcar.dataset.accion = 'marcar';
     const ayuda = document.createElement('span');
     ayuda.className = 'aviso-partes';
-    ayuda.textContent = 'Medidas en unidades PDF (1/72 in) desde la esquina inferior izquierda.';
+    ayuda.textContent = t('Medidas en unidades PDF (1/72 in) desde la esquina inferior izquierda.');
     cuerpo.append(marcar, ayuda);
 
     const { capa } = H.dialogoHerramienta({
       clave: 'recortar',
-      titulo: 'Recortar páginas',
-      descripcion: 'El recorte cambia el CropBox: lo que queda fuera deja de verse pero sigue en el archivo.',
+      titulo: t('Recortar páginas'),
+      descripcion: t('El recorte cambia el CropBox: lo que queda fuera deja de verse pero sigue en el archivo.'),
       campos: [
-        { clave: 'x', etiqueta: 'X', tipo: 'numero', valor: 0, paso: 0.01 },
-        { clave: 'y', etiqueta: 'Y', tipo: 'numero', valor: 0, paso: 0.01 },
-        { clave: 'ancho', etiqueta: 'Ancho', tipo: 'numero', valor: 0, paso: 0.01 },
-        { clave: 'alto', etiqueta: 'Alto', tipo: 'numero', valor: 0, paso: 0.01 },
-        { clave: 'paginas', etiqueta: 'Páginas', tipo: 'rangos', valor: '' },
+        { clave: 'x', etiqueta: t('X'), tipo: 'numero', valor: 0, paso: 0.01 },
+        { clave: 'y', etiqueta: t('Y'), tipo: 'numero', valor: 0, paso: 0.01 },
+        { clave: 'ancho', etiqueta: t('Ancho'), tipo: 'numero', valor: 0, paso: 0.01 },
+        { clave: 'alto', etiqueta: t('Alto'), tipo: 'numero', valor: 0, paso: 0.01 },
+        { clave: 'paginas', etiqueta: t('Páginas'), tipo: 'rangos', valor: '' },
       ],
       totalPaginas,
       cuerpo,
@@ -36,10 +38,10 @@ export function instalarRecortar(H) {
         const caja = { x: v.x, y: v.y, ancho: v.ancho, alto: v.alto };
         const vista = app.pdfViewer.getPageView(app.page - 1);
         const motivo = cajaValida(caja, vista?.pdfPage?.view ?? [0, 0, Infinity, Infinity]);
-        if (motivo) return { mensaje: motivo };
+        if (motivo) return { mensaje: traducirMensaje(motivo) };
         const bytes = await H.bytesDelDocumento();
         const salida = await H.ejecutar('recortar', { bytes, paginas: v.paginas, caja }, { senal, alProgreso: progreso });
-        return { nombre: nombreResultado(ruta, 'recortado'), bytes: salida, resumen: `${v.paginas.length} páginas recortadas` };
+        return { nombre: nombreResultado(ruta, t('recortado')), bytes: salida, resumen: t('{n} páginas recortadas', { n: v.paginas.length }) };
       },
     });
     const poner = (clave, valor) => { const e = capa.querySelector(`[data-clave="${clave}"]`); e.value = String(valor); };

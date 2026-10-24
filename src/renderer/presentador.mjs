@@ -56,9 +56,9 @@ function actualizar() {
     await pintarPagina(estado.pagina, lienzoActual, anchoActual);
     await pintarPagina(estado.pagina + 1, lienzoSiguiente, 340);
     const posicion = grupos?.posicion(estado.pagina);
-    pieActual.textContent = posicion ? textoContador(posicion, grupos) : t('página {n} / {total}', { n: estado.pagina, total: estado.totalPaginas });
+    pieActual.textContent = posicion ? textoContador(posicion, grupos, t) : t('página {n} / {total}', { n: estado.pagina, total: estado.totalPaginas });
     const siguiente = grupos?.posicion(estado.pagina + 1);
-    pieSiguiente.textContent = estado.pagina + 1 <= estado.totalPaginas ? (siguiente ? textoContador(siguiente, grupos) : t('página {n}', { n: estado.pagina + 1 })) : t('fin');
+    pieSiguiente.textContent = estado.pagina + 1 <= estado.totalPaginas ? (siguiente ? textoContador(siguiente, grupos, t) : t('página {n}', { n: estado.pagina + 1 })) : t('fin');
     elNota.textContent = notaDe(notas, posicion ?? { etiqueta: String(estado.pagina), lamina: estado.pagina });
     document.querySelector('.notas').hidden = Boolean(estado.notasDerecha) && !elNota.textContent;
   }).catch(e => { window.liberadopdfError = String(e?.stack ?? e); console.warn('presentador:', e?.message ?? e); });

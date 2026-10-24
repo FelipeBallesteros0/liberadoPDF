@@ -9,12 +9,12 @@ export function nombreResultado(ruta, herramienta, extension = 'pdf') {
   return `${base(ruta)} - ${herramienta}.${extension}`;
 }
 
-export function nombreParte(ruta, indice, total) {
+export function nombreParte(ruta, indice, total, palabra = 'parte') {
   const cifras = Math.max(2, String(total).length);
-  return `${base(ruta)} - parte ${String(indice).padStart(cifras, '0')}.pdf`;
+  return `${base(ruta)} - ${palabra} ${String(indice).padStart(cifras, '0')}.pdf`;
 }
 
-export function nombreImagen(ruta, pagina, total, formato) {
+export function nombreImagen(ruta, pagina, total, formato, palabra = 'página') {
   const cifras = Math.max(2, String(total).length);
-  return `${base(ruta)} - página ${String(pagina).padStart(cifras, '0')}.${formato}`;
+  return `${base(ruta)} - ${palabra} ${String(pagina).padStart(cifras, '0')}.${formato}`;
 }

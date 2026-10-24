@@ -1,6 +1,7 @@
 // Imágenes a PDF: una página por imagen; PNG y JPEG se incrustan tal cual, el resto se vuelve a codificar como PNG.
 import { nombreResultado } from '../comun/herramientas/nombres.mjs';
 import { tipoPorBytes, orientacionExif } from '../comun/herramientas/imagenes.mjs';
+import { t } from '../i18n.mjs';
 
 // Decodifica la imagen para validarla y medirla; devuelve null si no es una imagen legible. El formato se decide por
 // los bytes (una PNG llamada .jpg es PNG); un JPEG con orientación EXIF distinta de 1 se pasa por canvas ya girado.
@@ -33,7 +34,7 @@ export function instalarDeImagenes(H) {
     botones.className = 'botones';
     const anadir = document.createElement('button');
     anadir.type = 'button';
-    anadir.textContent = 'Añadir imágenes…';
+    anadir.textContent = t('Añadir imágenes…');
     anadir.dataset.accion = 'anadir';
     botones.append(anadir);
     cuerpo.append(lista, botones);
@@ -43,7 +44,7 @@ export function instalarDeImagenes(H) {
         fila.className = 'elemento' + (img.error ? ' omitida' : '');
         const texto = document.createElement('span');
         texto.textContent = img.error ? `${img.nombre} — ${img.error}` : `${i + 1}. ${img.nombre} (${img.ancho}×${img.alto})`;
-        const quitar = document.createElement('button'); quitar.type = 'button'; quitar.textContent = '✕'; quitar.title = 'Quitar';
+        const quitar = document.createElement('button'); quitar.type = 'button'; quitar.textContent = t('✕'); quitar.title = t('Quitar');
         quitar.addEventListener('click', () => { imagenes.splice(i, 1); pintar(); });
         fila.append(texto, quitar);
         return fila;
@@ -53,26 +54,26 @@ export function instalarDeImagenes(H) {
       const elegidas = await window.liberadopdf.elegirArchivos({ filtros: 'imagenes', varios: true });
       for (const e of elegidas) {
         const img = await prepararImagen(e.url, e.nombre);
-        imagenes.push(img ?? { nombre: e.nombre, error: 'no se pudo leer como imagen, se omite' });
+        imagenes.push(img ?? { nombre: e.nombre, error: t('no se pudo leer como imagen, se omite') });
       }
       pintar();
     });
     H.dialogoHerramienta({
       clave: 'deImagenes',
-      titulo: 'Imágenes a PDF',
-      descripcion: 'Una página por imagen, en este orden.',
+      titulo: t('Imágenes a PDF'),
+      descripcion: t('Una página por imagen, en este orden.'),
       campos: [
-        { clave: 'tamano', etiqueta: 'Tamaño de página', tipo: 'opcion', valor: 'A4', opciones: [['A4', 'A4'], ['Carta', 'Carta'], ['imagen', 'El de cada imagen']] },
-        { clave: 'orientacion', etiqueta: 'Orientación', tipo: 'opcion', valor: 'auto', opciones: [['auto', 'Según la imagen'], ['vertical', 'Vertical'], ['horizontal', 'Horizontal']] },
-        { clave: 'margen', etiqueta: 'Margen (pt)', tipo: 'numero', valor: 20, minimo: 0, maximo: 200 },
+        { clave: 'tamano', etiqueta: t('Tamaño de página'), tipo: 'opcion', valor: 'A4', opciones: [['A4', t('A4')], ['Carta', t('Carta')], ['imagen', t('El de cada imagen')]] },
+        { clave: 'orientacion', etiqueta: t('Orientación'), tipo: 'opcion', valor: 'auto', opciones: [['auto', t('Según la imagen')], ['vertical', t('Vertical')], ['horizontal', t('Horizontal')]] },
+        { clave: 'margen', etiqueta: t('Margen (pt)'), tipo: 'numero', valor: 20, minimo: 0, maximo: 200 },
       ],
       cuerpo,
       alEjecutar: async (v, { senal, progreso }) => {
         const validas = imagenes.filter(i => !i.error);
-        if (!validas.length) return { mensaje: 'Añade al menos una imagen legible.' };
+        if (!validas.length) return { mensaje: t('Añade al menos una imagen legible.') };
         const r = await H.ejecutar('deImagenes', { imagenes: validas.map(i => ({ bytes: i.bytes, tipo: i.tipo })), tamano: v.tamano, orientacion: v.orientacion, margen: v.margen }, { senal, alProgreso: progreso });
         const omitidas = imagenes.length - validas.length + r.omitidas;
-        return { nombre: nombreResultado(ruta || validas[0].nombre, 'imágenes'), bytes: r.bytes, resumen: `${r.paginas} páginas${omitidas ? `, ${omitidas} archivos omitidos` : ''}` };
+        return { nombre: nombreResultado(ruta || validas[0].nombre, t('imágenes')), bytes: r.bytes, resumen: t('{n} páginas', { n: r.paginas }) + (omitidas ? t(', {n} archivos omitidos', { n: omitidas }) : '') };
       },
     });
   });

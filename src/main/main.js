@@ -3,7 +3,7 @@ import { app, BrowserWindow, dialog } from 'electron';
 import path from 'node:path';
 import { existsSync } from 'node:fs';
 import { registrarEsquemaPrivilegiado, instalarProtocolo } from './protocolo.js';
-import { crearVentana, ventanaActiva, abrirEnVentana, instalarGuardado } from './ventanas.js';
+import { crearVentana, ventanaActiva, abrirEnVentana, instalarGuardado, usarTraductor } from './ventanas.js';
 import { abrirDesdeArgumentos } from './apertura.js';
 import { construirMenu } from './menu.js';
 import { instalarIpc } from './ipc.js';
@@ -60,6 +60,7 @@ if (!process.env.LIBERADOPDF_HUMO && !app.requestSingleInstanceLock()) {
   // Idioma efectivo (configuración, o LIBERADOPDF_IDIOMA en humo); el de pdf.js y Electron se fija aquí, antes de `ready`.
   const idioma = claveDeIdioma(obtenerConfig(), process.env);
   const t = crearTraductor(idioma);
+  usarTraductor(t);
   app.commandLine.appendSwitch('lang', idioma === 'es' ? 'es-ES' : 'en-US');
   const guardar = (nueva) => {
     try {

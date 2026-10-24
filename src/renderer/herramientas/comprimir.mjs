@@ -2,6 +2,7 @@
 // estructura. Si el resultado no es claramente menor, no se guarda nada.
 import { decidirImagen, informe } from '../comun/herramientas/comprimir.mjs';
 import { nombreResultado } from '../comun/herramientas/nombres.mjs';
+import { t } from '../i18n.mjs';
 
 const cancelacion = () => Object.assign(new Error('Cancelado'), { cancelado: true });
 
@@ -24,7 +25,7 @@ export async function recodificarImagenes(imagenes, calidad, { senal, progreso, 
   const reemplazos = [];
   for (const [i, info] of imagenes.entries()) {
     if (senal?.aborted) throw cancelacion();
-    progreso({ hecho: i, total: imagenes.length, texto: `Imagen ${i + 1} de ${imagenes.length} (${info.ancho}×${info.alto})…` });
+    progreso({ hecho: i, total: imagenes.length, texto: t('Imagen {i} de {n} ({ancho}×{alto})…', { i: i + 1, n: imagenes.length, ancho: info.ancho, alto: info.alto }) });
     const decision = decidirImagen(info, calidad);
     if (!decision.recodificar) continue;
     let mapa, img;
@@ -48,22 +49,22 @@ export function instalarComprimir(H) {
   H.registrar('comprimir', ({ ruta, totalPaginas }) => {
     H.dialogoHerramienta({
       clave: 'comprimir',
-      titulo: 'Comprimir',
-      descripcion: 'Reduce las fotos (JPEG) y recomprime la estructura con qpdf. El texto y los dibujos no cambian. Si no se consigue reducir, no se guarda nada.',
+      titulo: t('Comprimir'),
+      descripcion: t('Reduce las fotos (JPEG) y recomprime la estructura con qpdf. El texto y los dibujos no cambian. Si no se consigue reducir, no se guarda nada.'),
       campos: [
-        { clave: 'calidad', etiqueta: 'Calidad de las imágenes', tipo: 'opcion', valor: 'media', opciones: [['alta', 'Alta (mismo tamaño, JPEG 85 %)'], ['media', 'Media (70 % del tamaño, JPEG 70 %)'], ['baja', 'Baja (mitad del tamaño, JPEG 50 %)']] },
+        { clave: 'calidad', etiqueta: t('Calidad de las imágenes'), tipo: 'opcion', valor: 'media', opciones: [['alta', t('Alta (mismo tamaño, JPEG 85 %)')], ['media', t('Media (70 % del tamaño, JPEG 70 %)')], ['baja', t('Baja (mitad del tamaño, JPEG 50 %)')]] },
       ],
       totalPaginas,
       alEjecutar: async (v, { senal, progreso }) => {
         const bytes = await H.bytesDelDocumento();
-        progreso({ hecho: 0, total: 1, texto: 'Buscando imágenes…' });
+        progreso({ hecho: 0, total: 1, texto: t('Buscando imágenes…') });
         const { sesion, imagenes } = await H.ejecutar('listarImagenes', { bytes }, { senal });
         const obtener = info => H.ejecutar('obtenerImagen', { sesion, objeto: info.objeto, generacion: info.generacion }, { senal }).then(r => r.bytes);
         const reemplazos = await recodificarImagenes(imagenes, v.calidad, { senal, progreso, obtener });
-        progreso({ hecho: imagenes.length, total: imagenes.length + 1, texto: 'Reescribiendo el PDF…' });
+        progreso({ hecho: imagenes.length, total: imagenes.length + 1, texto: t('Reescribiendo el PDF…') });
         const r = await H.ejecutar('reemplazarImagenes', { bytes, reemplazos }, { senal });
-        if (r.bytes.length >= bytes.length * 0.98) return { mensaje: `No se pudo reducir (${informe(bytes.length, r.bytes.length)}).` };
-        return { nombre: nombreResultado(ruta, 'comprimido'), bytes: r.bytes, resumen: `${informe(bytes.length, r.bytes.length)} · ${reemplazos.length} imágenes recodificadas` };
+        if (r.bytes.length >= bytes.length * 0.98) return { mensaje: t('No se pudo reducir ({informe}).', { informe: informe(bytes.length, r.bytes.length) }) };
+        return { nombre: nombreResultado(ruta, t('comprimido')), bytes: r.bytes, resumen: `${informe(bytes.length, r.bytes.length)} · ${t('{n} imágenes recodificadas', { n: reemplazos.length })}` };
       },
     });
   });

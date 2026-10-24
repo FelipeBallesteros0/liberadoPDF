@@ -2,15 +2,25 @@
 import { raizDeCapas } from '../capas.mjs';
 import { mostrarToast } from '../instantanea.mjs';
 import { analizarRangos } from '../comun/herramientas/rangos.mjs';
+import { t } from '../i18n.mjs';
 
 // Última ejecución de cada herramienta (para la prueba de humo: demuestra que una cancelación asienta la promesa).
 const anotarEjecucion = (clave, estado) => { if (window.liberadopdfHerramientas) window.liberadopdfHerramientas.ultimaEjecucion = { clave, estado, cuando: Date.now() }; };
+
+// Un mensaje del worker o del main viene en español: se traduce entero o, si lleva detalle tras «: », solo la parte fija.
+export function traducirMensaje(mensaje) {
+  const m = String(mensaje ?? '');
+  const traducido = t(m);
+  if (traducido !== m) return traducido;
+  const i = m.indexOf(': ');
+  return i > 0 ? `${t(m.slice(0, i))}: ${m.slice(i + 2)}` : m;
+}
 
 export const MENSAJE_CIFRADO = 'Este PDF está cifrado: primero desbloquéalo (Herramientas ▸ Desbloquear). Si abrió sin pedir contraseña, deja la contraseña vacía.';
 
 export async function bytesDelDocumento() {
   const url = new URLSearchParams(location.search).get('file');
-  if (!url) throw new Error('No hay documento abierto');
+  if (!url) throw new Error(t('No hay documento abierto'));
   return new Uint8Array(await (await fetch(url)).arrayBuffer());
 }
 
@@ -43,7 +53,7 @@ function crearCampo(campo, valores, totalPaginas) {
       entrada = document.createElement('input'); entrada.type = 'password'; entrada.value = campo.valor ?? '';
       break;
     case 'rangos':
-      entrada = document.createElement('input'); entrada.type = 'text'; entrada.placeholder = `todas (1-${totalPaginas}); p. ej. 1-3,5,8-`; entrada.value = campo.valor ?? '';
+      entrada = document.createElement('input'); entrada.type = 'text'; entrada.placeholder = t('todas (1-{n}); p. ej. 1-3,5,8-', { n: totalPaginas }); entrada.value = campo.valor ?? '';
       break;
     default: // texto
       entrada = document.createElement('input'); entrada.type = 'text'; entrada.value = campo.valor ?? ''; if (campo.ancho) entrada.style.width = campo.ancho;
@@ -86,8 +96,8 @@ export function dialogoHerramienta({ clave, titulo, descripcion, campos = [], to
   mensaje.hidden = true;
   const pie = document.createElement('div');
   pie.className = 'pie';
-  const cancelar = document.createElement('button'); cancelar.type = 'button'; cancelar.textContent = 'Cancelar';
-  const ejecutar = document.createElement('button'); ejecutar.type = 'button'; ejecutar.textContent = 'Ejecutar'; ejecutar.dataset.accion = 'ejecutar';
+  const cancelar = document.createElement('button'); cancelar.type = 'button'; cancelar.textContent = t('Cancelar');
+  const ejecutar = document.createElement('button'); ejecutar.type = 'button'; ejecutar.textContent = t('Ejecutar'); ejecutar.dataset.accion = 'ejecutar';
   pie.append(cancelar, ejecutar);
   caja.append(progreso, mensaje, pie);
   capa.append(caja);
@@ -112,7 +122,7 @@ export function dialogoHerramienta({ clave, titulo, descripcion, campos = [], to
       if (capa.querySelector(`[data-clave="${campo.clave}"]`)?.closest('.fila')?.hidden) continue; // un campo oculto no se valida
       if (campo.tipo === 'rangos') {
         const r = analizarRangos(v[campo.clave], totalPaginas);
-        if (r.error) { avisar(r.error, true); return; }
+        if (r.error) { avisar(traducirMensaje(r.error), true); return; }
         v[campo.clave] = r.paginas;
       }
     }
@@ -121,31 +131,31 @@ export function dialogoHerramienta({ clave, titulo, descripcion, campos = [], to
     progreso.hidden = false;
     mensaje.hidden = true;
     barra.style.width = '0%';
-    textoProgreso.textContent = 'Trabajando…';
+    textoProgreso.textContent = t('Trabajando…');
     try {
       resultado = await alEjecutar(v, {
         senal: controlador.signal,
-        progreso: ({ hecho, total, texto }) => { barra.style.width = total ? `${Math.round(100 * hecho / total)}%` : '0%'; textoProgreso.textContent = texto ?? `${hecho} / ${total}`; },
+        progreso: ({ hecho, total, texto }) => { barra.style.width = total ? `${Math.round(100 * hecho / total)}%` : '0%'; textoProgreso.textContent = texto == null ? `${hecho} / ${total}` : Array.isArray(texto) ? t(texto[0], texto[1]) : t(texto); },
       });
       if (controlador.signal.aborted) throw Object.assign(new Error('Cancelado'), { cancelado: true }); // terminó, pero el usuario ya canceló: no se guarda nada
       if (resultado?.guardadoEn) { // la herramienta fue guardando sobre la marcha (p. ej. una imagen por página)
         anotarEjecucion(clave, 'ok');
-        mostrarToast(`Guardado en ${resultado.guardadoEn}`);
+        mostrarToast(t('Guardado en {ruta}', { ruta: resultado.guardadoEn }));
         cerrar();
         return;
       }
       if (resultado?.mensaje && !resultado.bytes && !resultado.archivos) { anotarEjecucion(clave, 'mensaje'); avisar(resultado.mensaje); resultado = null; ejecutar.disabled = false; progreso.hidden = true; return; }
       anotarEjecucion(clave, 'ok');
       barra.style.width = '100%';
-      textoProgreso.textContent = resultado.resumen ?? 'Listo';
-      ejecutar.textContent = 'Guardar…';
+      textoProgreso.textContent = resultado.resumen ?? t('Listo');
+      ejecutar.textContent = t('Guardar…');
       ejecutar.disabled = false;
       await guardar();
     } catch (e) {
       anotarEjecucion(clave, e?.cancelado ? 'cancelada' : 'error');
-      if (e?.cancelado) avisar('Cancelado');
-      else if (e?.message === 'cifrado') avisar(MENSAJE_CIFRADO, true);
-      else avisar(`Error: ${e.message}`, true);
+      if (e?.cancelado) avisar(t('Cancelado'));
+      else if (e?.message === 'cifrado') avisar(t(MENSAJE_CIFRADO), true);
+      else avisar(t('Error: {detalle}', { detalle: traducirMensaje(e.message) }), true);
       resultado = null;
       ejecutar.disabled = false;
       progreso.hidden = true;
@@ -158,14 +168,14 @@ export function dialogoHerramienta({ clave, titulo, descripcion, campos = [], to
     if (resultado.archivos) destino = await window.liberadopdf.guardarResultados({ archivos: resultado.archivos });
     else destino = await window.liberadopdf.guardarResultado({ nombre: resultado.nombre, bytes: resultado.bytes });
     if (!destino) return; // el usuario canceló el diálogo
-    if (typeof destino === 'object') { avisar(destino.error ?? 'No se pudo guardar', true); return; } // p. ej. el documento abierto
-    mostrarToast(`Guardado en ${destino}`);
+    if (typeof destino === 'object') { avisar(traducirMensaje(destino.error ?? 'No se pudo guardar'), true); return; } // p. ej. el documento abierto
+    mostrarToast(t('Guardado en {ruta}', { ruta: destino }));
     const ofrecerAbrir = resultado.bytes && /\.pdf$/i.test(destino);
     cerrar();
     if (ofrecerAbrir) {
       const abrir = document.createElement('div');
       abrir.className = 'liberadopdf-toast liberadopdf-toast-accion';
-      const b = document.createElement('button'); b.type = 'button'; b.textContent = 'Abrir el resultado';
+      const b = document.createElement('button'); b.type = 'button'; b.textContent = t('Abrir el resultado');
       b.addEventListener('click', () => { window.liberadopdf.abrirResultado(destino); abrir.remove(); });
       const c = document.createElement('button'); c.type = 'button'; c.textContent = '×';
       c.addEventListener('click', () => abrir.remove());

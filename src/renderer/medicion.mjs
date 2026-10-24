@@ -2,6 +2,7 @@
 // Dibuja en un SVG sobre la página; nada se escribe en el PDF. Esc borra y sale.
 import { puntosAPdf, distanciaPdf, areaPoligonoPdf, aUnidad, formatear, factorDeCalibracion, escalaEfectiva } from '../comun/medicion.mjs';
 import { raizDeCapas } from './capas.mjs';
+import { t } from './i18n.mjs';
 
 const NS = 'http://www.w3.org/2000/svg';
 
@@ -78,17 +79,17 @@ export function instalarMedicion({ app, obtenerConfig, guardarPorDocumento, ruta
     const caja = document.createElement('div');
     caja.className = 'caja';
     const titulo = document.createElement('h2');
-    titulo.textContent = 'Calibrar escala';
+    titulo.textContent = t('Calibrar escala');
     const texto = document.createElement('p');
-    texto.textContent = `El segmento mide ${formatear(aUnidad(medidaPt, unidad(), userUnit), unidad())} según el PDF. ¿Cuánto mide en realidad (${unidad()})?`;
+    texto.textContent = t('El segmento mide {medida} según el PDF. ¿Cuánto mide en realidad ({unidad})?', { medida: formatear(aUnidad(medidaPt, unidad(), userUnit), unidad()), unidad: unidad() });
     const entrada = document.createElement('input');
     entrada.type = 'number';
     entrada.step = 'any';
     entrada.min = '0';
     const pie = document.createElement('div');
     pie.className = 'pie';
-    const cancelar = document.createElement('button'); cancelar.type = 'button'; cancelar.textContent = 'Cancelar';
-    const aceptar = document.createElement('button'); aceptar.type = 'button'; aceptar.textContent = 'Aceptar';
+    const cancelar = document.createElement('button'); cancelar.type = 'button'; cancelar.textContent = t('Cancelar');
+    const aceptar = document.createElement('button'); aceptar.type = 'button'; aceptar.textContent = t('Aceptar');
     pie.append(cancelar, aceptar);
     caja.append(titulo, texto, entrada, pie);
     capa.append(caja);

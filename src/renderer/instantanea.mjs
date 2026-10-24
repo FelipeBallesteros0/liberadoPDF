@@ -1,6 +1,7 @@
 // Instantánea: se arrastra un rectángulo sobre la ventana y el main lo copia al portapapeles como imagen.
 import { rectanguloDeArrastre } from '../comun/instantanea.mjs';
 import { raizDeCapas } from './capas.mjs';
+import { t } from './i18n.mjs';
 
 export function mostrarToast(texto) {
   const toast = document.createElement('div');
@@ -44,7 +45,7 @@ export function instalarInstantanea() {
     terminar();
     if (!rect) return;
     const ok = await window.liberadopdf.instantanea(rect);
-    mostrarToast(ok ? 'Copiado al portapapeles' : 'No se pudo copiar');
+    mostrarToast(ok ? t('Copiado al portapapeles') : t('No se pudo copiar'));
   };
   const alTecla = (ev) => { if (ev.key === 'Escape') { ev.stopImmediatePropagation(); terminar(); } };
 

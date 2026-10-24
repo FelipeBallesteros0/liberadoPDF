@@ -1,5 +1,6 @@
 // Marca de agua de texto o imagen, centrada o en mosaico, con color, opacidad y ángulo.
 import { nombreResultado } from '../comun/herramientas/nombres.mjs';
+import { t } from '../i18n.mjs';
 
 // pdf-lib solo incrusta PNG y JPEG: cualquier otro formato se convierte a PNG con un canvas.
 export async function imagenParaPdf(url, tipo) {
@@ -19,10 +20,10 @@ export function instalarMarcaDeAgua(H) {
     const cuerpo = document.createElement('div');
     cuerpo.className = 'fila';
     const etiqueta = document.createElement('span');
-    etiqueta.textContent = 'Imagen (modo imagen)';
+    etiqueta.textContent = t('Imagen (modo imagen)');
     const elegir = document.createElement('button');
     elegir.type = 'button';
-    elegir.textContent = 'Elegir imagen…';
+    elegir.textContent = t('Elegir imagen…');
     elegir.dataset.accion = 'imagen';
     elegir.addEventListener('click', async () => {
       const [e] = await window.liberadopdf.elegirArchivos({ filtros: 'imagenes', varios: false });
@@ -31,32 +32,32 @@ export function instalarMarcaDeAgua(H) {
     cuerpo.append(etiqueta, elegir);
     const { capa } = H.dialogoHerramienta({
       clave: 'marcaDeAgua',
-      titulo: 'Marca de agua',
+      titulo: t('Marca de agua'),
       campos: [
-        { clave: 'tipo', etiqueta: 'Tipo', tipo: 'opcion', valor: 'texto', opciones: [['texto', 'Texto'], ['imagen', 'Imagen (PNG, JPG…)']] },
-        { clave: 'texto', etiqueta: 'Texto', tipo: 'texto', valor: 'BORRADOR' },
-        { clave: 'tamano', etiqueta: 'Tamaño del texto (pt)', tipo: 'numero', valor: 60, minimo: 6, maximo: 400 },
-        { clave: 'color', etiqueta: 'Color', tipo: 'color', valor: '#ff0000' },
-        { clave: 'escala', etiqueta: 'Ancho de la imagen (fracción de la página)', tipo: 'numero', valor: 0.5, minimo: 0.05, maximo: 1, paso: 0.05 },
-        { clave: 'opacidad', etiqueta: 'Opacidad', tipo: 'numero', valor: 0.3, minimo: 0.05, maximo: 1, paso: 0.05 },
-        { clave: 'angulo', etiqueta: 'Ángulo (°)', tipo: 'numero', valor: 45, minimo: -180, maximo: 180 },
-        { clave: 'mosaico', etiqueta: 'Repetir en mosaico', tipo: 'booleano', valor: false },
-        { clave: 'paginas', etiqueta: 'Páginas', tipo: 'rangos', valor: '' },
+        { clave: 'tipo', etiqueta: t('Tipo'), tipo: 'opcion', valor: 'texto', opciones: [['texto', t('Texto')], ['imagen', t('Imagen (PNG, JPG…)')]] },
+        { clave: 'texto', etiqueta: t('Texto'), tipo: 'texto', valor: t('BORRADOR') },
+        { clave: 'tamano', etiqueta: t('Tamaño del texto (pt)'), tipo: 'numero', valor: 60, minimo: 6, maximo: 400 },
+        { clave: 'color', etiqueta: t('Color'), tipo: 'color', valor: '#ff0000' },
+        { clave: 'escala', etiqueta: t('Ancho de la imagen (fracción de la página)'), tipo: 'numero', valor: 0.5, minimo: 0.05, maximo: 1, paso: 0.05 },
+        { clave: 'opacidad', etiqueta: t('Opacidad'), tipo: 'numero', valor: 0.3, minimo: 0.05, maximo: 1, paso: 0.05 },
+        { clave: 'angulo', etiqueta: t('Ángulo (°)'), tipo: 'numero', valor: 45, minimo: -180, maximo: 180 },
+        { clave: 'mosaico', etiqueta: t('Repetir en mosaico'), tipo: 'booleano', valor: false },
+        { clave: 'paginas', etiqueta: t('Páginas'), tipo: 'rangos', valor: '' },
       ],
       totalPaginas,
       cuerpo,
       alEjecutar: async (v, { senal, progreso }) => {
         const argumentos = { paginas: v.paginas, tamano: v.tamano, color: v.color, opacidad: v.opacidad, angulo: v.angulo, mosaico: v.mosaico, escala: v.escala };
         if (v.tipo === 'imagen') {
-          if (!imagen) return { mensaje: 'Elige primero una imagen.' };
+          if (!imagen) return { mensaje: t('Elige primero una imagen.') };
           Object.assign(argumentos, await imagenParaPdf(imagen.url));
         } else {
-          if (!v.texto.trim()) return { mensaje: 'Escribe el texto de la marca.' };
+          if (!v.texto.trim()) return { mensaje: t('Escribe el texto de la marca.') };
           argumentos.texto = v.texto;
         }
         argumentos.bytes = await H.bytesDelDocumento();
         const salida = await H.ejecutar('marcaDeAgua', argumentos, { senal, alProgreso: progreso });
-        return { nombre: nombreResultado(ruta, 'marca de agua'), bytes: salida, resumen: `${v.paginas.length} páginas marcadas` };
+        return { nombre: nombreResultado(ruta, t('marca de agua')), bytes: salida, resumen: t('{n} páginas marcadas', { n: v.paginas.length }) };
       },
     });
     // Solo se muestran los campos del tipo elegido (texto: texto, tamaño, color; imagen: elegir imagen, escala).

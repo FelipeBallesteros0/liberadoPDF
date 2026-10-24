@@ -1,6 +1,7 @@
 // Contador «lámina X / Y · paso a / b» visible solo en presentación.
 import { raizDeCapas } from './capas.mjs';
 import { textoContador } from '../comun/etiquetas.mjs';
+import { t } from './i18n.mjs';
 
 export function instalarContador({ app, obtenerGrupos, modoActual }) {
   const capa = document.createElement('div');
@@ -12,7 +13,7 @@ export function instalarContador({ app, obtenerGrupos, modoActual }) {
     const grupos = obtenerGrupos();
     const posicion = grupos?.posicion(app.page);
     if (!posicion || modoActual() !== 'presentacion') { capa.hidden = true; return; }
-    capa.textContent = textoContador(posicion, grupos);
+    capa.textContent = textoContador(posicion, grupos, t);
     capa.hidden = false;
   };
   app.eventBus.on('pagechanging', actualizar);

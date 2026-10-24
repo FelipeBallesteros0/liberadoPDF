@@ -18,6 +18,7 @@ import { instalarMedicion } from '/medicion.mjs';
 import { crearCliente } from '/herramientas/cliente.mjs';
 import { bytesDelDocumento, dialogoHerramienta } from '/herramientas/base.mjs';
 import { instalarHerramientas } from '/herramientas/indice.mjs';
+import { t } from '/i18n.mjs';
 
 const app = window.PDFViewerApplication;
 const parametros = new URLSearchParams(location.search);
@@ -75,7 +76,7 @@ const acciones = {
   async guardar() {
     // Sin ediciones del usuario no hay nada que guardar: las animaciones también escriben en el almacén de
     // anotaciones de pdf.js y save() dejaría grabado el fotograma del momento (antimeta: no «mejorar» el PDF).
-    if (!cierre.hayEdiciones()) { mostrarToast('No hay cambios que guardar'); return; }
+    if (!cierre.hayEdiciones()) { mostrarToast(t('No hay cambios que guardar')); return; }
     await window.liberadopdf.modoGuardado('sobrescribir');
     await guardarConPdfjs();
   },
@@ -104,7 +105,7 @@ window.liberadopdfHerramientas = {
 instalarHerramientas(window.liberadopdfHerramientas);
 const abrirHerramienta = (clave) => {
   if (herramientas[clave]) { herramientas[clave](window.liberadopdfHerramientas.contexto()); return; }
-  mostrarToast(`Herramienta «${clave}»: próximamente`);
+  mostrarToast(t('Herramienta «{clave}»: próximamente', { clave }));
 };
 const barra = instalarBarra({ config, app, guardar: parcial => window.liberadopdf.guardarConfig(parcial) });
 // Aplicación en vivo de la configuración (ajustes, nocturno…)
@@ -119,7 +120,7 @@ const aplicarConfig = (nueva) => {
 const ajustes = instalarAjustes({
   obtenerConfig, guardar: nueva => window.liberadopdf.guardarConfig(nueva), aplicar: aplicarConfig, pantallas: () => window.liberadopdf.pantallas(),
   documento: ruta ? {
-    etiqueta: 'Páginas con las notas a la derecha (Beamer, pgfpages)',
+    etiqueta: t('Páginas con las notas a la derecha (Beamer, pgfpages)'),
     obtener: () => Boolean(obtenerConfig().porDocumento?.[ruta]?.notasDerecha),
     poner: (valor) => {
       const actual = obtenerConfig();
@@ -178,7 +179,7 @@ const guardarConPdfjs = async () => {
   if (!app.pdfDocument) return;
   if (cierre.hayEdiciones()) await app.save(); else await app.download(); // sin ediciones, los bytes originales
 };
-window.liberadopdf.alGuardado(({ ruta }) => { cierre.marcarGuardado(); mostrarToast(`Guardado: ${ruta.split(/[\\/]/).pop()}`); });
+window.liberadopdf.alGuardado(({ ruta }) => { cierre.marcarGuardado(); mostrarToast(t('Guardado: {nombre}', { nombre: ruta.split(/[\\/]/).pop() })); });
 // Editores de pdf.js (notas, firma, resaltado, texto, dibujo, imagen): deben estar activos (funciones 25–27).
 const EDITORES = ['editorCommentButton', 'editorSignatureButton', 'editorHighlightButton', 'editorFreeTextButton', 'editorInkButton', 'editorStampButton'];
 window.liberadopdfEstado.editoresVisibles = EDITORES.every(id => { const b = document.getElementById(id); return b && !b.hidden && !b.closest('.liberadopdf-oculto'); });
@@ -229,7 +230,7 @@ if (app.pdfDocument) alCargar(); else app.eventBus.on('documentloaded', alCargar
 // PDF corrupto, cifrado sin contraseña válida o ilegible: pdf.js solo lo registra en consola; aquí se vuelve
 // a la pantalla de inicio con el motivo en vez de dejar un visor vacío.
 app.eventBus.on('documenterror', ({ message }) => {
-  window.liberadopdf.abrirInicio(`No se pudo abrir ${nombre || 'el PDF'}: ${message || 'archivo dañado o no es un PDF'}`);
+  window.liberadopdf.abrirInicio(t('No se pudo abrir {nombre}: {detalle}', { nombre: nombre || t('el PDF'), detalle: message || t('archivo dañado o no es un PDF') }));
 });
 app.eventBus.on('metadataloaded', ponerTitulo); // pdf.js pone su propio título al leer los metadatos
 

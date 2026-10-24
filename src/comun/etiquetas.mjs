@@ -1,3 +1,4 @@
+import { crearTraductor } from './i18n.mjs';
 // Láminas y pasos a partir de /PageLabels (Beamer repite la etiqueta en las páginas de una misma lámina).
 // Lógica pura. Páginas y láminas son 1-based.
 
@@ -40,11 +41,11 @@ export function agruparEtiquetas(etiquetas, totalPaginas) {
 
 // Texto del contador. Con etiquetas numéricas (Beamer) se muestra la etiqueta sobre la mayor, que es lo
 // que el propio PDF rotula al pie; si no, el índice de la lámina sobre el total.
-export function textoContador(posicion, grupos) {
+export function textoContador(posicion, grupos, t = crearTraductor('es')) {
   if (!posicion) return '';
   const numericas = grupos.laminas.every(l => /^\d+$/.test(l.etiqueta));
   const base = numericas
-    ? `lámina ${posicion.etiqueta} / ${Math.max(...grupos.laminas.map(l => Number(l.etiqueta)))}`
-    : `lámina ${posicion.lamina} / ${posicion.totalLaminas}`;
-  return posicion.pasos > 1 ? `${base} · paso ${posicion.paso} / ${posicion.pasos}` : base;
+    ? t('lámina {n} / {total}', { n: posicion.etiqueta, total: Math.max(...grupos.laminas.map(l => Number(l.etiqueta))) })
+    : t('lámina {n} / {total}', { n: posicion.lamina, total: posicion.totalLaminas });
+  return posicion.pasos > 1 ? `${base} · ${t('paso {a} / {b}', { a: posicion.paso, b: posicion.pasos })}` : base;
 }

@@ -1038,6 +1038,9 @@ async function faseIdioma({ ruta, preload, salida }) {
   r.numerarTitulo = await js(`document.querySelector('.liberadopdf-herramienta h2')?.textContent ?? null`);
   r.numerarFormato = await js(`document.querySelector('.liberadopdf-herramienta [data-clave="formato"]')?.value ?? null`);
   await js(`document.querySelector('.liberadopdf-herramienta .pie button')?.click()`, true);
+  // Un guardado real (rotar) muestra el aviso «Saved in …» / «Guardado en …» del diálogo base.
+  await abrirYEjecutarHerramienta(js, 'rotar', { grados: 90, paginas: '' });
+  for (let i = 0; i < 40 && !r.toast; i++) { await espera(250); r.toast = await js(`[...document.querySelectorAll('.liberadopdf-toast')].map(e => e.textContent).find(x => /Saved in|Guardado en/.test(x)) ?? null`); }
   // Pantalla de inicio en una segunda ventana
   const { js: js2 } = abrirVentanaDePrueba({ ruta: null, preload, salida });
   await espera(1500);
@@ -1053,7 +1056,7 @@ async function faseIdioma({ ruta, preload, salida }) {
     && (en ? /Previous/ : /anterior/).test(r.pdfjs ?? '')
     && r.ayuda === (en ? 'liberadoPDF keys' : 'Teclas de liberadoPDF')
     && r.numerarTitulo === (en ? 'Page numbers' : 'Números de página') && r.numerarFormato === (en ? 'Page {n} / {total}' : 'Página {n} / {total}')
-    && r.inicio === (en ? 'Open PDF' : 'Abrir PDF')
+    && r.inicio === (en ? 'Open PDF' : 'Abrir PDF') && (en ? /^Saved in / : /^Guardado en /).test(r.toast ?? '')
     && r.idiomaGuardado === otro && Array.isArray(r.relanzado?.args) && r.relanzado.args.includes(ruta);
   return r;
 }

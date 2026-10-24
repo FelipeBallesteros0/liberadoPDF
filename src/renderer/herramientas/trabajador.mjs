@@ -92,7 +92,7 @@ const operaciones = {
     const salida = await crearDocumento();
     for (const [i, bytes] of documentos.entries()) {
       if (cancelado()) return null;
-      progreso(i, documentos.length, `Uniendo ${i + 1} de ${documentos.length}…`);
+      progreso(i, documentos.length, ['Uniendo {i} de {n}…', { i: i + 1, n: documentos.length }]);
       const doc = await cargarDocumento(bytes);
       const paginas = await salida.copyPages(doc, doc.getPageIndices());
       for (const p of paginas) salida.addPage(p);
@@ -106,7 +106,7 @@ const operaciones = {
     const partes = [];
     for (const [i, grupo] of grupos.entries()) {
       if (cancelado()) return null;
-      progreso(i, grupos.length, `Parte ${i + 1} de ${grupos.length}…`);
+      progreso(i, grupos.length, ['Parte {i} de {n}…', { i: i + 1, n: grupos.length }]);
       const parte = await crearDocumento();
       const paginas = await parte.copyPages(doc, grupo.map(n => n - 1));
       for (const p of paginas) parte.addPage(p);
@@ -242,7 +242,7 @@ const operaciones = {
     let omitidas = 0;
     for (const [i, img] of imagenes.entries()) {
       if (cancelado()) return null;
-      progreso(i, imagenes.length, `Imagen ${i + 1} de ${imagenes.length}…`);
+      progreso(i, imagenes.length, ['Imagen {i} de {n}…', { i: i + 1, n: imagenes.length }]);
       let incrustada;
       try { incrustada = img.tipo === 'image/jpeg' ? await doc.embedJpg(img.bytes) : await doc.embedPng(img.bytes); } catch { omitidas++; continue; }
       const medidas = { ancho: incrustada.width, alto: incrustada.height };

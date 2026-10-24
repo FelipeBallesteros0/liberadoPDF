@@ -5,6 +5,9 @@ import { ESQUEMA, urlVisor, urlInicio } from './protocolo.js';
 
 const ENLACE_EXTERNO = /^(https?:|mailto:)/i;
 
+let t = x => x;
+export function usarTraductor(fn) { t = fn; }
+
 export function crearVentana({ ruta, preload, mensaje }) {
   const win = new BrowserWindow({
     width: 1280,
@@ -32,10 +35,10 @@ export function crearVentana({ ruta, preload, mensaje }) {
     if (!win.liberadopdfEdiciones) { evento.preventDefault(); return; }
     const respuesta = dialog.showMessageBoxSync(win, {
       type: 'warning',
-      title: 'Cambios sin guardar',
-      message: 'Hay anotaciones o campos modificados sin guardar.',
-      detail: 'Si cierras ahora se perderán. Pulsa Cancelar y usa Guardar (Ctrl+S) para conservarlos.',
-      buttons: ['Cerrar sin guardar', 'Cancelar'],
+      title: t('Cambios sin guardar'),
+      message: t('Hay anotaciones o campos modificados sin guardar.'),
+      detail: t('Si cierras ahora se perderán. Pulsa Cancelar y usa Guardar (Ctrl+S) para conservarlos.'),
+      buttons: [t('Cerrar sin guardar'), t('Cancelar')],
       defaultId: 1,
       cancelId: 1,
       noLink: true,
@@ -67,7 +70,7 @@ export function instalarGuardado() {
     const pedidoReciente = Date.now() - (win.liberadopdfGuardadoEn ?? 0) < 5000;
     const esElDocumento = item.getMimeType() === 'application/pdf' && item.getFilename() === nombreDoc;
     if (!pedidoReciente && !esElDocumento) {
-      item.setSaveDialogOptions({ title: 'Guardar adjunto', defaultPath: item.getFilename() });
+      item.setSaveDialogOptions({ title: t('Guardar adjunto'), defaultPath: item.getFilename() });
       return;
     }
     const modo = win.liberadopdfGuardado ?? 'como';
@@ -78,14 +81,14 @@ export function instalarGuardado() {
       item.setSavePath(forzada);
     } else if (modo === 'sobrescribir' && original) {
       const respuesta = dialog.showMessageBoxSync(win, {
-        type: 'question', title: 'Guardar', message: `¿Sobrescribir ${original.split(/[\\/]/).pop()}?`,
-        detail: original, buttons: ['Sobrescribir', 'Cancelar'], defaultId: 0, cancelId: 1, noLink: true,
+        type: 'question', title: t('Guardar'), message: t('¿Sobrescribir {nombre}?', { nombre: original.split(/[\\/]/).pop() }),
+        detail: original, buttons: [t('Sobrescribir'), t('Cancelar')], defaultId: 0, cancelId: 1, noLink: true,
       });
       if (respuesta !== 0) { item.cancel(); return; }
       item.setSavePath(original);
     } else {
       item.setSaveDialogOptions({
-        title: 'Guardar como',
+        title: t('Guardar como'),
         defaultPath: original ? rutaDeGuardadoComo(original) : undefined,
         filters: [{ name: 'PDF', extensions: ['pdf'] }],
       });
@@ -95,7 +98,7 @@ export function instalarGuardado() {
         win.liberadopdfEdiciones = false;
         if (!win.isDestroyed()) win.webContents.send('guardado', { ruta: item.getSavePath() });
       } else if (estado === 'interrupted') {
-        dialog.showMessageBox(win, { type: 'error', title: 'Guardar', message: 'No se pudo guardar el archivo.', detail: item.getSavePath() || original || '' });
+        dialog.showMessageBox(win, { type: 'error', title: t('Guardar'), message: t('No se pudo guardar el archivo.'), detail: item.getSavePath() || original || '' });
       }
     });
   });
@@ -123,7 +126,7 @@ export function crearVentanaPresentador({ win, preload, pantalla }) {
     return win.liberadopdfPresentador;
   }
   const opciones = {
-    width: 1100, height: 700, title: 'Vista de presentador · liberadoPDF', autoHideMenuBar: true, backgroundColor: '#141414',
+    width: 1100, height: 700, title: t('Vista de presentador · liberadoPDF'), autoHideMenuBar: true, backgroundColor: '#141414',
     webPreferences: { preload, contextIsolation: true, nodeIntegration: false, sandbox: true, backgroundThrottling: false },
   };
   if (pantalla) {
