@@ -8,7 +8,7 @@ function enCampoDeTexto(objetivo) {
   return objetivo instanceof HTMLElement && (objetivo.matches('input, textarea, select') || objetivo.isContentEditable);
 }
 
-export function instalarTeclas({ acciones, modoActual, interceptor = () => false }) {
+export function instalarTeclas({ acciones, modoActual, interceptores = [] }) {
   let digitos = '';
   let temporizador = null;
   const indicador = document.createElement('div');
@@ -25,7 +25,7 @@ export function instalarTeclas({ acciones, modoActual, interceptor = () => false
   };
 
   window.addEventListener('keydown', (ev) => {
-    if (interceptor(ev)) { ev.preventDefault(); ev.stopImmediatePropagation(); return; }
+    if (interceptores.some(i => i(ev))) { ev.preventDefault(); ev.stopImmediatePropagation(); return; }
     if (ev.key === 'Escape') { limpiar(); return; }
     const resultado = accionDeTecla(ev, { modo: modoActual(), enEntrada: enCampoDeTexto(ev.target), digitos });
     if (!resultado) return;

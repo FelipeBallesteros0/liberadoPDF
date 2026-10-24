@@ -150,3 +150,13 @@
 .liberadopdf-laser { position: fixed; z-index: 10006; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%; background: #ff2020; box-shadow: 0 0 10px 3px rgba(255, 32, 32, 0.7); pointer-events: none; transition: opacity 0.3s; }
 .liberadopdf-foco { position: fixed; inset: 0; z-index: 10005; background: radial-gradient(circle at var(--x, 50%) var(--y, 50%), transparent 0, transparent 110px, rgba(0, 0, 0, 0.78) 140px); cursor: none; }
 .liberadopdf-dibujo { position: fixed; inset: 0; z-index: 10005; cursor: crosshair; }
+
+/* Cuadrícula de láminas */
+.liberadopdf-cuadricula { position: fixed; inset: 0; z-index: 10004; overflow: auto; padding: 24px; background: rgba(20, 20, 20, 0.92); }
+.liberadopdf-cuadricula .rejilla { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 16px; }
+.liberadopdf-cuadricula .celda { display: flex; flex-direction: column; gap: 6px; padding: 6px; border: 2px solid transparent; border-radius: 8px; cursor: pointer; }
+.liberadopdf-cuadricula .celda .marco { min-height: 60px; background: #333; border-radius: 4px; display: flex; align-items: center; justify-content: center; }
+.liberadopdf-cuadricula .celda canvas { max-width: 100%; height: auto; display: block; border-radius: 3px; }
+.liberadopdf-cuadricula .celda .pie { color: #ddd; font: 13px system-ui, sans-serif; text-align: center; }
+.liberadopdf-cuadricula .celda.actual { border-color: rgba(255, 255, 255, 0.35); }
+.liberadopdf-cuadricula .celda.seleccionada { border-color: #0077b6; background: rgba(0, 119, 182, 0.25); }

@@ -31,6 +31,7 @@ export function construirMenu({ recientes, alAbrir, alAbrirNueva, alReciente, al
         { label: 'Pantalla completa', role: 'togglefullscreen' },
         { type: 'separator' },
         { label: 'Personalizar barra…', click: (item, win) => alAccion(win, 'personalizarBarra') },
+        { label: 'Cuadrícula de láminas', accelerator: 'G', registerAccelerator: false, click: (item, win) => alAccion(win, 'cuadricula') },
         { label: 'Instantánea al portapapeles', accelerator: 'CmdOrCtrl+Shift+S', registerAccelerator: false, click: (item, win) => alAccion(win, 'instantanea') },
         { label: 'Ajustes…', accelerator: 'CmdOrCtrl+,', registerAccelerator: false, click: (item, win) => alAccion(win, 'ajustes') },
       ],

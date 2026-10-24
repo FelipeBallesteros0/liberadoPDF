@@ -12,6 +12,8 @@ import { instalarNocturno } from '/nocturno.mjs';
 import { instalarInstantanea, mostrarToast } from '/instantanea.mjs';
 import { instalarTransiciones } from '/transiciones.mjs';
 import { instalarPunteros } from '/punteros.mjs';
+import { crearMiniaturas } from '/miniaturas.mjs';
+import { instalarCuadricula } from '/cuadricula.mjs';
 
 const app = window.PDFViewerApplication;
 const parametros = new URLSearchParams(location.search);
@@ -56,6 +58,7 @@ const acciones = {
   nocturno() { nocturno.alternar(); },
   instantanea() { if (modoActual() === 'ventana') instantanea.iniciar(); },
   ajustes() { ajustes.abrir(); },
+  cuadricula() { cuadricula.alternar(); },
   laser() { punteros.laser(); },
   foco() { punteros.foco(); },
   dibujo() { punteros.dibujo(); },
@@ -69,6 +72,8 @@ const acciones = {
 const presentacion = instalarPresentacion({ app, obtenerConfig, acciones });
 const { modoActual } = presentacion;
 const contador = instalarContador({ app, obtenerGrupos: () => grupos, modoActual });
+const miniaturas = crearMiniaturas({ app });
+const cuadricula = instalarCuadricula({ app, miniaturas, obtenerGrupos: () => grupos });
 instalarCierre({ app });
 const barra = instalarBarra({ config, app, guardar: parcial => window.liberadopdf.guardarConfig(parcial) });
 // Aplicación en vivo de la configuración (ajustes, nocturno…)
@@ -96,7 +101,7 @@ window.liberadopdf.alGuardado(({ ruta }) => mostrarToast(`Guardado: ${ruta.split
 const EDITORES = ['editorCommentButton', 'editorSignatureButton', 'editorHighlightButton', 'editorFreeTextButton', 'editorInkButton', 'editorStampButton'];
 window.liberadopdfEstado.editoresVisibles = EDITORES.every(id => { const b = document.getElementById(id); return b && !b.hidden && !b.closest('.liberadopdf-oculto'); });
 if (!window.liberadopdfEstado.editoresVisibles) console.warn('liberadoPDF: algún editor de pdf.js no está disponible', EDITORES.filter(id => !document.getElementById(id)));
-instalarTeclas({ acciones, modoActual, interceptor: presentacion.interceptor });
+instalarTeclas({ acciones, modoActual, interceptores: [presentacion.interceptor, cuadricula.interceptor] });
 
 // Arrastrar un PDF sobre la ventana lo abre aquí (pdf.js no llega a ver el drop).
 window.addEventListener('dragover', (ev) => { ev.preventDefault(); ev.stopPropagation(); }, { capture: true });
@@ -108,7 +113,7 @@ window.addEventListener('drop', (ev) => {
   const rutaSoltada = window.liberadopdf.rutaDeArchivo(archivo);
   if (/\.pdf$/i.test(rutaSoltada)) window.liberadopdf.abrirEnEstaVentana(rutaSoltada);
 }, { capture: true });
-window.liberadopdfAcciones = { presentacion: acciones.presentacion, ayuda: acciones.ayuda, personalizarBarra: () => barra.abrirDialogo(), ajustes: acciones.ajustes, instantanea: acciones.instantanea, guardar: acciones.guardar, guardarComo: acciones.guardarComo };
+window.liberadopdfAcciones = { presentacion: acciones.presentacion, ayuda: acciones.ayuda, personalizarBarra: () => barra.abrirDialogo(), ajustes: acciones.ajustes, instantanea: acciones.instantanea, guardar: acciones.guardar, guardarComo: acciones.guardarComo, cuadricula: acciones.cuadricula };
 
 const ponerTitulo = () => { document.title = nombre ? `${nombre} · liberadoPDF` : 'liberadoPDF'; };
 const alCargar = async () => {

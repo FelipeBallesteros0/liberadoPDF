@@ -371,7 +371,32 @@ async function fasePunteros({ ruta, preload, salida }) {
   return r;
 }
 
-const FASES = { basica: faseBasica, bucle: faseBucle, inexistente: faseInexistente, presentacionAnimada: fasePresentacionAnimada, cierre: faseCierre, corrupto: faseCorrupto, ajustes: faseAjustes, nocturno: faseNocturno, instantanea: faseInstantanea, guardar: faseGuardar, transiciones: faseTransiciones, punteros: fasePunteros };
+// Cuadrícula: G la abre con 4 celdas, las flechas mueven la selección, Enter salta, Tab abre y Esc cierra.
+async function faseCuadricula({ ruta, preload, salida }) {
+  const r = { abierta: false, celdas: 0, actual: false, seleccion3: false, salto: false, tabEsc: false, miniaturas: false };
+  const { win, js, tecla } = abrirVentanaDePrueba({ ruta, preload, salida });
+  await esperarEvento('primera-pagina', 10_000);
+  win.show(); win.focus(); win.moveTop();
+  await js('document.body.focus()');
+  tecla('G');
+  await espera(1200);
+  r.abierta = Boolean(await js('document.querySelector(".liberadopdf-cuadricula")'));
+  r.celdas = await js('document.querySelectorAll(".liberadopdf-cuadricula .celda").length');
+  r.actual = await js('document.querySelector(".liberadopdf-cuadricula .celda:nth-child(1)")?.classList.contains("actual") ?? false');
+  r.miniaturas = (await js('document.querySelectorAll(".liberadopdf-cuadricula .celda canvas").length')) === 4;
+  tecla('Right'); await espera(100); tecla('Right'); await espera(150);
+  r.seleccion3 = await js('document.querySelector(".liberadopdf-cuadricula .celda:nth-child(3)")?.classList.contains("seleccionada") ?? false');
+  tecla('Return'); await espera(400);
+  r.salto = (await js('PDFViewerApplication.page')) === 3 && !(await js('document.querySelector(".liberadopdf-cuadricula")'));
+  tecla('Tab'); await espera(500);
+  const conTab = Boolean(await js('document.querySelector(".liberadopdf-cuadricula")'));
+  tecla('Escape'); await espera(300);
+  r.tabEsc = conTab && !(await js('document.querySelector(".liberadopdf-cuadricula")')) && (await js('PDFViewerApplication.page')) === 3;
+  r.ok = r.abierta && r.celdas === 4 && r.actual && r.miniaturas && r.seleccion3 && r.salto && r.tabEsc;
+  return r;
+}
+
+const FASES = { basica: faseBasica, bucle: faseBucle, inexistente: faseInexistente, presentacionAnimada: fasePresentacionAnimada, cierre: faseCierre, corrupto: faseCorrupto, ajustes: faseAjustes, nocturno: faseNocturno, instantanea: faseInstantanea, guardar: faseGuardar, transiciones: faseTransiciones, punteros: fasePunteros, cuadricula: faseCuadricula };
 
 export async function ejecutarHumo({ ruta, salida, fase, preload }) {
   mkdirSync(salida, { recursive: true });

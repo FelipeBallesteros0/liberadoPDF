@@ -24,6 +24,7 @@ export function accionDeTecla(ev, { modo, enEntrada, digitos = '' }) {
   }
   if (altKey || metaKey || ctrlKey) return null;
   if (key === 'F1') return { accion: 'ayuda' };
+  if (key === 'Tab') return { accion: 'cuadricula' };
   if (key === 'Escape') return null; // lo maneja pdf.js (salir de presentación)
   if (key === 'F5') return modo === 'ventana' ? { accion: 'presentacion' } : null;
   if (enEntrada) return null; // el foco está en un campo de texto: pdf.js lo necesita
@@ -41,6 +42,7 @@ export function accionDeTecla(ev, { modo, enEntrada, digitos = '' }) {
   if (key === 'End') return { accion: 'ultima' };
   if (/^[0-9]$/.test(key)) return { accion: 'digito', valor: key };
   if (minuscula === 'n') return { accion: 'nocturno' };
+  if (minuscula === 'g') return { accion: 'cuadricula' };
   if (modo === 'presentacion') {
     if (minuscula === 't') return { accion: 'reloj' };
     if (minuscula === 'b') return { accion: 'negro' };

@@ -66,3 +66,8 @@ test('L, S, D, C y Ctrl+Z solo en presentación', () => {
   for (const k of ['l', 'd', 'c']) assert.equal(accionDeTecla(ev(k), ventana), null, k);
   assert.equal(accionDeTecla(ev('z', { ctrlKey: true }), ventana), null);
 });
+
+test('G y Tab abren la cuadrícula en ambos modos', () => {
+  assert.equal(accionDeTecla(ev('g'), ventana).accion, 'cuadricula');
+  assert.equal(accionDeTecla(ev('Tab'), presentacion).accion, 'cuadricula');
+});
