@@ -22,6 +22,7 @@ const FILAS = [
   ['Ctrl + F', 'Buscar (pdf.js)'],
   ['Ctrl + P', 'Imprimir'],
   ['F1', 'Esta ayuda'],
+  ['Videos del PDF', 'Se reproducen solos, sin audio, sobre su rectángulo (Movie, Screen y RichMedia/media9); clic para pausar o reanudar; opciones en Ajustes'],
   ['Menú Herramientas', 'Unir (37), dividir (38), organizar (39), rotar (40), numerar (41), marca de agua (42), recortar (43), PDF a imágenes (44), imágenes a PDF (45), HTML a PDF (46), aplanar (47), metadatos (48), proteger (49), desbloquear (50), reparar (51), OCR (52) y comprimir (53): el resultado va siempre a un archivo nuevo'],
 ];
 

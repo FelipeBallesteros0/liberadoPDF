@@ -1,6 +1,8 @@
 # liberadoPDF
 
-Visor y presentador de PDF para Windows, portable, que reproduce las animaciones del paquete LaTeX `animate` igual que Adobe Acrobat Reader. Por dentro lleva el visor de pdf.js, cuyo sandbox de JavaScript ejecuta las animaciones; liberadoPDF le añade la experiencia de presentación: pantalla completa, teclas y clicker, láminas con pasos, pantalla en negro, reloj, avance automático y recientes.
+*English: see [README.en.md](README.en.md).*
+
+Visor y presentador de PDF para Windows, portable, que reproduce las animaciones del paquete LaTeX `animate` igual que Adobe Acrobat Reader y los videos incrustados o enlazados en el PDF (sin audio). Por dentro lleva el visor de pdf.js, cuyo sandbox de JavaScript ejecuta las animaciones; liberadoPDF le añade la experiencia de presentación: pantalla completa, teclas y clicker, láminas con pasos, pantalla en negro, reloj, avance automático y recientes.
 
 Nació para presentar un paper en IEEE ICA-ACCA 2026 cuya lámina 11 lleva un video incrustado con `animate`, que ningún visor instalado reproducía. Desde la entrega 3 trae además un menú «Herramientas» con 17 operaciones de archivo (unir, dividir, OCR, comprimir…) que funcionan sin conexión y sin instalar nada.
 
@@ -12,6 +14,7 @@ Nació para presentar un paper en IEEE ICA-ACCA 2026 cuya lámina 11 lleva un vi
 4. `F5` o doble clic entran en presentación; `Esc` sale.
 5. **Modo presentación** está en la barra principal (icono de pantalla junto a «»»). Con Ver ▸ «Personalizar barra…» o la última entrada del menú «»» eliges qué botones van en la barra y cuáles no; se recuerda en `config.json` (`barra`).
 6. La X cierra la ventana sin preguntar, salvo que hayas anotado o rellenado campos sin guardar: entonces pregunta. (Las animaciones también modifican el PDF por dentro; eso no cuenta.)
+7. **Idioma**: la interfaz arranca en inglés. En Ajustes (`Ctrl+,`) ▸ «Idioma / Language» se elige Español; al cambiarlo la aplicación se reinicia sola con el mismo documento (también cambia el idioma del visor pdf.js).
 
 **Primer arranque en un PC nuevo**: Windows y el antivirus analizan el ejecutable la primera vez y puede tardar 10–20 s; después abre en menos de 2 s. Ábrelo una vez antes de la charla. Desde un pendrive USB 2.0 el primer arranque también es lento: conviene copiar la carpeta al disco.
 
@@ -83,9 +86,30 @@ El menú **Herramientas** opera sobre el documento abierto y **nunca lo sobrescr
 - **Cancelar** detiene la herramienta sin dejar archivos a medias.
 - **Limitaciones**: al unir, dividir u organizar, los campos de formulario (incluidas las animaciones de `animate`, que son campos) se copian sin su formulario y dejan de funcionar en el resultado; «Comprimir» no toca imágenes con máscara, indexadas o de 1 bit, y solo cambia una imagen si el JPEG resultante pesa menos que ella en el archivo; «Reparar» no recupera contenido que ya no esté en el archivo.
 
+## Videos dentro del PDF
+
+liberadoPDF reproduce, **sin audio**, los videos que un PDF lleva incrustados o enlazados: anotaciones *RichMedia* (paquete `media9`, video incrustado), *Screen* (`movie15`) y *Movie* (`\movie` del paquete `multimedia` de Beamer, archivo junto al PDF). pdf.js no los muestra; liberadoPDF superpone un reproductor silenciado exactamente sobre el rectángulo, en ventana y en presentación, y lo sigue al cambiar el zoom.
+
+- Arrancan solos y en bucle (Ajustes ▸ «Videos del PDF: reproducir solos» / «en bucle»); un clic sobre el video lo pausa o reanuda. Si la anotación trae sus propias opciones (`autostart`, `loop`), mandan ellas.
+- Formatos: los de Chromium (H.264/MP4, VP9/WebM y AV1); HEVC no. Si no se puede decodificar, aparece un aviso sobre el rectángulo.
+- Un video externo solo se busca en la carpeta del PDF o en sus subcarpetas.
+
+Para meter un video en una presentación de Beamer:
+
+```latex
+\usepackage{multimedia}   % archivo externo: video.mp4 debe ir junto al PDF
+\movie[autostart,loop,width=8cm,height=4.5cm]{\includegraphics[width=8cm]{poster.png}}{video.mp4}
+
+\usepackage{media9}       % video incrustado en el PDF (no hace falta llevar el archivo aparte)
+\includemedia[width=8cm,height=4.5cm,activate=pageopen,addresource=video.mp4,
+  flashvars={source=video.mp4&autoPlay=true&loop=true}]{\includegraphics[width=8cm]{poster.png}}{VPlayer.swf}
+```
+
+Con `ffmpeg -i original.mp4 -an -c:v libx264 -profile:v baseline -pix_fmt yuv420p -movflags +faststart video.mp4` el video queda sin audio y en un formato que reproduce cualquier Chromium. Ese PDF seguirá sin moverse en Acrobat o Sumatra: la reproducción es cosa de liberadoPDF.
+
 ## Ajustes
 
-`Ctrl+,` o Ver ▸ Ajustes…: avance automático, bucle, transiciones, color de fondo, cursor, pantallas, unidad de medida, modo nocturno y tema. Se guardan en `data\config.json` junto al ejecutable (modo portable; en `data\` queda también la caché de Chromium). Si esa carpeta no se puede escribir, en `%APPDATA%\liberadoPDF\config.json`.
+`Ctrl+,` o Ver ▸ Ajustes…: avance automático, bucle, transiciones, color de fondo, cursor, pantallas, unidad de medida, modo nocturno, tema, idioma y videos. Se guardan en `data\config.json` junto al ejecutable (modo portable; en `data\` queda también la caché de Chromium). Si esa carpeta no se puede escribir, en `%APPDATA%\liberadoPDF\config.json`.
 
 ```json
 {
@@ -96,6 +120,8 @@ El menú **Herramientas** opera sobre el documento abierto y **nunca lo sobrescr
   "monitorPresentacion": "auto",
   "monitorPresentador": "auto",
   "barra": { "presentationMode": true },
+  "idioma": "en",
+  "video": { "autoarranque": true, "bucle": true },
   "porDocumento": { "C:\\Charlas\\inmoov.pdf": { "notasDerecha": true, "calibracion": 1 } }
 }
 ```
@@ -109,14 +135,14 @@ El archivo de notas (`<nombre>.pdf.notas.txt`) debe guardarse en UTF-8 (el Bloc 
 
 ## Construir desde WSL o Linux
 
-Requisitos: Node 24, una pantalla (WSLg) para la prueba de humo, Python 3 con Pillow (icono y PDF de ejemplo escaneado y de fotos), y para los PDF de ejemplo un TeX Live con `beamer`, `tikz`, `animate` y `graphicx`.
+Requisitos: Node 24, una pantalla (WSLg) para la prueba de humo, Python 3 con Pillow (icono y PDF de ejemplo escaneado y de fotos), ffmpeg (video de prueba, `scripts/generar_video.sh`), y para los PDF de ejemplo un TeX Live con `beamer`, `tikz`, `animate`, `graphicx`, `multimedia` y `media9`.
 
 En Linux/WSLg Electron se lanza con `ELECTRON_DISABLE_SANDBOX=1` (lo ponen `npm start`, `npm run humo` y los scripts): no hay sandbox setuid, y añadir `no-sandbox` desde el código rompe la impresión a PDF.
 
 ```bash
 npm install
 npm test            # pruebas unitarias (node --test)
-npm run humo        # prueba de humo (36 fases): visor, presentación, presentador y una fase por herramienta; genera sus PDF de prueba
+npm run humo        # prueba de humo (40 fases): visor, presentación, presentador, idioma, video y una fase por herramienta; genera sus PDF de prueba
 npm run construir   # dist/liberadoPDF-win32-x64/ y dist/liberadoPDF-win32-x64.zip
 scripts/humo_windows.sh                                         # prueba de humo sobre el .exe, lanzado desde WSL
 scripts/humo_windows.sh presentacionAnimada "ruta/al/pdf" 11    # ¿la animación de la página 11 corre en presentación?
@@ -131,7 +157,7 @@ El icono del `.exe` lo pone `wine` (si está instalado) o `rcedit-x64.exe` en `~
 - `src/main/`: proceso principal de Electron (protocolo `liberadopdf://`, ventanas, menú, IPC, configuración, prueba de humo).
 - `src/preload/preload.cjs`: puente seguro hacia el renderer e inyección de la capa propia sobre el visor de pdf.js.
 - `src/renderer/`: la capa de liberadoPDF sobre el visor (teclas, presentación, contador, ayuda) y la pantalla de inicio; `herramientas/` tiene un módulo por herramienta, el diálogo base y el worker (`trabajador.mjs`, con pdf-lib y qpdf).
-- `src/comun/`: lógica pura, probada con `node --test` (`herramientas/` para rangos, nombres, estampado, recorte, imágenes, reparación, OCR y compresión).
+- `src/comun/`: lógica pura, probada con `node --test` (`herramientas/` para rangos, nombres, estampado, recorte, imágenes, reparación, OCR y compresión; `i18n.mjs` + `i18n/en.mjs` para el idioma; `video.mjs` para los videos).
 - `recursos/`: PDF de ejemplo (animado, transiciones, notas, escaneado, fotos), icono y `tessdata/` (idiomas del OCR).
 - `vendor/pdfjs/`: pdf.js 6.4.299 tal cual (no se modifica).
 - `docs/superpowers/`: diseño y planes.
@@ -140,7 +166,7 @@ El icono del `.exe` lo pone `wine` (si está instalado) o `rcedit-x64.exe` en `~
 
 - Herramientas 54–59 del plan: PDF ↔ Office (Word, Excel, PowerPoint), editar texto, redactar (tachar contenido), comparar PDF, PDF/A y escanear desde cámara.
 - Abrir «Herramientas ▸ Reparar» desde la pantalla de inicio (hoy hace falta tener un PDF abierto y elegir el archivo roto desde el diálogo).
-- Fuera de alcance: leer en voz alta, video y audio incrustados (media9), 3D, validación de firmas digitales, empaquetado para macOS y Linux.
+- Fuera de alcance: leer en voz alta, audio, video externo por URL, Flash y 3D, validación de firmas digitales, empaquetado para macOS y Linux.
 
 ## Licencia
 

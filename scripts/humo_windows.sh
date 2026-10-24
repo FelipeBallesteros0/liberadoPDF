@@ -35,6 +35,7 @@ case "$FASE" in
 esac
 # El PDF se copia a la carpeta de salida (con un archivo de notas al lado para la fase del presentador).
 cp "$PDF" "$SALIDA/prueba.pdf"
+cp "$PWD/recursos/video.mp4" "$SALIDA/"   # el video externo de ejemplo_video.pdf debe ir junto al PDF
 printf '## 2\nNota de la dos\n' > "$SALIDA/prueba.pdf.notas.txt"
 W_SALIDA="$(wslpath -w "$SALIDA")"
 W_PDF="$(wslpath -w "$SALIDA/prueba.pdf")"

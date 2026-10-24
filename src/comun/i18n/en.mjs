@@ -140,5 +140,6 @@ export const en = {
   'Calidad de las imágenes': 'Image quality', 'Alta (mismo tamaño, JPEG 85 %)': 'High (same size, JPEG 85 %)', 'Media (70 % del tamaño, JPEG 70 %)': 'Medium (70 % of the size, JPEG 70 %)', 'Baja (mitad del tamaño, JPEG 50 %)': 'Low (half the size, JPEG 50 %)',
   'Buscando imágenes…': 'Looking for images…',
   // Video
+  'Videos del PDF': 'PDF videos', 'Se reproducen solos, sin audio, sobre su rectángulo (Movie, Screen y RichMedia/media9); clic para pausar o reanudar; opciones en Ajustes': 'They play by themselves, without audio, on their rectangle (Movie, Screen and RichMedia/media9); click to pause or resume; options in Settings',
   'Video en un formato que no se puede reproducir': 'Video in a format that cannot be played', 'No se encontró el video «{archivo}» junto al PDF': 'The video «{archivo}» was not found next to the PDF', 'Reescribiendo el PDF…': 'Rewriting the PDF…', 'No se pudo reducir ({informe}).': 'Could not reduce ({informe}).', '{n} imágenes recodificadas': '{n} images re-encoded',
 };
