@@ -5,6 +5,9 @@ import { instalarRotar } from './rotar.mjs';
 import { instalarOrganizar } from './organizar.mjs';
 import { instalarNumerar } from './numerar.mjs';
 import { instalarMarcaDeAgua } from './marcaDeAgua.mjs';
+import { instalarRecortar } from './recortar.mjs';
+import { instalarMetadatos } from './metadatos.mjs';
+import { instalarAplanar } from './aplanar.mjs';
 
 export function instalarHerramientas(H) {
   instalarUnir(H);
@@ -13,4 +16,7 @@ export function instalarHerramientas(H) {
   instalarOrganizar(H);
   instalarNumerar(H);
   instalarMarcaDeAgua(H);
+  instalarRecortar(H);
+  instalarMetadatos(H);
+  instalarAplanar(H);
 }

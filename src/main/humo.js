@@ -545,7 +545,7 @@ async function abrirYEjecutarHerramienta(js, clave, ajustes = {}, clics = []) {
   const abierto = await js(`Boolean(document.querySelector('.liberadopdf-herramienta[data-herramienta=${JSON.stringify(clave)}]'))`);
   if (!abierto) return false;
   for (const [clave2, valor] of Object.entries(ajustes)) {
-    await js(`(e => { e.value = ${JSON.stringify(String(valor))}; e.dispatchEvent(new Event('input', { bubbles: true })); e.dispatchEvent(new Event('change', { bubbles: true })); })(document.querySelector('.liberadopdf-herramienta [data-clave=${JSON.stringify(clave2)}]'))`);
+    await js(`(e => { if (e.type === 'checkbox') e.checked = ${valor === true}; else e.value = ${JSON.stringify(String(valor))}; e.dispatchEvent(new Event('input', { bubbles: true })); e.dispatchEvent(new Event('change', { bubbles: true })); })(document.querySelector('.liberadopdf-herramienta [data-clave=${JSON.stringify(clave2)}]'))`);
   }
   for (const selector of clics) { await js(`document.querySelector(${JSON.stringify(selector)}).click()`, true); await espera(600); }
   await js(`document.querySelector('.liberadopdf-herramienta [data-accion="ejecutar"]').click()`, true);
@@ -672,6 +672,80 @@ async function faseMarcaDeAgua({ ruta, preload, salida }) {
   return r;
 }
 
+// Recortar: medidas escritas → CropBox en las 4 páginas; y un arrastre real sobre la página rellena las medidas.
+async function faseRecortar({ ruta, preload, salida }) {
+  const r = { dialogo: false, arrastre: null, archivo: false, cajas: [] };
+  const { win, js } = abrirVentanaDePrueba({ ruta, preload, salida });
+  await esperarEvento('primera-pagina', 10_000);
+  win.show(); win.focus();
+  await js(`window.liberadopdfAcciones.herramienta('recortar')`, true);
+  await espera(400);
+  r.dialogo = Boolean(await js(`document.querySelector('.liberadopdf-herramienta[data-herramienta="recortar"]')`));
+  // Arrastre: desde (10,10) hasta (110,60) píxeles dentro de la página 1.
+  await js(`document.querySelector('.liberadopdf-herramienta [data-accion="marcar"]').click()`, true);
+  await espera(200);
+  const rect = JSON.parse(await js(`JSON.stringify((r => ({ x: r.x, y: r.y }))(document.querySelector('.page[data-page-number="1"]').getBoundingClientRect()))`));
+  const escala = Number(await js(`PDFViewerApplication.pdfViewer.getPageView(0).viewport.scale`));
+  const raton = (type, x, y, extra = {}) => win.webContents.sendInputEvent({ type, x: Math.round(rect.x + x), y: Math.round(rect.y + y), button: 'left', clickCount: 1, ...extra });
+  raton('mouseDown', 10, 10); await espera(100); raton('mouseMove', 60, 35); await espera(100); raton('mouseMove', 110, 60); await espera(100); raton('mouseUp', 110, 60); await espera(300);
+  r.arrastre = JSON.parse(await js(`JSON.stringify(Object.fromEntries(['x','y','ancho','alto'].map(k => [k, Number(document.querySelector('.liberadopdf-herramienta [data-clave="' + k + '"]').value)])))`));
+  r.arrastreEsperado = { ancho: 100 / escala, alto: 50 / escala };
+  r.arrastreOk = Math.abs(r.arrastre.ancho - r.arrastreEsperado.ancho) < 1.5 && Math.abs(r.arrastre.alto - r.arrastreEsperado.alto) < 1.5 && !(await js(`document.querySelector('.liberadopdf-herramienta').hidden`));
+  // Medidas fijas → resultado
+  for (const [k, v] of Object.entries({ x: 10, y: 20, ancho: 200, alto: 100 })) await js(`(e => { e.value = '${v}'; e.dispatchEvent(new Event('input', { bubbles: true })); })(document.querySelector('.liberadopdf-herramienta [data-clave="${k}"]'))`);
+  await js(`document.querySelector('.liberadopdf-herramienta [data-accion="ejecutar"]').click()`, true);
+  const destino = process.env.LIBERADOPDF_HUMO_GUARDAR;
+  r.archivo = await esperarArchivo(destino);
+  if (r.archivo) {
+    const { PDFDocument } = await pdfLibMain();
+    const doc = await PDFDocument.load(readFileSync(destino), { updateMetadata: false });
+    r.cajas = doc.getPages().map(p => p.getCropBox());
+  }
+  r.ok = r.dialogo && r.arrastreOk && r.archivo && r.cajas.length === 4 && r.cajas.every(c => c.x === 10 && c.y === 20 && c.width === 200 && c.height === 100);
+  return r;
+}
+
+// Metadatos: precarga los actuales; con título y autor nuevos el resultado los lleva.
+async function faseMetadatos({ ruta, preload, salida }) {
+  const r = { dialogo: false, precarga: null, archivo: false, titulo: null, autor: null, palabrasClave: null };
+  const { js } = abrirVentanaDePrueba({ ruta, preload, salida });
+  await esperarEvento('primera-pagina', 10_000);
+  await js(`window.liberadopdfAcciones.herramienta('metadatos')`, true);
+  await espera(1500); // la precarga lee el documento en el worker
+  r.dialogo = Boolean(await js(`document.querySelector('.liberadopdf-herramienta[data-herramienta="metadatos"]')`));
+  r.precarga = await js(`document.querySelector('.liberadopdf-herramienta [data-clave="titulo"]')?.value ?? null`);
+  for (const [k, v] of Object.entries({ titulo: 'Título de prueba', autor: 'Humo', palabrasClave: 'uno, dos' })) await js(`(e => { e.value = ${JSON.stringify(v)}; })(document.querySelector('.liberadopdf-herramienta [data-clave="${k}"]'))`);
+  await js(`document.querySelector('.liberadopdf-herramienta [data-accion="ejecutar"]').click()`, true);
+  const destino = process.env.LIBERADOPDF_HUMO_GUARDAR;
+  r.archivo = await esperarArchivo(destino);
+  if (r.archivo) {
+    const { PDFDocument } = await pdfLibMain();
+    const doc = await PDFDocument.load(readFileSync(destino), { updateMetadata: false });
+    r.titulo = doc.getTitle(); r.autor = doc.getAuthor(); r.palabrasClave = doc.getKeywords();
+  }
+  r.ok = r.dialogo && r.archivo && r.titulo === 'Título de prueba' && r.autor === 'Humo' && r.palabrasClave === 'uno dos';
+  return r;
+}
+
+// Aplanar con «quitar anotaciones»: el ejemplo tiene los widgets de animate; el resultado no tiene /Annots.
+async function faseAplanar({ ruta, preload, salida }) {
+  const r = { dialogo: false, archivo: false, anotacionesAntes: 0, anotacionesDespues: null, resumen: null };
+  const { js } = abrirVentanaDePrueba({ ruta, preload, salida });
+  await esperarEvento('primera-pagina', 10_000);
+  const { PDFDocument } = await pdfLibMain();
+  const antes = await PDFDocument.load(readFileSync(ruta), { updateMetadata: false });
+  r.anotacionesAntes = antes.getPages().reduce((n, p) => n + (p.node.Annots()?.size() ?? 0), 0);
+  r.dialogo = await abrirYEjecutarHerramienta(js, 'aplanar', { quitarAnotaciones: true });
+  const destino = process.env.LIBERADOPDF_HUMO_GUARDAR;
+  r.archivo = await esperarArchivo(destino);
+  if (r.archivo) {
+    const doc = await PDFDocument.load(readFileSync(destino), { updateMetadata: false });
+    r.anotacionesDespues = doc.getPages().reduce((n, p) => n + (p.node.Annots()?.size() ?? 0), 0);
+  }
+  r.ok = r.dialogo && r.archivo && r.anotacionesAntes > 0 && r.anotacionesDespues === 0;
+  return r;
+}
+
 // Cifrado: las herramientas rechazan un PDF cifrado con el mensaje acordado. Hasta que exista la operación
 // «proteger» (Tarea 8) no hay con qué generar el PDF cifrado: la fase queda pendiente y no cuenta.
 async function faseCifrado({ ruta, preload, salida }) {
@@ -689,7 +763,7 @@ async function faseCifrado({ ruta, preload, salida }) {
   return r;
 }
 
-const FASES = { numerar: faseNumerar, marcaDeAgua: faseMarcaDeAgua, organizar: faseOrganizar, unir: faseUnir, dividir: faseDividir, rotar: faseRotar, cifrado: faseCifrado, herramientasBase: faseHerramientasBase, basica: faseBasica, bucle: faseBucle, inexistente: faseInexistente, presentacionAnimada: fasePresentacionAnimada, cierre: faseCierre, corrupto: faseCorrupto, ajustes: faseAjustes, nocturno: faseNocturno, instantanea: faseInstantanea, guardar: faseGuardar, transiciones: faseTransiciones, punteros: fasePunteros, cuadricula: faseCuadricula, medicion: faseMedicion, presentador: fasePresentador, notasDerecha: faseNotasDerecha };
+const FASES = { recortar: faseRecortar, metadatos: faseMetadatos, aplanar: faseAplanar, numerar: faseNumerar, marcaDeAgua: faseMarcaDeAgua, organizar: faseOrganizar, unir: faseUnir, dividir: faseDividir, rotar: faseRotar, cifrado: faseCifrado, herramientasBase: faseHerramientasBase, basica: faseBasica, bucle: faseBucle, inexistente: faseInexistente, presentacionAnimada: fasePresentacionAnimada, cierre: faseCierre, corrupto: faseCorrupto, ajustes: faseAjustes, nocturno: faseNocturno, instantanea: faseInstantanea, guardar: faseGuardar, transiciones: faseTransiciones, punteros: fasePunteros, cuadricula: faseCuadricula, medicion: faseMedicion, presentador: fasePresentador, notasDerecha: faseNotasDerecha };
 
 export async function ejecutarHumo({ ruta, salida, fase, preload }) {
   mkdirSync(salida, { recursive: true });

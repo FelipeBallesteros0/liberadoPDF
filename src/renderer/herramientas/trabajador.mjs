@@ -160,6 +160,47 @@ const operaciones = {
     }
     return await doc.save();
   },
+  async recortar({ bytes, paginas, caja }, { progreso }) {
+    const doc = await cargarDocumento(bytes);
+    const todas = doc.getPages();
+    for (const [i, n] of paginas.entries()) {
+      progreso(i, paginas.length);
+      todas[n - 1]?.setCropBox(caja.x, caja.y, caja.ancho, caja.alto);
+    }
+    return await doc.save();
+  },
+  async leerMetadatos({ bytes }) {
+    const doc = await cargarDocumento(bytes);
+    return { titulo: doc.getTitle() ?? '', autor: doc.getAuthor() ?? '', asunto: doc.getSubject() ?? '', palabrasClave: doc.getKeywords() ?? '', creador: doc.getCreator() ?? '' };
+  },
+  async metadatos({ bytes, titulo, autor, asunto, palabrasClave, creador }) {
+    const doc = await cargarDocumento(bytes);
+    doc.setTitle(titulo ?? '');
+    doc.setAuthor(autor ?? '');
+    doc.setSubject(asunto ?? '');
+    doc.setKeywords(String(palabrasClave ?? '').split(/\s*[,;]\s*/).map(s => s.trim()).filter(Boolean));
+    doc.setCreator(creador ?? '');
+    doc.setModificationDate(new Date());
+    return await doc.save();
+  },
+  async aplanar({ bytes, formularios, quitarAnotaciones }, { progreso }) {
+    const { PDFName } = await cargarPdfLib();
+    const doc = await cargarDocumento(bytes);
+    let camposAplanados = 0, anotacionesQuitadas = 0;
+    if (formularios && doc.catalog.has(PDFName.of('AcroForm'))) {
+      const form = doc.getForm();
+      camposAplanados = form.getFields().length;
+      try { form.flatten(); } catch (e) { throw new Error(`No se pudieron aplanar los formularios: ${e.message}`); }
+    }
+    const paginas = doc.getPages();
+    for (const [i, pagina] of paginas.entries()) {
+      progreso(i, paginas.length);
+      if (!quitarAnotaciones) continue;
+      const annots = pagina.node.Annots();
+      if (annots) { anotacionesQuitadas += annots.size(); pagina.node.delete(PDFName.of('Annots')); }
+    }
+    return { bytes: await doc.save(), camposAplanados, anotacionesQuitadas };
+  },
   async rotar({ bytes, paginas, grados }, { progreso }) {
     const { degrees } = await cargarPdfLib();
     const doc = await cargarDocumento(bytes);
