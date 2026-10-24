@@ -15,6 +15,19 @@ mkdirSync(salida, { recursive: true });
 rmSync(carpetaHumo, { recursive: true, force: true });
 copyFileSync(path.join(raiz, 'recursos', 'ejemplo_animado.pdf'), pdfPrueba);
 
+// Imágenes para «Imágenes a PDF»: PNG RGBA sin dependencias (filtro 0 por fila, zlib) y un .jpg falso.
+function png(ancho, alto, pixel) {
+  const filas = Buffer.alloc((ancho * 4 + 1) * alto);
+  for (let y = 0; y < alto; y++) for (let x = 0; x < ancho; x++) Buffer.from(pixel(x, y)).copy(filas, y * (ancho * 4 + 1) + 1 + x * 4);
+  const trozo = (tipo, datos) => { const len = Buffer.alloc(4); len.writeUInt32BE(datos.length); const td = Buffer.concat([Buffer.from(tipo), datos]); const crc = Buffer.alloc(4); crc.writeUInt32BE(zlib.crc32(td)); return Buffer.concat([len, td, crc]); };
+  const ihdr = Buffer.alloc(13); ihdr.writeUInt32BE(ancho, 0); ihdr.writeUInt32BE(alto, 4); ihdr[8] = 8; ihdr[9] = 6;
+  return Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), trozo('IHDR', ihdr), trozo('IDAT', zlib.deflateSync(filas)), trozo('IEND', Buffer.alloc(0))]);
+}
+const imagenA = path.join(salida, 'imagen_a.png'), imagenB = path.join(salida, 'imagen_b.png'), imagenFalsa = path.join(salida, 'falsa.jpg');
+writeFileSync(imagenA, png(80, 60, () => [220, 30, 30, 255]));
+writeFileSync(imagenB, png(60, 90, (x, y) => [30, 30, 220, x < 30 ? 255 : 90])); // mitad transparente
+writeFileSync(imagenFalsa, 'esto no es una imagen\n');
+
 const FASES = [
   { nombre: 'basica', env: {} },
   { nombre: 'bucle', env: { LIBERADOPDF_CONFIG_PRUEBA: JSON.stringify({ presentacion: { avanceSegundos: 1, bucle: true } }) } },
@@ -48,18 +61,6 @@ const FASES = [
   { nombre: 'notasDerecha43', fase: 'notasDerecha', env: { LIBERADOPDF_PDF: path.join(raiz, 'recursos', 'ejemplo_notas_43.pdf'), LIBERADOPDF_CONFIG_PRUEBA: JSON.stringify({ porDocumento: { [path.join(raiz, 'recursos', 'ejemplo_notas_43.pdf')]: { notasDerecha: true } } }) } },
 ];
 writeFileSync(pdfPrueba + '.notas.txt', '## 2\nNota de la dos\n');
-// Imágenes para «Imágenes a PDF»: PNG RGBA sin dependencias (filtro 0 por fila, zlib) y un .jpg falso.
-function png(ancho, alto, pixel) {
-  const filas = Buffer.alloc((ancho * 4 + 1) * alto);
-  for (let y = 0; y < alto; y++) for (let x = 0; x < ancho; x++) Buffer.from(pixel(x, y)).copy(filas, y * (ancho * 4 + 1) + 1 + x * 4);
-  const trozo = (tipo, datos) => { const len = Buffer.alloc(4); len.writeUInt32BE(datos.length); const td = Buffer.concat([Buffer.from(tipo), datos]); const crc = Buffer.alloc(4); crc.writeUInt32BE(zlib.crc32(td)); return Buffer.concat([len, td, crc]); };
-  const ihdr = Buffer.alloc(13); ihdr.writeUInt32BE(ancho, 0); ihdr.writeUInt32BE(alto, 4); ihdr[8] = 8; ihdr[9] = 6;
-  return Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), trozo('IHDR', ihdr), trozo('IDAT', zlib.deflateSync(filas)), trozo('IEND', Buffer.alloc(0))]);
-}
-const imagenA = path.join(salida, 'imagen_a.png'), imagenB = path.join(salida, 'imagen_b.png'), imagenFalsa = path.join(salida, 'falsa.jpg');
-writeFileSync(imagenA, png(80, 60, () => [220, 30, 30, 255]));
-writeFileSync(imagenB, png(60, 90, (x, y) => [30, 30, 220, x < 30 ? 255 : 90])); // mitad transparente
-writeFileSync(imagenFalsa, 'esto no es una imagen\n');
 writeFileSync(path.join(salida, 'corrupto.pdf'), 'esto no es un PDF\n');
 
 const electron = path.join(raiz, 'node_modules', '.bin', process.platform === 'win32' ? 'electron.cmd' : 'electron');
