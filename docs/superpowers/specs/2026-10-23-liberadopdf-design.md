@@ -252,3 +252,21 @@ Felipe pidió las herramientas de iLovePDF que se puedan hacer en local (numerad
 - Bloquear la ventana más de un segundo: todo lo pesado va a workers.
 - Depender de internet: idiomas de OCR y motores incluidos en el paquete.
 - «Redactar» a medias: no se ofrece.
+
+## 9. Entrega 4: inglés por defecto y video en el PDF (añadido el 2026-10-24; Felipe pidió «arranca con tu criterio»)
+
+### 9.1 Idioma
+- Nueva clave de configuración `idioma`: `'en'` (por defecto) o `'es'`. Se elige en Ajustes (Ctrl+,). Al cambiarla, la app guarda la configuración y **se relanza con el mismo documento** (`app.relaunch`), porque el idioma de pdf.js (`--lang`) solo se fija al arrancar; así toda la interfaz cambia a la vez.
+- Todo texto que ve el usuario (menú, pantalla de inicio, ayuda F1, contador, avisos, diálogos de ajustes y de las 17 herramientas, vista de presentador, mensajes de error del worker) pasa por `t(texto)`; la clave es el texto en español y el diccionario inglés vive en `src/comun/i18n/en.mjs`. Un texto sin traducción se muestra en español (nunca en blanco) y una prueba unitaria exige que toda clave usada en el código tenga entrada en inglés.
+- Nombres de resultado, textos por defecto de las herramientas (`Page {n} / {total}`, `DRAFT`) y el formato del contador se traducen también.
+- La prueba de humo corre en español (variable `LIBERADOPDF_IDIOMA=es`, solo en modo humo) salvo la fase `idioma`, que comprueba el inglés por defecto y el español por configuración.
+- README: el español sigue; se añade `README.en.md` con uso y tabla de herramientas.
+
+### 9.2 Video dentro del PDF (sin audio)
+- Fuentes reconocidas: anotaciones **RichMedia** (`media9`, el video va incrustado como asset), **Screen** (`movie15`, rendition con archivo incrustado o externo) y **Movie** (`\movie` del paquete `multimedia` de Beamer, normalmente archivo externo junto al PDF). pdf.js las ignora; liberadoPDF las lee con pdf-lib en el worker (`listarVideos`) y superpone un `<video>` silenciado sobre el rectángulo de la anotación, dentro del `.page` de pdf.js, en ventana y en presentación.
+- Reproducción: silenciada siempre (sin audio), autoarranque y bucle por defecto (ajustable en Ajustes: `video.autoarranque`, `video.bucle`); clic sobre el video alterna reproducir/pausar. Códecs: los de Chromium en Electron (H.264, VP9, AV1 comprobados; HEVC no): si no se puede decodificar, se muestra un aviso sobre el rectángulo.
+- Archivo externo: solo dentro de la carpeta del PDF (o subcarpetas); se sirve por token como cualquier otro archivo.
+- Fixture: `recursos/ejemplo_video.tex` (Beamer con `\movie` externo y `media9` incrustado) con `recursos/video.mp4` (ffmpeg, 2 s, 320×180, H.264), más una anotación Screen generada por el humo con pdf-lib.
+
+### 9.3 Antimetas
+- Audio, controles de reproducción completos, video externo por URL, Flash/3D, y editar/insertar videos en el PDF.
