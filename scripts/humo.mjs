@@ -35,6 +35,8 @@ const FASES = [
   { nombre: 'rotar', env: { LIBERADOPDF_HUMO_GUARDAR: path.join(carpetaHumo, 'rotar', 'rotado.pdf') } },
   { nombre: 'cifrado', env: {} },
   { nombre: 'organizar', env: {} },
+  { nombre: 'idioma', env: { LIBERADOPDF_IDIOMA: '' } },
+  { nombre: 'idiomaEs', fase: 'idioma', env: { LIBERADOPDF_IDIOMA: '', LIBERADOPDF_HUMO_IDIOMA_ESPERADO: 'es', LIBERADOPDF_CONFIG_PRUEBA: JSON.stringify({ idioma: 'es' }) } },
   { nombre: 'comprimir', env: { LIBERADOPDF_PDF: path.join(raiz, 'recursos', 'ejemplo_fotos.pdf'), LIBERADOPDF_HUMO_OPTIMIZADO: optimizadoPrueba, LIBERADOPDF_HUMO_GUARDAR: path.join(carpetaHumo, 'comprimir', 'comprimido.pdf') } },
   { nombre: 'ocr', env: { LIBERADOPDF_PDF: path.join(raiz, 'recursos', 'ejemplo_escaneado.pdf'), LIBERADOPDF_HUMO_ANIMADO: path.join(raiz, 'recursos', 'ejemplo_animado.pdf'), LIBERADOPDF_HUMO_GIRADO: escaneadoGirado, LIBERADOPDF_HUMO_GUARDAR: path.join(carpetaHumo, 'ocr', 'ocr.pdf') } },
   { nombre: 'proteger', env: { LIBERADOPDF_HUMO_GUARDAR: path.join(carpetaHumo, 'proteger', 'protegido.pdf') } },
@@ -60,7 +62,8 @@ function lanzar(fase) {
     const carpeta = path.join(carpetaHumo, fase.nombre);
     const hijo = spawn(electron, ['.'], {
       cwd: raiz,
-      env: { ...(process.platform === 'linux' ? { ELECTRON_DISABLE_SANDBOX: '1' } : {}), ...process.env, LIBERADOPDF_HUMO: carpeta, LIBERADOPDF_HUMO_FASE: fase.fase ?? fase.nombre, LIBERADOPDF_PDF: pdfPrueba, ...fase.env },
+      // Las fases corren en español (sus comprobaciones leen textos); las de idioma prueban el inglés por defecto.
+      env: { ...(process.platform === 'linux' ? { ELECTRON_DISABLE_SANDBOX: '1' } : {}), ...process.env, LIBERADOPDF_IDIOMA: 'es', LIBERADOPDF_HUMO: carpeta, LIBERADOPDF_HUMO_FASE: fase.fase ?? fase.nombre, LIBERADOPDF_PDF: pdfPrueba, ...fase.env },
       stdio: ['ignore', 'pipe', 'pipe'],
     });
     let registro = '';

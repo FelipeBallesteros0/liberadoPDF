@@ -1,5 +1,6 @@
 // Ayuda de teclas (F1): tabla fija en español según §4.5 del diseño.
 import { raizDeCapas } from './capas.mjs';
+import { t } from './i18n.mjs';
 const FILAS = [
   ['→ ↓ PgDn Espacio Enter', 'Página siguiente'],
   ['← ↑ PgUp Retroceso', 'Página anterior'],
@@ -33,13 +34,13 @@ export function mostrarAyuda() {
   const tabla = document.createElement('table');
   for (const [tecla, que] of FILAS) {
     const fila = tabla.insertRow();
-    fila.insertCell().textContent = tecla;
-    fila.insertCell().textContent = que;
+    fila.insertCell().textContent = t(tecla);
+    fila.insertCell().textContent = t(que);
   }
   const titulo = document.createElement('h2');
-  titulo.textContent = 'Teclas de liberadoPDF';
+  titulo.textContent = t('Teclas de liberadoPDF');
   const pie = document.createElement('p');
-  pie.textContent = 'Esc o clic para cerrar. Los clickers envían PgUp / PgDn.';
+  pie.textContent = t('Esc o clic para cerrar. Los clickers envían PgUp / PgDn.');
   capa.append(titulo, tabla, pie);
   capa.addEventListener('click', ocultarAyuda);
   raizDeCapas().append(capa);

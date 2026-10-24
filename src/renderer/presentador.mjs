@@ -1,5 +1,6 @@
 // Vista de presentador: lámina actual y siguiente (API de pdf.js vendored), reloj, cronómetro y notas.
 // Sigue a la ventana del visor por IPC («estado») y le reenvía la navegación por teclado.
+import { t, idioma } from './i18n.mjs';
 import * as pdfjs from '/vendor/pdfjs/build/pdf.mjs';
 import { agruparEtiquetas, textoContador } from '/comun/etiquetas.mjs';
 import { parsearNotas, notaDe } from '/comun/notas.mjs';
@@ -10,6 +11,11 @@ const parametros = new URLSearchParams(location.search);
 const urlPdf = parametros.get('file');
 const ruta = parametros.get('ruta') ?? '';
 const api = window.liberadopdf;
+document.documentElement.lang = idioma;
+document.title = t('Vista de presentador · liberadoPDF');
+document.querySelector('.siguiente h2').textContent = t('Siguiente');
+document.querySelector('.notas h2').textContent = t('Notas');
+document.querySelector('footer').textContent = t('← → PgUp PgDn: navegar · R: reiniciar cronómetro');
 
 const lienzoActual = document.querySelector('.actual canvas');
 const lienzoSiguiente = document.querySelector('.siguiente canvas');
@@ -50,9 +56,9 @@ function actualizar() {
     await pintarPagina(estado.pagina, lienzoActual, anchoActual);
     await pintarPagina(estado.pagina + 1, lienzoSiguiente, 340);
     const posicion = grupos?.posicion(estado.pagina);
-    pieActual.textContent = posicion ? textoContador(posicion, grupos) : `página ${estado.pagina} / ${estado.totalPaginas}`;
+    pieActual.textContent = posicion ? textoContador(posicion, grupos) : t('página {n} / {total}', { n: estado.pagina, total: estado.totalPaginas });
     const siguiente = grupos?.posicion(estado.pagina + 1);
-    pieSiguiente.textContent = estado.pagina + 1 <= estado.totalPaginas ? (siguiente ? textoContador(siguiente, grupos) : `página ${estado.pagina + 1}`) : 'fin';
+    pieSiguiente.textContent = estado.pagina + 1 <= estado.totalPaginas ? (siguiente ? textoContador(siguiente, grupos) : t('página {n}', { n: estado.pagina + 1 })) : t('fin');
     elNota.textContent = notaDe(notas, posicion ?? { etiqueta: String(estado.pagina), lamina: estado.pagina });
     document.querySelector('.notas').hidden = Boolean(estado.notasDerecha) && !elNota.textContent;
   }).catch(e => { window.liberadopdfError = String(e?.stack ?? e); console.warn('presentador:', e?.message ?? e); });

@@ -2,6 +2,7 @@
 import { CAMPOS, leerCampo, escribirCampo, opcionesDePantalla } from '../comun/ajustes.mjs';
 import { valoresPorDefecto } from '../comun/config.mjs';
 import { raizDeCapas } from './capas.mjs';
+import { t } from './i18n.mjs';
 
 export function instalarAjustes({ obtenerConfig, guardar, aplicar, pantallas, documento = null }) {
   let dialogo = null;
@@ -31,13 +32,14 @@ export function instalarAjustes({ obtenerConfig, guardar, aplicar, pantallas, do
       for (const [v, etiqueta] of opciones) {
         const opcion = document.createElement('option');
         opcion.value = v;
-        opcion.textContent = etiqueta;
+        opcion.textContent = t(etiqueta);
         entrada.append(opcion);
       }
       entrada.value = String(valor ?? 'auto');
     }
     entrada.addEventListener('change', () => {
       const nuevo = entrada.type === 'checkbox' ? entrada.checked : entrada.value;
+      if (campo.ruta === 'idioma') { window.liberadopdf.cambiarIdioma(nuevo); return; } // guarda y relanza con el mismo documento
       const config = escribirCampo(obtenerConfig(), campo.ruta, nuevo);
       guardar(config);
       aplicar(config);
@@ -55,30 +57,30 @@ export function instalarAjustes({ obtenerConfig, guardar, aplicar, pantallas, do
     const caja = document.createElement('div');
     caja.className = 'caja';
     const titulo = document.createElement('h2');
-    titulo.textContent = 'Ajustes';
+    titulo.textContent = t('Ajustes');
     caja.append(titulo);
     let seccionActual = null;
     for (const campo of CAMPOS) {
       if (campo.seccion !== seccionActual) {
         seccionActual = campo.seccion;
         const h3 = document.createElement('h3');
-        h3.textContent = seccionActual;
+        h3.textContent = t(seccionActual);
         caja.append(h3);
       }
       const fila = document.createElement('label');
       fila.className = 'fila';
       const texto = document.createElement('span');
-      texto.textContent = campo.etiqueta;
+      texto.textContent = t(campo.etiqueta);
       fila.append(texto, control(campo, config, listaPantallas));
       caja.append(fila);
     }
     if (documento) {
       const h3 = document.createElement('h3');
-      h3.textContent = 'Este documento';
+      h3.textContent = t('Este documento');
       const fila = document.createElement('label');
       fila.className = 'fila';
       const texto = document.createElement('span');
-      texto.textContent = documento.etiqueta;
+      texto.textContent = t(documento.etiqueta);
       const casilla = document.createElement('input');
       casilla.type = 'checkbox';
       casilla.checked = documento.obtener();
@@ -90,7 +92,7 @@ export function instalarAjustes({ obtenerConfig, guardar, aplicar, pantallas, do
     pie.className = 'pie';
     const restablecer = document.createElement('button');
     restablecer.type = 'button';
-    restablecer.textContent = 'Restablecer';
+    restablecer.textContent = t('Restablecer');
     restablecer.addEventListener('click', () => {
       const actual = obtenerConfig();
       const config = { ...valoresPorDefecto(), recientes: actual.recientes, barra: actual.barra, porDocumento: actual.porDocumento };
@@ -101,7 +103,7 @@ export function instalarAjustes({ obtenerConfig, guardar, aplicar, pantallas, do
     });
     const botonCerrar = document.createElement('button');
     botonCerrar.type = 'button';
-    botonCerrar.textContent = 'Cerrar';
+    botonCerrar.textContent = t('Cerrar');
     botonCerrar.addEventListener('click', cerrar);
     pie.append(restablecer, botonCerrar);
     caja.append(pie);

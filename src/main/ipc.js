@@ -1,5 +1,5 @@
 // Canales IPC entre el renderer (preload) y el proceso principal.
-import { ipcMain, dialog, shell, BrowserWindow, screen, clipboard, ClipboardItem } from 'electron';
+import { app, ipcMain, dialog, shell, BrowserWindow, screen, clipboard, ClipboardItem } from 'electron';
 import { EventEmitter } from 'node:events';
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
@@ -14,7 +14,7 @@ import { elegirPantallas } from '../comun/pantallas.mjs';
 export const eventosHumo = new EventEmitter();
 const ENLACE_EXTERNO = /^(https?:|mailto:)/i;
 
-export function instalarIpc({ obtenerConfig, obtenerConfigBase = obtenerConfig, guardar, abrirEnNueva, alCambiarRecientes = () => {}, preload }) {
+export function instalarIpc({ idioma = 'en', t = x => x, obtenerConfig, obtenerConfigBase = obtenerConfig, guardar, abrirEnNueva, alCambiarRecientes = () => {}, preload }) {
   const ventanaDe = evento => BrowserWindow.fromWebContents(evento.sender);
   const pantallasSimples = () => { const principal = screen.getPrimaryDisplay().id; return screen.getAllDisplays().map(d => ({ id: d.id, principal: d.id === principal })); };
   const pantallaPorId = id => screen.getAllDisplays().find(d => d.id === id);
@@ -33,7 +33,7 @@ export function instalarIpc({ obtenerConfig, obtenerConfigBase = obtenerConfig, 
 
   ipcMain.handle('abrir-dialogo', async (evento) => {
     const { canceled, filePaths } = await dialog.showOpenDialog(ventanaDe(evento), {
-      title: 'Abrir PDF',
+      title: t('Abrir PDF'),
       filters: [{ name: 'PDF', extensions: ['pdf'] }],
       properties: ['openFile'],
     });
@@ -92,7 +92,7 @@ export function instalarIpc({ obtenerConfig, obtenerConfigBase = obtenerConfig, 
       return process.env.LIBERADOPDF_HUMO_ELEGIR.split(path.delimiter).map(ruta => ({ ruta, nombre: path.basename(ruta), url: urlDeToken(registrarArchivo(ruta)) }));
     }
     const { canceled, filePaths } = await dialog.showOpenDialog(ventanaDe(evento), {
-      title: 'Elegir archivos', filters: FILTROS[filtros] ?? FILTROS.pdf, properties: varios ? ['openFile', 'multiSelections'] : ['openFile'],
+      title: t('Elegir archivos'), filters: FILTROS[filtros] ?? FILTROS.pdf, properties: varios ? ['openFile', 'multiSelections'] : ['openFile'],
     });
     if (canceled) return [];
     return filePaths.map(ruta => ({ ruta, nombre: path.basename(ruta), url: urlDeToken(registrarArchivo(ruta)) }));
@@ -103,7 +103,7 @@ export function instalarIpc({ obtenerConfig, obtenerConfigBase = obtenerConfig, 
     const win = ventanaDe(evento);
     let carpeta = process.env.LIBERADOPDF_HUMO ? process.env.LIBERADOPDF_HUMO_CARPETA : null;
     if (!carpeta) {
-      const { canceled, filePaths } = await dialog.showOpenDialog(win, { title: 'Elegir carpeta', defaultPath: carpetaDelDocumento(win), properties: ['openDirectory', 'createDirectory'] });
+      const { canceled, filePaths } = await dialog.showOpenDialog(win, { title: t('Elegir carpeta'), defaultPath: carpetaDelDocumento(win), properties: ['openDirectory', 'createDirectory'] });
       if (canceled || !filePaths.length) return null;
       carpeta = filePaths[0];
     }
@@ -122,7 +122,7 @@ export function instalarIpc({ obtenerConfig, obtenerConfigBase = obtenerConfig, 
       const carpeta = carpetaDelDocumento(win);
       const ext = propuesto.includes('.') ? propuesto.split('.').pop() : '';
       const { canceled, filePath } = await dialog.showSaveDialog(win, {
-        title: 'Guardar resultado', defaultPath: carpeta ? path.join(carpeta, propuesto) : propuesto,
+        title: t('Guardar resultado'), defaultPath: carpeta ? path.join(carpeta, propuesto) : propuesto,
         filters: ext ? [{ name: ext.toUpperCase(), extensions: [ext] }] : [],
       });
       if (canceled || !filePath) return null;
@@ -140,7 +140,7 @@ export function instalarIpc({ obtenerConfig, obtenerConfigBase = obtenerConfig, 
     let carpeta = typeof carpetaPrevia === 'string' && win && carpetasElegidas(win).has(carpetaPrevia) ? carpetaPrevia : null;
     if (!carpeta) carpeta = process.env.LIBERADOPDF_HUMO ? process.env.LIBERADOPDF_HUMO_CARPETA : null;
     if (!carpeta) {
-      const { canceled, filePaths } = await dialog.showOpenDialog(win, { title: 'Carpeta para los resultados', defaultPath: carpetaDelDocumento(win), properties: ['openDirectory', 'createDirectory'] });
+      const { canceled, filePaths } = await dialog.showOpenDialog(win, { title: t('Carpeta para los resultados'), defaultPath: carpetaDelDocumento(win), properties: ['openDirectory', 'createDirectory'] });
       if (canceled || !filePaths.length) return null;
       carpeta = filePaths[0];
       if (win) carpetasElegidas(win).add(carpeta);
@@ -214,10 +214,22 @@ export function instalarIpc({ obtenerConfig, obtenerConfigBase = obtenerConfig, 
   ipcMain.handle('pantallas', () => screen.getAllDisplays().map((d, i) => ({
     id: d.id, etiqueta: d.label || `Pantalla ${i + 1}`, ancho: d.size.width, alto: d.size.height, principal: d.id === screen.getPrimaryDisplay().id,
   })));
-  // El preload lo pide de forma síncrona antes de que arranque pdf.js (viewerCssTheme: 0 sistema, 1 claro, 2 oscuro).
-  ipcMain.on('tema-inicial', (evento) => {
+  // El preload lo pide de forma síncrona antes de que arranque pdf.js (viewerCssTheme: 0 sistema, 1 claro, 2 oscuro) y
+  // para el idioma de la capa propia.
+  ipcMain.on('config-inicial', (evento) => {
     const tema = obtenerConfig().tema;
-    evento.returnValue = tema === 'claro' ? 1 : tema === 'oscuro' ? 2 : 0;
+    evento.returnValue = { tema: tema === 'claro' ? 1 : tema === 'oscuro' ? 2 : 0, idioma };
+  });
+  // Cambiar de idioma: se guarda y la app se relanza con el mismo documento (pdf.js solo cambia de idioma al arrancar).
+  ipcMain.handle('cambiar-idioma', (evento, nuevo) => {
+    if (!['en', 'es'].includes(nuevo)) return false;
+    guardar(fusionarConfigGuardada(obtenerConfigBase(), { idioma: nuevo }));
+    const ruta = ventanaDe(evento)?.liberadopdfRuta;
+    const args = [...process.argv.slice(1).filter(a => !/\.pdf$/i.test(a)), ...(ruta ? [ruta] : [])];
+    if (process.env.LIBERADOPDF_HUMO) { eventosHumo.emit('relanzar', { args }); return true; }
+    app.relaunch({ args });
+    app.exit(0);
+    return true;
   });
   ipcMain.handle('guardar-config', (evento, parcial) => {
     guardar(fusionarConfigGuardada(obtenerConfigBase(), parcial));

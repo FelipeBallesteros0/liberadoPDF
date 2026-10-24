@@ -6,7 +6,7 @@ const { contextBridge, ipcRenderer, webUtils } = require('electron');
 try {
   const actuales = JSON.parse(localStorage.getItem('pdfjs.preferences') || '{}');
   let viewerCssTheme = 0;
-  try { viewerCssTheme = ipcRenderer.sendSync('tema-inicial'); } catch { viewerCssTheme = 0; }
+  try { viewerCssTheme = ipcRenderer.sendSync('config-inicial').tema; } catch { viewerCssTheme = 0; }
   localStorage.setItem('pdfjs.preferences', JSON.stringify({
     ...actuales,
     viewerCssTheme,
@@ -19,7 +19,12 @@ try {
   // sin localStorage no hay preferencias: pdf.js usa las suyas por defecto (scripting activo)
 }
 
+let idiomaInicial = 'en';
+try { idiomaInicial = ipcRenderer.sendSync('config-inicial').idioma ?? 'en'; } catch { idiomaInicial = 'en'; }
+
 contextBridge.exposeInMainWorld('liberadopdf', {
+  idioma: idiomaInicial,
+  cambiarIdioma: idioma => ipcRenderer.invoke('cambiar-idioma', idioma),
   abrirDialogo: () => ipcRenderer.invoke('abrir-dialogo'),
   abrirEnEstaVentana: ruta => ipcRenderer.invoke('abrir-en-esta', ruta),
   abrirEnVentanaNueva: ruta => ipcRenderer.invoke('abrir-en-nueva', ruta),

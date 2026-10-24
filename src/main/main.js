@@ -10,6 +10,7 @@ import { instalarIpc } from './ipc.js';
 import { carpetaDatos, puedeEscribirCarpeta, cargarConfig, guardarConfig, archivoConfig } from './config.js';
 import { ejecutarHumo } from './humo.js';
 import { normalizarConfig } from '../comun/config.mjs';
+import { crearTraductor, claveDeIdioma } from '../comun/i18n.mjs';
 
 const raiz = app.getAppPath(); // carpeta del proyecto en desarrollo; app.asar empaquetada
 const preload = path.join(raiz, 'src', 'preload', 'preload.cjs');
@@ -26,7 +27,6 @@ const raices = [
 ];
 
 app.setName('liberadoPDF');
-app.commandLine.appendSwitch('lang', 'es-ES'); // interfaz de pdf.js (y de Electron) en español
 // En Linux (WSLg, sin chrome-sandbox setuid) el lanzador pone ELECTRON_DISABLE_SANDBOX=1: añadir «no-sandbox» con
 // appendSwitch en tiempo de ejecución rompe printToPDF (el proceso de impresión no puede crear memoria compartida).
 registrarEsquemaPrivilegiado();
@@ -57,6 +57,10 @@ if (!process.env.LIBERADOPDF_HUMO && !app.requestSingleInstanceLock()) {
   const obtenerConfig = () => (configPrueba // lo que ve el renderer
     ? normalizarConfig({ ...config, ...configPrueba, presentacion: { ...config.presentacion, ...(configPrueba.presentacion ?? {}) } })
     : config);
+  // Idioma efectivo (configuración, o LIBERADOPDF_IDIOMA en humo); el de pdf.js y Electron se fija aquí, antes de `ready`.
+  const idioma = claveDeIdioma(obtenerConfig(), process.env);
+  const t = crearTraductor(idioma);
+  app.commandLine.appendSwitch('lang', idioma === 'es' ? 'es-ES' : 'en-US');
   const guardar = (nueva) => {
     try {
       guardarConfig(archivo, nueva);
@@ -69,10 +73,11 @@ if (!process.env.LIBERADOPDF_HUMO && !app.requestSingleInstanceLock()) {
 
   const abrirNueva = ruta => crearVentana({ ruta, preload });
   const dialogoAbrir = async (win) => {
-    const { canceled, filePaths } = await dialog.showOpenDialog(win ?? undefined, { title: 'Abrir PDF', filters: [{ name: 'PDF', extensions: ['pdf'] }], properties: ['openFile'] });
+    const { canceled, filePaths } = await dialog.showOpenDialog(win ?? undefined, { title: t('Abrir PDF'), filters: [{ name: 'PDF', extensions: ['pdf'] }], properties: ['openFile'] });
     return canceled || filePaths.length === 0 ? null : filePaths[0];
   };
   const menu = () => construirMenu({
+    t,
     recientes: obtenerConfig().recientes.filter(r => existsSync(r.ruta)),
     alAbrir: async (win) => { const r = await dialogoAbrir(win); if (r) { const destino = win ?? ventanaActiva(); destino ? abrirEnVentana(destino, r) : abrirNueva(r); } },
     alAbrirNueva: async () => { const r = await dialogoAbrir(ventanaActiva()); if (r) abrirNueva(r); },
@@ -82,7 +87,7 @@ if (!process.env.LIBERADOPDF_HUMO && !app.requestSingleInstanceLock()) {
     alHerramienta: (win, clave) => {
       const destino = win ?? ventanaActiva();
       if (!destino) return;
-      if (!destino.liberadopdfRuta) { dialog.showMessageBox(destino, { type: 'info', title: 'Herramientas', message: 'Abre primero un PDF', detail: 'Las herramientas trabajan sobre el documento abierto. Para reparar un PDF que no abre, abre cualquier otro PDF y elige el archivo roto en Herramientas ▸ Reparar.' }); return; }
+      if (!destino.liberadopdfRuta) { dialog.showMessageBox(destino, { type: 'info', title: t('Herramientas'), message: t('Abre primero un PDF'), detail: t('Las herramientas trabajan sobre el documento abierto. Para reparar un PDF que no abre, abre cualquier otro PDF y elige el archivo roto en Herramientas ▸ Reparar.') }); return; }
       destino.webContents.executeJavaScript(`window.liberadopdfAcciones?.herramienta?.(${JSON.stringify(clave)})`, true);
     },
   });
@@ -90,7 +95,7 @@ if (!process.env.LIBERADOPDF_HUMO && !app.requestSingleInstanceLock()) {
   app.whenReady().then(() => {
     instalarProtocolo({ raices });
     instalarGuardado();
-    instalarIpc({ obtenerConfig, obtenerConfigBase, guardar, abrirEnNueva: abrirNueva, alCambiarRecientes: menu, preload });
+    instalarIpc({ idioma, t, obtenerConfig, obtenerConfigBase, guardar, abrirEnNueva: abrirNueva, alCambiarRecientes: menu, preload });
     menu();
     if (process.env.LIBERADOPDF_HUMO) {
       ejecutarHumo({ ruta: process.env.LIBERADOPDF_PDF, salida: process.env.LIBERADOPDF_HUMO, fase: process.env.LIBERADOPDF_HUMO_FASE || 'basica', preload });

@@ -1,5 +1,11 @@
 // Pantalla de inicio: abrir, recientes y arrastrar y soltar.
+import { t, idioma } from './i18n.mjs';
 const api = window.liberadopdf;
+document.documentElement.lang = idioma;
+document.getElementById('abrir').textContent = t('Abrir PDF');
+document.getElementById('arrastre').textContent = t('Arrastra un PDF aquí');
+document.querySelector('.liberadopdf-recientes h2').textContent = t('Recientes');
+document.querySelector('footer').textContent = t('F1: teclas · Ctrl+O: abrir · Ctrl+N: ventana nueva');
 const mensaje = new URLSearchParams(location.search).get('mensaje');
 const elMensaje = document.querySelector('.liberadopdf-mensaje');
 if (mensaje) { elMensaje.textContent = mensaje; elMensaje.hidden = false; }
@@ -19,7 +25,7 @@ const recientes = await api.recientes();
 if (recientes.length === 0) {
   const li = document.createElement('li');
   li.className = 'vacio';
-  li.textContent = 'Todavía no hay archivos recientes.';
+  li.textContent = t('Todavía no hay archivos recientes.');
   lista.append(li);
 }
 for (const r of recientes) {
@@ -27,7 +33,7 @@ for (const r of recientes) {
   const li = document.createElement('li');
   const spanNombre = document.createElement('span'); spanNombre.className = 'nombre'; spanNombre.textContent = nombre;
   const spanCarpeta = document.createElement('span'); spanCarpeta.className = 'carpeta'; spanCarpeta.textContent = carpeta;
-  const spanFecha = document.createElement('span'); spanFecha.className = 'fecha'; spanFecha.textContent = r.fecha ? new Date(r.fecha).toLocaleString('es') : '';
+  const spanFecha = document.createElement('span'); spanFecha.className = 'fecha'; spanFecha.textContent = r.fecha ? new Date(r.fecha).toLocaleString(idioma) : '';
   li.append(spanNombre, spanCarpeta, spanFecha);
   li.title = r.ruta;
   li.addEventListener('click', (ev) => { if (ev.ctrlKey) api.abrirEnVentanaNueva(r.ruta); else api.abrirEnEstaVentana(r.ruta); });
@@ -45,5 +51,5 @@ window.addEventListener('drop', (ev) => {
   if (!archivo) return;
   const ruta = api.rutaDeArchivo(archivo);
   if (/\.pdf$/i.test(ruta)) api.abrirEnEstaVentana(ruta);
-  else { elMensaje.textContent = `No es un PDF: ${ruta}`; elMensaje.hidden = false; }
+  else { elMensaje.textContent = t('No es un PDF: {ruta}', { ruta }); elMensaje.hidden = false; }
 });

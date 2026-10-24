@@ -1021,6 +1021,43 @@ async function faseComprimir({ ruta, preload, salida }) {
   return r;
 }
 
+// Idioma: sin LIBERADOPDF_IDIOMA el menú, pdf.js y la pantalla de inicio salen en inglés (por defecto); con
+// configuración idioma=es, en español. Cambiar el idioma guarda la configuración y relanza con el mismo documento.
+async function faseIdioma({ ruta, preload, salida }) {
+  const esperado = process.env.LIBERADOPDF_HUMO_IDIOMA_ESPERADO || 'en';
+  const r = { esperado, menu: null, pdfjs: null, ayuda: null, numerarTitulo: null, numerarFormato: null, inicio: null, idiomaGuardado: null, relanzado: null };
+  const { js } = abrirVentanaDePrueba({ ruta, preload, salida });
+  await esperarEvento('primera-pagina', 10_000);
+  r.menu = Menu.getApplicationMenu()?.items.map(i => i.label) ?? null;
+  r.pdfjs = await js(`document.getElementById('previous')?.title ?? null`);
+  await js(`window.liberadopdfAcciones.ayuda()`, true);
+  r.ayuda = await js(`document.querySelector('.liberadopdf-ayuda h2')?.textContent ?? null`);
+  await js(`window.liberadopdfAcciones.ayuda()`, true);
+  await js(`window.liberadopdfAcciones.herramienta('numerar')`, true);
+  await espera(300);
+  r.numerarTitulo = await js(`document.querySelector('.liberadopdf-herramienta h2')?.textContent ?? null`);
+  r.numerarFormato = await js(`document.querySelector('.liberadopdf-herramienta [data-clave="formato"]')?.value ?? null`);
+  await js(`document.querySelector('.liberadopdf-herramienta .pie button')?.click()`, true);
+  // Pantalla de inicio en una segunda ventana
+  const { js: js2 } = abrirVentanaDePrueba({ ruta: null, preload, salida });
+  await espera(1500);
+  r.inicio = await js2(`document.getElementById('abrir')?.textContent ?? null`);
+  // Cambio de idioma: guarda y «relanza» (en humo, el relanzado se registra en vez de ejecutarse)
+  const otro = esperado === 'en' ? 'es' : 'en';
+  const relanzar = new Promise(res => eventosHumo.once('relanzar', res));
+  await js(`window.liberadopdf.cambiarIdioma(${JSON.stringify(otro)})`, true);
+  r.relanzado = await Promise.race([relanzar, espera(5000).then(() => null)]);
+  r.idiomaGuardado = JSON.parse(readFileSync(path.join(salida, 'datos', 'config.json'), 'utf8')).idioma;
+  const en = esperado === 'en';
+  r.ok = JSON.stringify(r.menu) === JSON.stringify(en ? ['File', 'View', 'Tools', 'Help'] : ['Archivo', 'Ver', 'Herramientas', 'Ayuda'])
+    && (en ? /Previous/ : /anterior/).test(r.pdfjs ?? '')
+    && r.ayuda === (en ? 'liberadoPDF keys' : 'Teclas de liberadoPDF')
+    && r.numerarTitulo === (en ? 'Page numbers' : 'Números de página') && r.numerarFormato === (en ? 'Page {n} / {total}' : 'Página {n} / {total}')
+    && r.inicio === (en ? 'Open PDF' : 'Abrir PDF')
+    && r.idiomaGuardado === otro && Array.isArray(r.relanzado?.args) && r.relanzado.args.includes(ruta);
+  return r;
+}
+
 // Cifrado: las herramientas rechazan un PDF cifrado con el mensaje acordado. Hasta que exista la operación
 // «proteger» (Tarea 8) no hay con qué generar el PDF cifrado: la fase queda pendiente y no cuenta.
 async function faseCifrado({ ruta, preload, salida }) {
@@ -1038,7 +1075,7 @@ async function faseCifrado({ ruta, preload, salida }) {
   return r;
 }
 
-const FASES = { comprimir: faseComprimir, ocr: faseOcr, proteger: faseProteger, desbloquear: faseDesbloquear, reparar: faseReparar, htmlAPdf: faseHtmlAPdf, aImagenes: faseAImagenes, deImagenes: faseDeImagenes, recortar: faseRecortar, metadatos: faseMetadatos, aplanar: faseAplanar, numerar: faseNumerar, marcaDeAgua: faseMarcaDeAgua, organizar: faseOrganizar, unir: faseUnir, dividir: faseDividir, rotar: faseRotar, cifrado: faseCifrado, herramientasBase: faseHerramientasBase, basica: faseBasica, bucle: faseBucle, inexistente: faseInexistente, presentacionAnimada: fasePresentacionAnimada, cierre: faseCierre, corrupto: faseCorrupto, ajustes: faseAjustes, nocturno: faseNocturno, instantanea: faseInstantanea, guardar: faseGuardar, transiciones: faseTransiciones, punteros: fasePunteros, cuadricula: faseCuadricula, medicion: faseMedicion, presentador: fasePresentador, notasDerecha: faseNotasDerecha };
+const FASES = { idioma: faseIdioma, comprimir: faseComprimir, ocr: faseOcr, proteger: faseProteger, desbloquear: faseDesbloquear, reparar: faseReparar, htmlAPdf: faseHtmlAPdf, aImagenes: faseAImagenes, deImagenes: faseDeImagenes, recortar: faseRecortar, metadatos: faseMetadatos, aplanar: faseAplanar, numerar: faseNumerar, marcaDeAgua: faseMarcaDeAgua, organizar: faseOrganizar, unir: faseUnir, dividir: faseDividir, rotar: faseRotar, cifrado: faseCifrado, herramientasBase: faseHerramientasBase, basica: faseBasica, bucle: faseBucle, inexistente: faseInexistente, presentacionAnimada: fasePresentacionAnimada, cierre: faseCierre, corrupto: faseCorrupto, ajustes: faseAjustes, nocturno: faseNocturno, instantanea: faseInstantanea, guardar: faseGuardar, transiciones: faseTransiciones, punteros: fasePunteros, cuadricula: faseCuadricula, medicion: faseMedicion, presentador: fasePresentador, notasDerecha: faseNotasDerecha };
 
 export async function ejecutarHumo({ ruta, salida, fase, preload }) {
   mkdirSync(salida, { recursive: true });

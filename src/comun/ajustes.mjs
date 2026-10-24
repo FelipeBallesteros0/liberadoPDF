@@ -12,6 +12,9 @@ export const CAMPOS = [
   { clave: 'unidad', etiqueta: 'Unidad de medida', tipo: 'opcion', opciones: [['mm', 'milímetros'], ['cm', 'centímetros'], ['in', 'pulgadas']], ruta: 'unidadMedida', seccion: 'Apariencia y herramientas' },
   { clave: 'nocturno', etiqueta: 'Modo nocturno (colores invertidos)', tipo: 'booleano', ruta: 'nocturno', seccion: 'Apariencia y herramientas' },
   { clave: 'tema', etiqueta: 'Tema de la interfaz', tipo: 'opcion', opciones: [['sistema', 'Como el sistema'], ['claro', 'Claro'], ['oscuro', 'Oscuro']], ruta: 'tema', seccion: 'Apariencia y herramientas' },
+  { clave: 'idioma', etiqueta: 'Idioma / Language', tipo: 'opcion', opciones: [['en', 'English'], ['es', 'Español']], ruta: 'idioma', seccion: 'Apariencia y herramientas' },
+  { clave: 'videoAutoarranque', etiqueta: 'Videos del PDF: reproducir solos', tipo: 'booleano', ruta: 'video.autoarranque', seccion: 'Apariencia y herramientas' },
+  { clave: 'videoBucle', etiqueta: 'Videos del PDF: en bucle', tipo: 'booleano', ruta: 'video.bucle', seccion: 'Apariencia y herramientas' },
 ];
 
 export function leerCampo(config, ruta) {
