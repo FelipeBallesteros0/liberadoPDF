@@ -43,3 +43,10 @@ test('atajos con Ctrl y Escape', () => {
   assert.equal(accionDeTecla(ev('Escape'), presentacion), null);
   assert.equal(accionDeTecla(ev('ArrowRight', { ctrlKey: true }), ventana), null);
 });
+
+test('N alterna nocturno; Ctrl+Mayús+S es instantánea solo en ventana; Ctrl+, abre ajustes', () => {
+  assert.equal(accionDeTecla(ev('n'), presentacion).accion, 'nocturno');
+  assert.equal(accionDeTecla(ev('S', { ctrlKey: true, shiftKey: true }), ventana).accion, 'instantanea');
+  assert.equal(accionDeTecla(ev('S', { ctrlKey: true, shiftKey: true }), presentacion), null);
+  assert.equal(accionDeTecla(ev(',', { ctrlKey: true }), ventana).accion, 'ajustes');
+});

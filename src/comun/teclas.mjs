@@ -9,6 +9,10 @@ export function accionDeTecla(ev, { modo, enEntrada, digitos = '' }) {
   const { key, shiftKey, ctrlKey, altKey, metaKey } = ev;
   const minuscula = typeof key === 'string' ? key.toLowerCase() : '';
 
+  if (ctrlKey && shiftKey && !altKey && !metaKey) {
+    if (minuscula === 's') return modo === 'ventana' ? { accion: 'instantanea' } : null;
+    return null;
+  }
   if (ctrlKey && !altKey && !metaKey && !shiftKey) {
     if (minuscula === 'o') return { accion: 'abrir' };
     if (minuscula === 'n') return { accion: 'abrirNueva' };

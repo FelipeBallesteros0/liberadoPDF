@@ -8,6 +8,8 @@ import { instalarPresentacion } from '/presentacion.mjs';
 import { instalarCierre } from '/cierre.mjs';
 import { instalarBarra } from '/barra.mjs';
 import { instalarAjustes } from '/ajustes.mjs';
+import { instalarNocturno } from '/nocturno.mjs';
+import { instalarInstantanea } from '/instantanea.mjs';
 
 const app = window.PDFViewerApplication;
 const parametros = new URLSearchParams(location.search);
@@ -49,7 +51,8 @@ const acciones = {
   reloj() { presentacion.reloj(); },
   negro() { presentacion.negro(); },
   blanco() { presentacion.blanco(); },
-  nocturno() {}, // Tarea 3
+  nocturno() { nocturno.alternar(); },
+  instantanea() { if (modoActual() === 'ventana') instantanea.iniciar(); },
   ajustes() { ajustes.abrir(); },
   async abrir() { const r = await window.liberadopdf.abrirDialogo(); if (r) window.liberadopdf.abrirEnEstaVentana(r); },
   async abrirNueva() { const r = await window.liberadopdf.abrirDialogo(); if (r) window.liberadopdf.abrirEnVentanaNueva(r); },
@@ -69,6 +72,9 @@ const aplicarConfig = (nueva) => {
 };
 const ajustes = instalarAjustes({ obtenerConfig, guardar: nueva => window.liberadopdf.guardarConfig(nueva), aplicar: aplicarConfig, pantallas: () => window.liberadopdf.pantallas() });
 aplicarTema(config.tema);
+const nocturno = instalarNocturno({ obtenerConfig, guardar: nueva => { config = nueva; window.liberadopdf.guardarConfig(nueva); } });
+const instantanea = instalarInstantanea();
+window.liberadopdfAplicarExtra = (nueva) => nocturno.aplicar(nueva.nocturno);
 instalarTeclas({ acciones, modoActual, interceptor: presentacion.interceptor });
 
 // Arrastrar un PDF sobre la ventana lo abre aquí (pdf.js no llega a ver el drop).
@@ -81,7 +87,7 @@ window.addEventListener('drop', (ev) => {
   const rutaSoltada = window.liberadopdf.rutaDeArchivo(archivo);
   if (/\.pdf$/i.test(rutaSoltada)) window.liberadopdf.abrirEnEstaVentana(rutaSoltada);
 }, { capture: true });
-window.liberadopdfAcciones = { presentacion: acciones.presentacion, ayuda: acciones.ayuda, personalizarBarra: () => barra.abrirDialogo(), ajustes: acciones.ajustes };
+window.liberadopdfAcciones = { presentacion: acciones.presentacion, ayuda: acciones.ayuda, personalizarBarra: () => barra.abrirDialogo(), ajustes: acciones.ajustes, instantanea: acciones.instantanea };
 
 const ponerTitulo = () => { document.title = nombre ? `${nombre} · liberadoPDF` : 'liberadoPDF'; };
 const alCargar = async () => {

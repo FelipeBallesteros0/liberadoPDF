@@ -105,3 +105,10 @@
 .liberadopdf-ajustes .fila span { flex: 1; }
 .liberadopdf-ajustes input[type="number"] { width: 90px; }
 .liberadopdf-ajustes select { max-width: 260px; }
+
+/* Modo nocturno e instantánea */
+#viewerContainer.liberadopdf-nocturno .pdfViewer .page canvas,
+#viewerContainer.liberadopdf-nocturno .pdfViewer .page img { filter: invert(1) hue-rotate(180deg); }
+#viewerContainer.liberadopdf-recortando, #viewerContainer.liberadopdf-recortando * { cursor: crosshair !important; }
+.liberadopdf-recorte { position: fixed; z-index: 10004; border: 2px dashed #0077b6; background: rgba(0, 119, 182, 0.12); pointer-events: none; }
+.liberadopdf-toast { position: fixed; left: 50%; bottom: 40px; transform: translateX(-50%); z-index: 10005; padding: 8px 16px; border-radius: 8px; background: rgba(0, 0, 0, 0.8); color: #fff; font: 14px system-ui, sans-serif; pointer-events: none; }

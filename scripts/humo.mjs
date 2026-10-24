@@ -22,6 +22,8 @@ const FASES = [
   { nombre: 'cierre', env: {} },
   { nombre: 'corrupto', env: { LIBERADOPDF_PDF: path.join(salida, 'corrupto.pdf') } },
   { nombre: 'ajustes', env: {} },
+  { nombre: 'nocturno', env: {} },
+  { nombre: 'instantanea', env: {} },
 ];
 writeFileSync(path.join(salida, 'corrupto.pdf'), 'esto no es un PDF\n');
 

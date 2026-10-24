@@ -27,6 +27,7 @@ contextBridge.exposeInMainWorld('liberadopdf', {
   recientes: () => ipcRenderer.invoke('recientes'),
   config: () => ipcRenderer.invoke('config'),
   pantallas: () => ipcRenderer.invoke('pantallas'),
+  instantanea: rect => ipcRenderer.invoke('instantanea', rect),
   guardarConfig: parcial => ipcRenderer.invoke('guardar-config', parcial),
   abrirExterno: url => ipcRenderer.invoke('abrir-externo', url),
   rutaDeArchivo: archivo => webUtils.getPathForFile(archivo),

@@ -1,7 +1,7 @@
 // Modo humo: lanza una fase de comprobación sobre el PDF indicado y escribe resultado.json.
 // Fases: basica (primera página, animación, teclas, presentación, contador, pantalla negra),
 //        bucle (avance automático con bucle, con LIBERADOPDF_CONFIG_PRUEBA).
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, clipboard, screen, nativeImage } from 'electron';
 import { mkdirSync, writeFileSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { crearVentana } from './ventanas.js';
@@ -233,7 +233,51 @@ async function faseAjustes({ ruta, preload, salida }) {
   return r;
 }
 
-const FASES = { basica: faseBasica, bucle: faseBucle, inexistente: faseInexistente, presentacionAnimada: fasePresentacionAnimada, cierre: faseCierre, corrupto: faseCorrupto, ajustes: faseAjustes };
+// Nocturno: N pone la clase y guarda nocturno: true; otra N lo quita.
+async function faseNocturno({ ruta, preload, salida }) {
+  const r = { activado: false, guardado: false, desactivado: false };
+  const { js, tecla } = abrirVentanaDePrueba({ ruta, preload, salida });
+  await esperarEvento('primera-pagina', 10_000);
+  await js('document.body.focus()');
+  tecla('N');
+  await espera(400);
+  r.activado = await js('document.getElementById("viewerContainer").classList.contains("liberadopdf-nocturno")');
+  r.guardado = JSON.parse(readFileSync(path.join(salida, 'datos', 'config.json'), 'utf8')).nocturno === true;
+  tecla('N');
+  await espera(300);
+  r.desactivado = !(await js('document.getElementById("viewerContainer").classList.contains("liberadopdf-nocturno")'));
+  r.ok = r.activado && r.guardado && r.desactivado;
+  return r;
+}
+
+// Instantánea: un arrastre de 400×300 deja en el portapapeles una imagen de ese tamaño (por el factor de escala).
+async function faseInstantanea({ ruta, preload, salida }) {
+  const r = { imagen: null, toast: false };
+  const { win, js } = abrirVentanaDePrueba({ ruta, preload, salida });
+  await esperarEvento('primera-pagina', 10_000);
+  win.show(); win.focus(); win.moveTop();
+  clipboard.clear();
+  await js('window.liberadopdfAcciones.instantanea()');
+  await espera(200);
+  const raton = (type, x, y) => win.webContents.sendInputEvent({ type, x, y, button: 'left', clickCount: 1 });
+  raton('mouseDown', 300, 200); await espera(50);
+  raton('mouseMove', 500, 350); await espera(50);
+  raton('mouseMove', 700, 500); await espera(50);
+  raton('mouseUp', 700, 500);
+  await espera(800);
+  const elementos = await clipboard.read();
+  const conPng = elementos.find(e => e.types.includes('image/png'));
+  const imagen = conPng ? nativeImage.createFromBuffer(Buffer.from(await (await conPng.getType('image/png')).arrayBuffer())) : nativeImage.createEmpty();
+  const factor = screen.getPrimaryDisplay().scaleFactor;
+  const t = imagen.getSize();
+  r.imagen = t;
+  r.tamanoEsperado = { width: Math.round(400 * factor), height: Math.round(300 * factor) };
+  r.toast = Boolean(await js('document.querySelector(".liberadopdf-toast")'));
+  r.ok = !imagen.isEmpty() && Math.abs(t.width - r.tamanoEsperado.width) <= 2 && Math.abs(t.height - r.tamanoEsperado.height) <= 2 && r.toast;
+  return r;
+}
+
+const FASES = { basica: faseBasica, bucle: faseBucle, inexistente: faseInexistente, presentacionAnimada: fasePresentacionAnimada, cierre: faseCierre, corrupto: faseCorrupto, ajustes: faseAjustes, nocturno: faseNocturno, instantanea: faseInstantanea };
 
 export async function ejecutarHumo({ ruta, salida, fase, preload }) {
   mkdirSync(salida, { recursive: true });

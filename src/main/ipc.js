@@ -1,5 +1,5 @@
 // Canales IPC entre el renderer (preload) y el proceso principal.
-import { ipcMain, dialog, shell, BrowserWindow, screen } from 'electron';
+import { ipcMain, dialog, shell, BrowserWindow, screen, clipboard, ClipboardItem } from 'electron';
 import { EventEmitter } from 'node:events';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
@@ -35,6 +35,20 @@ export function instalarIpc({ obtenerConfig, obtenerConfigBase = obtenerConfig, 
   ipcMain.handle('abrir-inicio', (evento, mensaje) => { abrirInicioEnVentana(ventanaDe(evento), String(mensaje ?? '').slice(0, 300)); });
   ipcMain.handle('recientes', () => obtenerConfig().recientes.filter(r => existsSync(r.ruta)));
   ipcMain.handle('config', () => obtenerConfig());
+  // Instantánea: captura un rectángulo de la ventana (coordenadas CSS) al portapapeles.
+  ipcMain.handle('instantanea', async (evento, rect) => {
+    const win = ventanaDe(evento);
+    if (!win || !rect) return false;
+    const { width: anchoVentana, height: altoVentana } = win.getContentBounds();
+    const entero = v => Number.isInteger(v) && v >= 0;
+    if (![rect.x, rect.y, rect.width, rect.height].every(entero) || rect.width === 0 || rect.height === 0) return false;
+    if (rect.x + rect.width > anchoVentana || rect.y + rect.height > altoVentana) return false;
+    const imagen = await win.webContents.capturePage({ x: rect.x, y: rect.y, width: rect.width, height: rect.height });
+    if (imagen.isEmpty()) return false;
+    // Electron 45: API de portapapeles al estilo web (ClipboardItem con un Blob PNG)
+    await clipboard.write([new ClipboardItem({ 'image/png': new Blob([imagen.toPNG()], { type: 'image/png' }) })]);
+    return true;
+  });
   ipcMain.handle('pantallas', () => screen.getAllDisplays().map((d, i) => ({
     id: d.id, etiqueta: d.label || `Pantalla ${i + 1}`, ancho: d.size.width, alto: d.size.height, principal: d.id === screen.getPrimaryDisplay().id,
   })));
