@@ -203,3 +203,8 @@
 .liberadopdf-herramienta .rejilla-organizar .pie-celda span { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .liberadopdf-herramienta .rejilla-organizar .pie-celda button { padding: 0 5px; border: 1px solid #bbb; border-radius: 4px; background: #f6f6f6; font: inherit; cursor: pointer; }
 .liberadopdf-herramienta .lista .elemento.omitida { color: #7b1e12; background: #fdecea; }
+
+/* Videos del PDF (superpuestos a su anotación dentro de .page) */
+.liberadopdf-video { position: absolute; z-index: 6; background: #000; overflow: hidden; }
+.liberadopdf-video video { width: 100%; height: 100%; object-fit: contain; display: block; cursor: pointer; }
+.liberadopdf-video.aviso { display: flex; align-items: center; justify-content: center; padding: 8px; text-align: center; color: #fff; background: rgba(0, 0, 0, 0.75); font: 13px system-ui, sans-serif; }

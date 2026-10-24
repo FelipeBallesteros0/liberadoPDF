@@ -20,6 +20,10 @@ const MIME = {
   webp: 'image/webp',
   bmp: 'image/bmp',
   traineddata: 'application/octet-stream',
+  mp4: 'video/mp4',
+  m4v: 'video/mp4',
+  webm: 'video/webm',
+  mov: 'video/quicktime',
 };
 
 export function mimeDe(nombre) {

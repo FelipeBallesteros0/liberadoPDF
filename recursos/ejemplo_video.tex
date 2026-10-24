@@ -1,0 +1,22 @@
+% Videos dentro del PDF (sin audio): lámina 1 con \movie (paquete multimedia, archivo externo video.mp4), lámina 2 con
+% media9 (video incrustado en una anotación RichMedia), lámina 3 con \movie a un archivo que no existe.
+\pdfminorversion=4
+\pdfobjcompresslevel=0
+\documentclass[aspectratio=169]{beamer}
+\usepackage{multimedia}
+\usepackage{media9}
+\setbeamertemplate{navigation symbols}{}
+\begin{document}
+\begin{frame}{Video externo (\texttt{\textbackslash movie})}
+  \centering
+  \movie[autostart,loop,width=8cm,height=4.5cm,poster]{\fbox{\rule{0pt}{4.5cm}\rule{8cm}{0pt}}}{video.mp4}
+\end{frame}
+\begin{frame}{Video incrustado (media9)}
+  \centering
+  \includemedia[width=8cm,height=4.5cm,activate=pageopen,addresource=video.mp4,flashvars={source=video.mp4&autoPlay=true&loop=true}]{\fbox{\rule{0pt}{4.5cm}\rule{8cm}{0pt}}}{VPlayer.swf}
+\end{frame}
+\begin{frame}{Video externo que no existe}
+  \centering
+  \movie[autostart,width=8cm,height=4.5cm]{\fbox{\rule{0pt}{4.5cm}\rule{8cm}{0pt}}}{no_existe.mp4}
+\end{frame}
+\end{document}

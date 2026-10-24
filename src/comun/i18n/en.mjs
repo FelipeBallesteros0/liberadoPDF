@@ -138,5 +138,7 @@ export const en = {
   // Comprimir
   'Imagen {i} de {n} ({ancho}×{alto})…': 'Image {i} of {n} ({ancho}×{alto})…', 'Comprimir': 'Compress', 'Reduce las fotos (JPEG) y recomprime la estructura con qpdf. El texto y los dibujos no cambian. Si no se consigue reducir, no se guarda nada.': 'Shrinks the photos (JPEG) and recompresses the structure with qpdf. Text and drawings do not change. If it cannot be reduced, nothing is saved.',
   'Calidad de las imágenes': 'Image quality', 'Alta (mismo tamaño, JPEG 85 %)': 'High (same size, JPEG 85 %)', 'Media (70 % del tamaño, JPEG 70 %)': 'Medium (70 % of the size, JPEG 70 %)', 'Baja (mitad del tamaño, JPEG 50 %)': 'Low (half the size, JPEG 50 %)',
-  'Buscando imágenes…': 'Looking for images…', 'Reescribiendo el PDF…': 'Rewriting the PDF…', 'No se pudo reducir ({informe}).': 'Could not reduce ({informe}).', '{n} imágenes recodificadas': '{n} images re-encoded',
+  'Buscando imágenes…': 'Looking for images…',
+  // Video
+  'Video en un formato que no se puede reproducir': 'Video in a format that cannot be played', 'No se encontró el video «{archivo}» junto al PDF': 'The video «{archivo}» was not found next to the PDF', 'Reescribiendo el PDF…': 'Rewriting the PDF…', 'No se pudo reducir ({informe}).': 'Could not reduce ({informe}).', '{n} imágenes recodificadas': '{n} images re-encoded',
 };

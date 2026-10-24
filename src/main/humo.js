@@ -1061,6 +1061,43 @@ async function faseIdioma({ ruta, preload, salida }) {
   return r;
 }
 
+// Video: ejemplo_video.pdf (lámina 1 \\movie externo, 2 media9 incrustado, 3 externo inexistente) y una anotación Screen
+// incrustada. En cada caso el <video> está dentro del .page, listo, reproduciéndose y pegado a su rectángulo; sigue así
+// tras cambiar el zoom y en presentación; el inexistente muestra un aviso.
+async function faseVideo({ ruta, preload, salida }) {
+  const r = { externo: null, incrustado: null, inexistente: null, zoom: null, presentacion: null, screen: null };
+  const estadoVideo = (js, pagina) => js(`(async () => {
+    const sel = '.page[data-page-number="${pagina}"] .liberadopdf-video';
+    let capa = null;
+    for (let i = 0; i < 100; i++) { capa = document.querySelector(sel); const v = capa?.querySelector('video'); if (capa?.classList.contains('aviso') || (v && v.readyState >= 2)) break; await new Promise(res => setTimeout(res, 100)); }
+    if (!capa) return { existe: false };
+    const v = capa.querySelector('video');
+    if (!v) return { existe: true, aviso: capa.textContent };
+    const t1 = v.currentTime; await new Promise(res => setTimeout(res, 800)); const t2 = v.currentTime;
+    const pr = capa.closest('.page').getBoundingClientRect(), cr = capa.getBoundingClientRect();
+    return { existe: true, readyState: v.readyState, paused: v.paused, muted: v.muted, avanza: t2 !== t1, caja: [Math.round(cr.width), Math.round(cr.height)],
+      dentro: cr.left >= pr.left - 2 && cr.top >= pr.top - 2 && cr.right <= pr.right + 2 && cr.bottom <= pr.bottom + 2 && cr.width > 40 && cr.height > 40 };
+  })()`).then(JSON.stringify).then(JSON.parse);
+  const bien = e => Boolean(e?.existe && e.readyState >= 2 && e.paused === false && e.muted === true && e.avanza && e.dentro);
+  const { win, js, presentar } = abrirVentanaDePrueba({ ruta, preload, salida });
+  await esperarEvento('primera-pagina', 15_000);
+  win.show(); win.focus();
+  r.externo = await estadoVideo(js, 1);
+  await js('PDFViewerApplication.page = 2'); await espera(500);
+  r.incrustado = await estadoVideo(js, 2);
+  await js('PDFViewerApplication.page = 3'); await espera(500);
+  r.inexistente = await estadoVideo(js, 3);
+  await js('PDFViewerApplication.pdfViewer.currentScaleValue = 2'); await espera(800);
+  await js('PDFViewerApplication.page = 1'); await espera(800);
+  r.zoom = await estadoVideo(js, 1);
+  r.presentacion = (await presentar()) ? await estadoVideo(js, 1) : null;
+  const { js: js2 } = abrirVentanaDePrueba({ ruta: process.env.LIBERADOPDF_HUMO_VIDEO_SCREEN, preload, salida });
+  await esperarEvento('primera-pagina', 15_000);
+  r.screen = await estadoVideo(js2, 1);
+  r.ok = bien(r.externo) && bien(r.incrustado) && Boolean(r.inexistente?.existe && /no_existe\.mp4/.test(r.inexistente.aviso ?? '')) && bien(r.zoom) && bien(r.presentacion) && bien(r.screen);
+  return r;
+}
+
 // Cifrado: las herramientas rechazan un PDF cifrado con el mensaje acordado. Hasta que exista la operación
 // «proteger» (Tarea 8) no hay con qué generar el PDF cifrado: la fase queda pendiente y no cuenta.
 async function faseCifrado({ ruta, preload, salida }) {
@@ -1078,7 +1115,7 @@ async function faseCifrado({ ruta, preload, salida }) {
   return r;
 }
 
-const FASES = { idioma: faseIdioma, comprimir: faseComprimir, ocr: faseOcr, proteger: faseProteger, desbloquear: faseDesbloquear, reparar: faseReparar, htmlAPdf: faseHtmlAPdf, aImagenes: faseAImagenes, deImagenes: faseDeImagenes, recortar: faseRecortar, metadatos: faseMetadatos, aplanar: faseAplanar, numerar: faseNumerar, marcaDeAgua: faseMarcaDeAgua, organizar: faseOrganizar, unir: faseUnir, dividir: faseDividir, rotar: faseRotar, cifrado: faseCifrado, herramientasBase: faseHerramientasBase, basica: faseBasica, bucle: faseBucle, inexistente: faseInexistente, presentacionAnimada: fasePresentacionAnimada, cierre: faseCierre, corrupto: faseCorrupto, ajustes: faseAjustes, nocturno: faseNocturno, instantanea: faseInstantanea, guardar: faseGuardar, transiciones: faseTransiciones, punteros: fasePunteros, cuadricula: faseCuadricula, medicion: faseMedicion, presentador: fasePresentador, notasDerecha: faseNotasDerecha };
+const FASES = { video: faseVideo, idioma: faseIdioma, comprimir: faseComprimir, ocr: faseOcr, proteger: faseProteger, desbloquear: faseDesbloquear, reparar: faseReparar, htmlAPdf: faseHtmlAPdf, aImagenes: faseAImagenes, deImagenes: faseDeImagenes, recortar: faseRecortar, metadatos: faseMetadatos, aplanar: faseAplanar, numerar: faseNumerar, marcaDeAgua: faseMarcaDeAgua, organizar: faseOrganizar, unir: faseUnir, dividir: faseDividir, rotar: faseRotar, cifrado: faseCifrado, herramientasBase: faseHerramientasBase, basica: faseBasica, bucle: faseBucle, inexistente: faseInexistente, presentacionAnimada: fasePresentacionAnimada, cierre: faseCierre, corrupto: faseCorrupto, ajustes: faseAjustes, nocturno: faseNocturno, instantanea: faseInstantanea, guardar: faseGuardar, transiciones: faseTransiciones, punteros: fasePunteros, cuadricula: faseCuadricula, medicion: faseMedicion, presentador: fasePresentador, notasDerecha: faseNotasDerecha };
 
 export async function ejecutarHumo({ ruta, salida, fase, preload }) {
   mkdirSync(salida, { recursive: true });

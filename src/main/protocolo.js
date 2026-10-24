@@ -4,6 +4,7 @@ import { readFile } from 'node:fs/promises';
 import { randomBytes } from 'node:crypto';
 import { resolverRutaApp, mimeDe } from '../comun/rutas.mjs';
 import { crearRegistroDeTokens } from '../comun/tokens.mjs';
+import { rangoDeCabecera } from '../comun/rango.mjs';
 
 export const ESQUEMA = 'liberadopdf';
 export const HOST = 'app';
@@ -30,8 +31,19 @@ export function instalarProtocolo({ raices }) {
       try {
         const bytes = await readFile(ruta);
         const nombre = encodeURIComponent(ruta.split(/[\\/]/).pop());
+        const mime = mimeDe(ruta); // también imágenes, videos y otros PDF elegidos para las herramientas
+        // Los videos se sirven por rangos (el reproductor de Chromium los pide); los PDF no: pdf.js debe bajarlos enteros.
+        if (mime.startsWith('video/')) {
+          const rango = rangoDeCabecera(peticion.headers.get('Range'), bytes.length);
+          if (rango) {
+            return new Response(bytes.subarray(rango.inicio, rango.fin + 1), { status: 206, headers: {
+              'Content-Type': mime, 'Accept-Ranges': 'bytes', 'Content-Length': String(rango.fin - rango.inicio + 1), 'Content-Range': `bytes ${rango.inicio}-${rango.fin}/${bytes.length}`,
+            } });
+          }
+          return new Response(bytes, { headers: { 'Content-Type': mime, 'Accept-Ranges': 'bytes', 'Content-Length': String(bytes.length) } });
+        }
         return new Response(bytes, { headers: {
-          'Content-Type': mimeDe(ruta), // también imágenes y otros PDF elegidos para las herramientas
+          'Content-Type': mime,
           'Content-Length': String(bytes.length),
           'Accept-Ranges': 'none',
           'Content-Disposition': `inline; filename*=UTF-8''${nombre}`, // pdf.js propone este nombre al guardar

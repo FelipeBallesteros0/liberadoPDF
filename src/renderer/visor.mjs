@@ -18,6 +18,7 @@ import { instalarMedicion } from '/medicion.mjs';
 import { crearCliente } from '/herramientas/cliente.mjs';
 import { bytesDelDocumento, dialogoHerramienta } from '/herramientas/base.mjs';
 import { instalarHerramientas } from '/herramientas/indice.mjs';
+import { instalarVideos } from '/videos.mjs';
 import { t } from '/i18n.mjs';
 
 const app = window.PDFViewerApplication;
@@ -103,6 +104,8 @@ window.liberadopdfHerramientas = {
   contexto: () => ({ app, ruta, nombre, obtenerConfig, totalPaginas: app.pagesCount }),
 };
 instalarHerramientas(window.liberadopdfHerramientas);
+// Videos incrustados o enlazados en el PDF (Movie, Screen, RichMedia): <video> silenciado sobre su rectángulo.
+window.liberadopdfVideos = instalarVideos({ app, obtenerConfig, herramientas: window.liberadopdfHerramientas });
 const abrirHerramienta = (clave) => {
   if (herramientas[clave]) { herramientas[clave](window.liberadopdfHerramientas.contexto()); return; }
   mostrarToast(t('Herramienta «{clave}»: próximamente', { clave }));

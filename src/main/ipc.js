@@ -8,6 +8,7 @@ import { abrirEnVentana, abrirInicioEnVentana, crearVentanaPresentador } from '.
 import { registrarArchivo, urlDeToken, rutaDeToken } from './protocolo.js';
 import { urlPermitida } from '../comun/herramientas/html.mjs';
 import { mismaRuta } from '../comun/rutas.mjs';
+import { rutaDeVideoPermitida } from '../comun/rutasVideo.mjs';
 import { errorDeRutaPdf } from '../comun/argumentos.mjs';
 import { elegirPantallas } from '../comun/pantallas.mjs';
 
@@ -156,6 +157,14 @@ export function instalarIpc({ idioma = 'en', t = x => x, obtenerConfig, obtenerC
     return carpeta;
   });
   ipcMain.handle('abrir-resultado', (evento, ruta) => { if (!errorDeRutaPdf(ruta, existsSync)) abrirEnNueva(ruta); });
+  // Video externo referenciado por el PDF: solo dentro de la carpeta del documento (o subcarpetas); se sirve por token.
+  ipcMain.handle('archivo-junto-al-pdf', (evento, relativa) => {
+    const win = ventanaDe(evento);
+    if (!win?.liberadopdfRuta || typeof relativa !== 'string') return null;
+    const ruta = rutaDeVideoPermitida(path.dirname(win.liberadopdfRuta), relativa);
+    if (!ruta || !existsSync(ruta)) return null;
+    return urlDeToken(registrarArchivo(ruta));
+  });
   // Página web o HTML a PDF: ventana oculta y aislada; solo http(s) o un archivo .html elegido con el diálogo (token).
   ipcMain.handle('html-a-pdf', async (evento, { origen, valor, tamano, apaisado, fondos } = {}) => {
     let destino;

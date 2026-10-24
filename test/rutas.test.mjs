@@ -30,3 +30,10 @@ test('mismaRuta compara sin distinguir separadores ni mayúsculas en Windows', a
   assert.equal(mismaRuta('/home/f/a.pdf', '/home/f/A.pdf', 'linux'), false);
   assert.equal(mismaRuta('/home/f/./a.pdf', '/home/f/a.pdf', 'linux'), true);
 });
+
+test('mimeDe conoce los formatos de video que sirve el protocolo', async () => {
+  const { mimeDe } = await import('../src/comun/rutas.mjs');
+  assert.equal(mimeDe('v.mp4'), 'video/mp4');
+  assert.equal(mimeDe('v.webm'), 'video/webm');
+  assert.equal(mimeDe('v.M4V'), 'video/mp4');
+});

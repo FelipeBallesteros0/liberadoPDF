@@ -7,6 +7,7 @@ import { despredecir } from '../comun/herramientas/prediccion.mjs';
 import { expandirObjectStreams } from '../comun/herramientas/reparacion.mjs';
 import { argumentosDeCifrado, argumentosDeDescifrado } from '../comun/herramientas/qpdf.mjs';
 import { crearRegistroDeCancelaciones } from '../comun/herramientas/cancelaciones.mjs';
+import { mimeDeVideo } from '../comun/video.mjs';
 import { textoDeNumero, posicionDeTexto, mosaicoDeMarca, colorHex, origenCentrado, aCoordenadasSinRotar, tamanoVisual } from '../comun/herramientas/estampar.mjs';
 // Protocolo: { id, operacion, argumentos } → mensajes { id, progreso } y al final { id, resultado } | { id, error } | { id, cancelado }.
 let pdfLib = null;
@@ -279,6 +280,79 @@ const operaciones = {
     }
     if (!escritas) throw new Error('No se reconoció ninguna palabra');
     return await doc.save();
+  },
+  // --- videos del PDF ---
+  // Anotaciones Movie (\\movie de Beamer), Screen (movie15) y RichMedia (media9): [{ pagina, rect, tipo, bytes? | archivo?, autoarranque, bucle }].
+  async listarVideos({ bytes }) {
+    const { PDFName, PDFDict, PDFArray, PDFRawStream, PDFString, PDFHexString, PDFNumber, decodePDFRawStream } = await cargarPdfLib();
+    const doc = await cargarDocumento(bytes);
+    const ctx = doc.context;
+    const texto = v => { v = ctx.lookup(v); return v instanceof PDFString || v instanceof PDFHexString || v instanceof PDFName ? v.decodeText() : null; };
+    const dict = v => { v = ctx.lookup(v); return v instanceof PDFDict ? v : null; };
+    const bytesDe = (filespec) => {
+      const fs = dict(filespec); const ef = fs && dict(fs.get(PDFName.of('EF')));
+      const s = ef && ctx.lookup(ef.get(PDFName.of('F')) ?? ef.get(PDFName.of('UF')));
+      if (!(s instanceof PDFRawStream)) return null;
+      try { return decodePDFRawStream(s).decode(); } catch { return null; }
+    };
+    const nombreDe = (filespec) => { const fs = ctx.lookup(filespec); if (fs instanceof PDFString || fs instanceof PDFHexString) return fs.decodeText(); const d = dict(fs); return d ? (texto(d.get(PDFName.of('UF'))) ?? texto(d.get(PDFName.of('F')))) : null; };
+    const salida = [];
+    doc.getPages().forEach((pagina, i) => {
+      const annots = pagina.node.Annots();
+      if (!annots) return;
+      const dicts = annots.asArray().map(dict).filter(Boolean);
+      for (const d of dicts) {
+        const subtipo = texto(d.get(PDFName.of('Subtype')));
+        const rectArr = ctx.lookup(d.get(PDFName.of('Rect')));
+        const rect = rectArr instanceof PDFArray ? rectArr.asArray().map(n => ctx.lookup(n)).map(n => (n instanceof PDFNumber ? n.asNumber() : NaN)) : null;
+        if (!rect || rect.length !== 4 || rect.some(Number.isNaN)) continue;
+        if (subtipo === 'Movie') {
+          const movie = dict(d.get(PDFName.of('Movie')));
+          if (!movie) continue;
+          const fs = movie.get(PDFName.of('F'));
+          const datos = bytesDe(fs), archivo = nombreDe(fs);
+          const a = dict(d.get(PDFName.of('A')));
+          const bucle = a && texto(a.get(PDFName.of('Mode'))) === 'Repeat' ? true : null;
+          const titulo = texto(d.get(PDFName.of('T')));
+          // \\movie[autostart] pone un widget cuya acción de página abierta (AA/PO) reproduce esta película
+          const autoarranque = dicts.some(w => { const aa = dict(w.get(PDFName.of('AA'))); const po = aa && dict(aa.get(PDFName.of('PO'))); return Boolean(po && texto(po.get(PDFName.of('S'))) === 'Movie' && texto(po.get(PDFName.of('T'))) === titulo); }) ? true : null;
+          if (!datos && !archivo) continue;
+          salida.push({ pagina: i + 1, rect, tipo: 'movie', bytes: datos ?? undefined, archivo: datos ? undefined : archivo, autoarranque, bucle });
+        } else if (subtipo === 'Screen') {
+          const a = dict(d.get(PDFName.of('A'))); const r = a && dict(a.get(PDFName.of('R'))); const c = r && dict(r.get(PDFName.of('C')));
+          const fs = c?.get(PDFName.of('D'));
+          if (!fs) continue;
+          const datos = bytesDe(fs), archivo = nombreDe(fs);
+          if (!datos && !archivo) continue;
+          salida.push({ pagina: i + 1, rect, tipo: 'screen', bytes: datos ?? undefined, archivo: datos ? undefined : archivo, autoarranque: null, bucle: null });
+        } else if (subtipo === 'RichMedia') {
+          const contenido = dict(d.get(PDFName.of('RichMediaContent')));
+          const assets = contenido && dict(contenido.get(PDFName.of('Assets')));
+          const names = assets && ctx.lookup(assets.get(PDFName.of('Names')));
+          const pares = names instanceof PDFArray ? names.asArray() : [];
+          const confs = contenido && ctx.lookup(contenido.get(PDFName.of('Configurations')));
+          const conf = confs instanceof PDFArray ? dict(confs.get(0)) : null;
+          const insts = conf && ctx.lookup(conf.get(PDFName.of('Instances')));
+          const inst = insts instanceof PDFArray ? dict(insts.get(0)) : null;
+          const params = inst && dict(inst.get(PDFName.of('Params')));
+          const flashvars = params ? (texto(params.get(PDFName.of('FlashVars'))) ?? '') : '';
+          const fuente = /(?:^|&)source=([^&]+)/.exec(flashvars)?.[1];
+          let elegido = null;
+          for (let k = 0; k + 1 < pares.length; k += 2) {
+            const nombre = texto(pares[k]); const datos = bytesDe(pares[k + 1]);
+            if (!datos || !mimeDeVideo(datos)) continue;
+            if (!elegido || nombre === fuente) elegido = datos;
+          }
+          if (!elegido) continue;
+          const settings = dict(d.get(PDFName.of('RichMediaSettings'))); const act = settings && dict(settings.get(PDFName.of('Activation')));
+          const condicion = act ? texto(act.get(PDFName.of('Condition'))) : null;
+          const autoarranque = /autoPlay=true/i.test(flashvars) || condicion === 'PO' ? true : /autoPlay=false/i.test(flashvars) ? false : null;
+          const bucle = /loop=true/i.test(flashvars) ? true : /loop=false/i.test(flashvars) ? false : null;
+          salida.push({ pagina: i + 1, rect, tipo: 'richmedia', bytes: elegido, autoarranque, bucle });
+        }
+      }
+    });
+    return salida;
   },
   // --- comprimir ---
   // Imágenes del documento: JPEG con sus bytes tal cual; Flate ya decodificado a muestras. Las que son o tienen

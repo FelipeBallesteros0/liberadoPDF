@@ -71,7 +71,24 @@ export async function generarFixtures({ raiz, salida }) {
     if (q.callMain(['--object-streams=generate', '--recompress-flate', '--compression-level=9', 'in.pdf', 'opt.pdf']) !== 0) throw new Error('qpdf no pudo optimizar');
     writeFileSync(optimizadoPrueba, Buffer.from(q.FS.readFile('opt.pdf')));
   }
-  return { pdfPrueba, carpetaHumo, imagenA, imagenB, imagenFalsa, pngComoJpg, fotoExif, htmlPrueba, cifradoPrueba, truncadoPrueba, truncadoObjstm, optimizadoPrueba, recortadoPrueba, escaneadoGirado };
+  // Video como anotación Screen (movie15) con el archivo incrustado, sobre la página 1 del ejemplo animado.
+  const videoScreen = path.join(salida, 'video_screen.pdf');
+  {
+    const { PDFDocument, PDFName, PDFString } = pdfLib;
+    const d = await PDFDocument.load(readFileSync(path.join(raiz, 'recursos', 'ejemplo_animado.pdf')), { updateMetadata: false });
+    const ctx = d.context;
+    const bytesVideo = readFileSync(path.join(raiz, 'recursos', 'video.mp4'));
+    const flujo = ctx.stream(bytesVideo, { Type: 'EmbeddedFile', Subtype: 'video/mp4' });
+    const refFlujo = ctx.register(flujo);
+    const filespec = ctx.register(ctx.obj({ Type: 'Filespec', F: PDFString.of('video.mp4'), UF: PDFString.of('video.mp4'), EF: { F: refFlujo } }));
+    const anot = ctx.register(ctx.obj({
+      Type: 'Annot', Subtype: 'Screen', Rect: [100, 40, 350, 180], T: PDFString.of('pantalla'), F: 4,
+      A: { S: 'Rendition', OP: 0, R: { S: 'MR', C: { S: 'MCD', CT: PDFString.of('video/mp4'), D: filespec } } },
+    }));
+    d.getPage(0).node.addAnnot(anot);
+    writeFileSync(videoScreen, await d.save());
+  }
+  return { pdfPrueba, carpetaHumo, imagenA, imagenB, imagenFalsa, pngComoJpg, fotoExif, htmlPrueba, cifradoPrueba, truncadoPrueba, truncadoObjstm, optimizadoPrueba, recortadoPrueba, escaneadoGirado, videoScreen };
 }
 
 // Uso directo: node scripts/fixtures.mjs <carpeta de salida>  (lo usa humo_windows.sh)

@@ -27,7 +27,7 @@ npx @electron/packager . "$NOMBRE" \
   --ignore='\.map$' \
   --ignore='^/node_modules/tesseract\.js-core/tesseract-core(-simd|-relaxedsimd)?\.(js|wasm|wasm\.js)$' \
   --ignore='^/node_modules/pdf-lib/(es|dist/pdf-lib\.(js|min\.js|esm\.js))(/|$)' \
-  --ignore='^/recursos/(foto_.*\.jpg|escaneado.*\.jpg|grad\.png|ejemplo_fotos\.pdf|.*\.tex)$' \
+  --ignore='^/recursos/(foto_.*\.jpg|escaneado.*\.jpg|grad\.png|ejemplo_fotos\.pdf|ejemplo_video\.pdf|video\.mp4|.*\.tex)$' \
   "${OPCIONES_ICONO[@]}"
 
 if ! command -v wine >/dev/null 2>&1; then
