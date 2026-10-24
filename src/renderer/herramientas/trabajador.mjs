@@ -1,4 +1,5 @@
 // Web Worker de las herramientas: pdf-lib y qpdf corren aquí para no bloquear el visor.
+import { textoDeNumero, posicionDeTexto, mosaicoDeMarca, colorHex, origenCentrado, aCoordenadasSinRotar, tamanoVisual } from '../comun/herramientas/estampar.mjs';
 // Protocolo: { id, operacion, argumentos } → mensajes { id, progreso } y al final { id, resultado } | { id, error } | { id, cancelado }.
 let pdfLib = null;
 let qpdfModulo = null;
@@ -102,6 +103,62 @@ const operaciones = {
       if (p.rotacion) pagina.setRotation(degrees((pagina.getRotation().angle + p.rotacion) % 360));
     }
     return await salida.save();
+  },
+  async numerar({ bytes, paginas, formato, posicion, tamano, inicio }, { progreso }) {
+    const { StandardFonts, rgb, degrees } = await cargarPdfLib();
+    const doc = await cargarDocumento(bytes);
+    const fuente = await doc.embedFont(StandardFonts.Helvetica);
+    const todas = doc.getPages();
+    const total = todas.length + (inicio - 1);
+    for (const [i, n] of paginas.entries()) {
+      progreso(i, paginas.length);
+      const pagina = todas[n - 1];
+      if (!pagina) continue;
+      const texto = textoDeNumero(formato, n + inicio - 1, total);
+      const { width, height } = pagina.getSize();
+      const rotacion = pagina.getRotation().angle;
+      const visual = tamanoVisual({ anchoPagina: width, altoPagina: height, rotacion });
+      let anchoTexto;
+      try { anchoTexto = fuente.widthOfTextAtSize(texto, tamano); } catch { throw new Error('El texto tiene caracteres que la fuente Helvetica no admite'); }
+      const altoTexto = fuente.heightAtSize(tamano, { descender: false });
+      const { x: vx, y: vy } = posicionDeTexto({ posicion, anchoPagina: visual.ancho, altoPagina: visual.alto, anchoTexto, altoTexto });
+      const { x, y } = aCoordenadasSinRotar({ vx, vy, rotacion, anchoPagina: width, altoPagina: height });
+      pagina.drawText(texto, { x, y, size: tamano, font: fuente, color: rgb(0, 0, 0), rotate: degrees(rotacion) });
+    }
+    return await doc.save();
+  },
+  async marcaDeAgua({ bytes, paginas, texto, imagen, tipoImagen, tamano, color, opacidad, angulo, mosaico, escala }, { progreso }) {
+    const { StandardFonts, rgb, degrees } = await cargarPdfLib();
+    const doc = await cargarDocumento(bytes);
+    const fuente = texto ? await doc.embedFont(StandardFonts.HelveticaBold) : null;
+    const grafico = imagen ? (tipoImagen === 'image/jpeg' ? await doc.embedJpg(imagen) : await doc.embedPng(imagen)) : null;
+    const { r, g, b } = colorHex(color);
+    const todas = doc.getPages();
+    for (const [i, n] of paginas.entries()) {
+      progreso(i, paginas.length);
+      const pagina = todas[n - 1];
+      if (!pagina) continue;
+      const { width, height } = pagina.getSize();
+      const rotacion = pagina.getRotation().angle;
+      const visual = tamanoVisual({ anchoPagina: width, altoPagina: height, rotacion });
+      let ancho, alto;
+      if (fuente) {
+        try { ancho = fuente.widthOfTextAtSize(texto, tamano); } catch { throw new Error('El texto tiene caracteres que la fuente Helvetica no admite'); }
+        alto = fuente.heightAtSize(tamano, { descender: false });
+      } else {
+        ancho = visual.ancho * escala;
+        alto = ancho * (grafico.height / grafico.width);
+      }
+      const centros = mosaico ? mosaicoDeMarca({ anchoPagina: visual.ancho, altoPagina: visual.alto, anchoTexto: ancho, altoTexto: alto }) : [{ x: visual.ancho / 2, y: visual.alto / 2 }];
+      for (const c of centros) {
+        const origenVisual = origenCentrado({ cx: c.x, cy: c.y, ancho, alto, angulo });
+        const { x, y } = aCoordenadasSinRotar({ vx: origenVisual.x, vy: origenVisual.y, rotacion, anchoPagina: width, altoPagina: height });
+        const rotate = degrees(angulo + rotacion);
+        if (fuente) pagina.drawText(texto, { x, y, size: tamano, font: fuente, color: rgb(r, g, b), opacity: opacidad, rotate });
+        else pagina.drawImage(grafico, { x, y, width: ancho, height: alto, opacity: opacidad, rotate });
+      }
+    }
+    return await doc.save();
   },
   async rotar({ bytes, paginas, grados }, { progreso }) {
     const { degrees } = await cargarPdfLib();

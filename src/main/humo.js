@@ -5,6 +5,7 @@ import { app, BrowserWindow, clipboard, screen, nativeImage, Menu } from 'electr
 import { mkdirSync, writeFileSync, readFileSync, existsSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { crearVentana } from './ventanas.js';
+import { registrarPdf, urlDeToken } from './protocolo.js';
 import { eventosHumo } from './ipc.js';
 import { abrirDesdeArgumentos } from './apertura.js';
 
@@ -627,6 +628,50 @@ async function faseOrganizar({ ruta, preload, salida }) {
   return r;
 }
 
+// Texto de una página de un PDF en disco, leído con el pdf.js del propio visor (pdfjsLib es global en viewer.html).
+async function textoDePagina(js, ruta, pagina) {
+  const url = urlDeToken(registrarPdf(ruta));
+  return js(`pdfjsLib.getDocument({ url: ${JSON.stringify(url)} }).promise.then(d => d.getPage(${pagina})).then(p => p.getTextContent()).then(t => t.items.map(i => i.str).join(' '))`);
+}
+// Píxeles distintos entre la página 1 del documento abierto y la del PDF en disco, ambos renderizados por pdf.js a escala 1.
+async function pixelesDistintos(js, ruta) {
+  const url = urlDeToken(registrarPdf(ruta));
+  return js(`(async () => {
+    const pintar = async (doc) => { const p = await doc.getPage(1); const vp = p.getViewport({ scale: 1 }); const c = document.createElement('canvas'); c.width = Math.round(vp.width); c.height = Math.round(vp.height); await p.render({ canvasContext: c.getContext('2d'), viewport: vp }).promise; return c.getContext('2d').getImageData(0, 0, c.width, c.height).data; };
+    const a = await pintar(PDFViewerApplication.pdfDocument);
+    const b = await pintar(await pdfjsLib.getDocument({ url: ${JSON.stringify(url)} }).promise);
+    let n = 0; for (let i = 0; i < a.length; i += 4) if (Math.abs(a[i] - b[i]) > 16 || Math.abs(a[i + 1] - b[i + 1]) > 16 || Math.abs(a[i + 2] - b[i + 2]) > 16) n++;
+    return n;
+  })()`);
+}
+
+// Numerar: «Página {n} / {total}» abajo-centro → la página 2 del resultado contiene «Página 2 / 4».
+async function faseNumerar({ ruta, preload, salida }) {
+  const r = { dialogo: false, archivo: false, texto: null };
+  const { js } = abrirVentanaDePrueba({ ruta, preload, salida });
+  await esperarEvento('primera-pagina', 10_000);
+  r.dialogo = await abrirYEjecutarHerramienta(js, 'numerar', {});
+  const destino = process.env.LIBERADOPDF_HUMO_GUARDAR;
+  r.archivo = await esperarArchivo(destino);
+  if (r.archivo) r.texto = await textoDePagina(js, destino, 2);
+  r.ok = r.dialogo && r.archivo && /Página 2 \/ 4/.test(r.texto ?? '');
+  return r;
+}
+
+// Marca de agua: «BORRADOR» al 30 % → el texto aparece y el render de la página 1 cambia.
+async function faseMarcaDeAgua({ ruta, preload, salida }) {
+  const r = { dialogo: false, archivo: false, texto: null, pixeles: 0 };
+  const { js } = abrirVentanaDePrueba({ ruta, preload, salida });
+  await esperarEvento('primera-pagina', 10_000);
+  r.dialogo = await abrirYEjecutarHerramienta(js, 'marcaDeAgua', { opacidad: 0.3 });
+  const destino = process.env.LIBERADOPDF_HUMO_GUARDAR;
+  r.archivo = await esperarArchivo(destino);
+  if (r.archivo) { r.texto = await textoDePagina(js, destino, 1); r.pixeles = Number(await pixelesDistintos(js, destino)); }
+  // getTextContent de pdf.js pierde la primera letra de un texto girado 45° (PyMuPDF devuelve «BORRADOR» entero): se comprueba el resto.
+  r.ok = r.dialogo && r.archivo && /ORRADOR/.test(r.texto ?? '') && r.pixeles > 500;
+  return r;
+}
+
 // Cifrado: las herramientas rechazan un PDF cifrado con el mensaje acordado. Hasta que exista la operación
 // «proteger» (Tarea 8) no hay con qué generar el PDF cifrado: la fase queda pendiente y no cuenta.
 async function faseCifrado({ ruta, preload, salida }) {
@@ -644,7 +689,7 @@ async function faseCifrado({ ruta, preload, salida }) {
   return r;
 }
 
-const FASES = { organizar: faseOrganizar, unir: faseUnir, dividir: faseDividir, rotar: faseRotar, cifrado: faseCifrado, herramientasBase: faseHerramientasBase, basica: faseBasica, bucle: faseBucle, inexistente: faseInexistente, presentacionAnimada: fasePresentacionAnimada, cierre: faseCierre, corrupto: faseCorrupto, ajustes: faseAjustes, nocturno: faseNocturno, instantanea: faseInstantanea, guardar: faseGuardar, transiciones: faseTransiciones, punteros: fasePunteros, cuadricula: faseCuadricula, medicion: faseMedicion, presentador: fasePresentador, notasDerecha: faseNotasDerecha };
+const FASES = { numerar: faseNumerar, marcaDeAgua: faseMarcaDeAgua, organizar: faseOrganizar, unir: faseUnir, dividir: faseDividir, rotar: faseRotar, cifrado: faseCifrado, herramientasBase: faseHerramientasBase, basica: faseBasica, bucle: faseBucle, inexistente: faseInexistente, presentacionAnimada: fasePresentacionAnimada, cierre: faseCierre, corrupto: faseCorrupto, ajustes: faseAjustes, nocturno: faseNocturno, instantanea: faseInstantanea, guardar: faseGuardar, transiciones: faseTransiciones, punteros: fasePunteros, cuadricula: faseCuadricula, medicion: faseMedicion, presentador: fasePresentador, notasDerecha: faseNotasDerecha };
 
 export async function ejecutarHumo({ ruta, salida, fase, preload }) {
   mkdirSync(salida, { recursive: true });
