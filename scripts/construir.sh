@@ -37,7 +37,7 @@ if [ "$PLATAFORMAS" = "linux" ] || [ "$PLATAFORMAS" = "all" ]; then
   npx @electron/packager . "$NOMBRE" --platform=linux --arch=x64 --out=dist --overwrite --asar \
     --app-version="$VERSION" --app-copyright="MIT · liberadoPDF" "${IGNORAR[@]}"
   verificar_asar "$DESTINO_LINUX/resources/app.asar"
-  cp recursos/linux/liberadoPDF.sh recursos/ejemplo_animado.pdf README.md README.en.md "$DESTINO_LINUX/"
+  cp recursos/linux/liberadoPDF.sh recursos/ejemplo_animado.pdf README.md README.es.md "$DESTINO_LINUX/"
   chmod +x "$DESTINO_LINUX/liberadoPDF.sh"
   # El tar se arma desde una copia en el sistema de archivos de Linux: en /mnt/c todo aparece como 777 y el paquete
   # quedaría con permisos absurdos; aquí van 755 los ejecutables y 644 el resto, propietario root.
@@ -79,7 +79,7 @@ if ! command -v wine >/dev/null 2>&1; then
 fi
 
 verificar_asar "$DESTINO/resources/app.asar"
-cp recursos/ejemplo_animado.pdf README.md README.en.md "$DESTINO/"
+cp recursos/ejemplo_animado.pdf README.md README.es.md "$DESTINO/"
 rm -f "dist/${NOMBRE}-win32-x64.zip"
 python3 - "$DESTINO" "dist/${NOMBRE}-win32-x64.zip" <<'PY'
 import sys, zipfile, os

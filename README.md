@@ -1,119 +1,119 @@
 # liberadoPDF
 
-*English: see [README.en.md](README.en.md).*
+*Español: véase [README.es.md](README.es.md).*
 
-Visor y presentador de PDF para Windows, portable, que reproduce las animaciones del paquete LaTeX `animate` igual que Adobe Acrobat Reader y los videos incrustados o enlazados en el PDF (sin audio). Por dentro lleva el visor de pdf.js, cuyo sandbox de JavaScript ejecuta las animaciones; liberadoPDF le añade la experiencia de presentación: pantalla completa, teclas y clicker, láminas con pasos, pantalla en negro, reloj, avance automático y recientes.
+Portable PDF viewer and presenter for Windows and Linux that plays the animations of the LaTeX `animate` package just like Adobe Acrobat Reader, and the videos embedded in or linked from a PDF (without audio). Inside it runs the pdf.js viewer, whose JavaScript sandbox executes the animations; liberadoPDF adds the presentation experience: full screen, keys and clickers, slides with steps, black screen, clock, auto-advance and recent files.
 
-Nació para dar una charla con una presentación de Beamer que lleva un video incrustado con `animate`, que ningún visor instalado reproducía. Desde la entrega 3 trae además un menú «Herramientas» con 17 operaciones de archivo (unir, dividir, OCR, comprimir…) que funcionan sin conexión y sin instalar nada.
+It was born to give a talk with a Beamer presentation that carries a video embedded with `animate`, which no installed viewer would play. It also brings a **Tools** menu with 17 file operations (merge, split, OCR, compress…) that work offline, without installing anything.
 
-## Uso
+## Usage
 
-1. Copia la carpeta `liberadoPDF-win32-x64` (o descomprime el `.zip`) al disco o a un pendrive. No hay que instalar nada.
-2. Doble clic en `liberadoPDF.exe` abre la pantalla de inicio: «Abrir PDF», los últimos archivos abiertos y una zona para arrastrar un PDF.
-3. También puedes usar «Abrir con…» sobre un PDF, arrastrar un PDF sobre el ejecutable o sobre la ventana, o pasarlo por línea de comandos.
-4. `F5` o doble clic entran en presentación; `Esc` sale.
-5. **Modo presentación** está en la barra principal (icono de pantalla junto a «»»). Con Ver ▸ «Personalizar barra…» o la última entrada del menú «»» eliges qué botones van en la barra y cuáles no; se recuerda en `config.json` (`barra`).
-6. La X cierra la ventana sin preguntar, salvo que hayas anotado o rellenado campos sin guardar: entonces pregunta. (Las animaciones también modifican el PDF por dentro; eso no cuenta.)
-7. **Idioma**: la interfaz arranca en inglés. En Ajustes (`Ctrl+,`) ▸ «Idioma / Language» se elige Español; al cambiarlo la aplicación se reinicia sola con el mismo documento (también cambia el idioma del visor pdf.js).
+1. Copy the `liberadoPDF-win32-x64` folder (or unzip the `.zip`) to a disk or a USB stick. Nothing to install.
+2. Double-click `liberadoPDF.exe`: the start page offers "Open PDF", the recent files and a zone to drop a PDF.
+3. You can also use "Open with…" on a PDF, drag a PDF onto the executable or the window, or pass it on the command line.
+4. `F5` or a double click enters the presentation; `Esc` leaves it.
+5. **Presentation mode** is on the main toolbar (screen icon next to "»"). View ▸ "Customize toolbar…" (or the last entry of the "»" menu) chooses which buttons are shown; it is remembered in `config.json` (`barra`).
+6. The X closes the window without asking, unless you have annotated or filled fields without saving: then it asks. (Animations also modify the PDF internally; that does not count.)
+7. **Language**: the interface starts in English. Settings (`Ctrl+,`) ▸ "Language / Idioma" switches to Spanish; on change the app restarts by itself with the same document (the pdf.js viewer changes language too).
 
-**Primer arranque en un PC nuevo**: Windows y el antivirus analizan el ejecutable la primera vez y puede tardar 10–20 s; después abre en menos de 2 s. Ábrelo una vez antes de la charla. Desde un pendrive USB 2.0 el primer arranque también es lento: conviene copiar la carpeta al disco.
+**First start on a new PC**: Windows and the antivirus scan the executable the first time, which can take 10–20 s; afterwards it opens in under 2 s. Open it once before the talk. From a USB 2.0 stick the first start is also slow: better copy the folder to the disk.
 
 ## Linux
 
-Hay un paquete portable para Linux x64 (`liberadoPDF-linux-x64.tar.gz`): descomprímelo y ejecuta `./liberadoPDF.sh`. El lanzador usa el sandbox de Chromium si el sistema lo permite (user namespaces sin privilegios, o `chrome-sandbox` con setuid root: `sudo chown root chrome-sandbox && sudo chmod 4755 chrome-sandbox`) y, si no, arranca sin sandbox avisándolo por la terminal. Los datos van en `data/` junto al programa, igual que en Windows. Para «Abrir con…» desde el escritorio, apunta a `liberadoPDF.sh`.
+There is a portable Linux x64 package (`liberadoPDF-linux-x64.tar.gz`): extract it and run `./liberadoPDF.sh`. The launcher uses Chromium's sandbox when the system allows it (unprivileged user namespaces, or `chrome-sandbox` with setuid root: `sudo chown root chrome-sandbox && sudo chmod 4755 chrome-sandbox`) and otherwise starts without it, saying so on the terminal. Data lives in `data/` next to the program, as on Windows. For "Open with…" from the desktop, point it at `liberadoPDF.sh`.
 
-## Teclas
+## Keys
 
-| Tecla | Ventana | Presentación |
+| Key | Window | Presentation |
 |---|---|---|
-| `→` `↓` `PgDn` `Espacio` `Enter` | página siguiente | página siguiente |
-| `←` `↑` `PgUp` `Retroceso` | página anterior | página anterior |
-| `Mayús+→` / `Mayús+←` | lámina siguiente / anterior (salta los pasos de Beamer) | igual |
-| `Inicio` / `Fin` | primera / última | igual |
-| número + `Enter` | ir a esa lámina | igual |
-| `F5` / doble clic | entrar en presentación | — |
-| `Esc` | cerrar la ayuda | salir de presentación |
-| `T` | — | reloj y cronómetro |
-| `B` / `W` | — | pantalla en negro / en blanco |
-| `L` / `S` / `D` | — | puntero láser / foco / dibujo (`C` limpia, `Ctrl+Z` deshace) |
-| `G` / `Tab` | cuadrícula de láminas | igual |
-| `N` | modo nocturno | igual |
-| `Ctrl+O` / `Ctrl+N` | abrir / abrir en ventana nueva | igual |
-| `Ctrl+S` / `Ctrl+Mayús+G` | guardar / guardar como | — |
-| `Ctrl+Mayús+S` | instantánea al portapapeles (arrastra un rectángulo) | — |
-| `Ctrl+Mayús+P` | vista de presentador | igual |
-| `Ctrl+,` | ajustes | igual |
-| `Ctrl+F`, `Ctrl+P`, `+`, `-`, `r` | buscar, imprimir, zoom, rotar (pdf.js) | `r` anulada |
-| `F1` | ayuda de teclas | ayuda de teclas |
+| `→` `↓` `PgDn` `Space` `Enter` | next page | next page |
+| `←` `↑` `PgUp` `Backspace` | previous page | previous page |
+| `Shift+→` / `Shift+←` | next / previous slide (skips Beamer steps) | same |
+| `Home` / `End` | first / last | same |
+| number + `Enter` | go to that slide | same |
+| `F5` / double click | enter presentation | — |
+| `Esc` | close the help | leave presentation |
+| `T` | — | clock and stopwatch |
+| `B` / `W` | — | black / white screen |
+| `L` / `S` / `D` | — | laser pointer / spotlight / drawing (`C` clears, `Ctrl+Z` undoes) |
+| `G` / `Tab` | slide grid | same |
+| `N` | night mode | same |
+| `Ctrl+O` / `Ctrl+N` | open / open in a new window | same |
+| `Ctrl+S` / `Ctrl+Shift+G` | save / save as | — |
+| `Ctrl+Shift+S` | snapshot to the clipboard (drag a rectangle) | — |
+| `Ctrl+Shift+P` | presenter view | same |
+| `Ctrl+,` | settings | same |
+| `Ctrl+F`, `Ctrl+P`, `+`, `-`, `r` | find, print, zoom, rotate (pdf.js) | `r` disabled |
+| `F1` | key help | key help |
 
-Los clickers habituales envían `PgUp`/`PgDn`: funcionan sin configurar nada. En presentación, el contador «lámina X / Y · paso a / b» usa las etiquetas de página del PDF: con Beamer muestra el mismo número que el pie de la lámina (la portada es la 0) y «número + Enter» salta a esa etiqueta; en los pasos de una misma lámina la etiqueta se repite.
+Common clickers send `PgUp`/`PgDn`: they work without any setup. In presentation, the counter "slide X / Y · step a / b" uses the PDF's page labels: with Beamer it shows the same number as the slide footer (the title page is 0) and "number + Enter" jumps to that label; the steps of one slide share the label.
 
-## Vista de presentador, notas y monitores
+## Presenter view, notes and displays
 
-- `Ctrl+Mayús+P` (o Ver ▸ Vista de presentador) abre una segunda ventana con la lámina actual, la siguiente, el reloj, un cronómetro (`R` lo reinicia) y las notas. Las flechas en esa ventana también cambian de lámina.
-- **Notas**: un archivo de texto junto al PDF llamado `<nombre>.pdf.notas.txt` con bloques `## N` (N = número de lámina, como lo imprime Beamer al pie), por ejemplo `## 3` seguido del texto.
-- **Beamer con notas en la mitad derecha** (`\setbeameroption{show notes on second screen=right}`): en Ajustes ▸ Este documento marca «Páginas con las notas a la derecha»; en presentación se ve solo la mitad izquierda ampliada y el presentador muestra la derecha (limitación: la mitad izquierda se amplía al doble desde el ajuste de página, así que pierde algo de nitidez).
-- **Dos pantallas**: al entrar en presentación la ventana se va sola a la pantalla que no es la principal (el proyector) y el presentador a la principal. Se puede fijar en Ajustes ▸ Pantallas.
+- `Ctrl+Shift+P` (or View ▸ Presenter view) opens a second window with the current slide, the next one, the clock, a stopwatch (`R` resets it) and the notes. The arrow keys in that window also change the slide.
+- **Notes**: a text file next to the PDF called `<name>.pdf.notas.txt` with `## N` blocks (N = slide number, as Beamer prints it in the footer), for example `## 3` followed by the text.
+- **Beamer with notes on the right half** (`\setbeameroption{show notes on second screen=right}`): in Settings ▸ This document tick "Pages with the notes on the right"; the presentation shows only the left half, enlarged, and the presenter view shows the right half (limitation: the left half is scaled to twice the page-fit size, so it loses some sharpness).
+- **Two displays**: entering the presentation moves the window to the non-primary display (the projector) and the presenter view to the primary one. It can be fixed in Settings ▸ Displays.
 
-## Transiciones, medidas e instantánea
+## Transitions, measurements and snapshot
 
-- Las transiciones `/Trans` del PDF (`\transfade`, `\transwipe`, `\transsplitverticalin`… de Beamer) se reproducen en presentación; `R` (lo que Beamer escribe por defecto) es cambio instantáneo. Se desactivan en Ajustes.
-- Ver ▸ Medir distancia / Medir área dibujan sobre la página en modo ventana con las unidades de Ajustes (mm, cm, in) y respetan `/UserUnit`; «Calibrar escala…» ajusta la escala de ese documento marcando un segmento conocido. `Esc` borra.
-- `Ctrl+Mayús+S` copia al portapapeles el rectángulo que arrastres sobre la ventana.
-- Guardar (`Ctrl+S`) escribe sobre el archivo abierto tras confirmar; «Guardar como…» abre el diálogo. Los editores de pdf.js (notas, firma, resaltado, texto, dibujo, imagen) están activos en la barra.
+- The PDF's `/Trans` transitions (`\transfade`, `\transwipe`, `\transsplitverticalin`… from Beamer) are played in presentation; `R` (what Beamer writes by default) is an instant change. They can be turned off in Settings.
+- View ▸ Measure distance / Measure area draw on the page in window mode with the unit chosen in Settings (mm, cm, in) and honour `/UserUnit`; "Calibrate scale…" adjusts the scale of that document by marking a known segment. `Esc` clears.
+- `Ctrl+Shift+S` copies to the clipboard the rectangle you drag over the window.
+- Save (`Ctrl+S`) writes over the open file after confirming; "Save as…" opens the dialog. The pdf.js editors (notes, signature, highlight, text, drawing, image) are active on the toolbar.
 
-## Herramientas
+## Tools
 
-El menú **Herramientas** opera sobre el documento abierto y **nunca lo sobrescribe**: cada herramienta guarda un archivo nuevo (se propone `<nombre> - <herramienta>.pdf` en la carpeta del documento) o pide una carpeta cuando salen varios archivos; después ofrece «Abrir el resultado». Todo corre en el equipo: pdf-lib y qpdf en un worker, tesseract.js para el OCR, el propio Electron para imprimir HTML. Un PDF cifrado hay que desbloquearlo antes de usar las demás herramientas.
+The **Tools** menu works on the open document and **never overwrites it**: each tool saves a new file (`<name> - <tool>.pdf` in the document's folder is proposed) or asks for a folder when several files come out; then it offers "Open the result". Everything runs on this computer: pdf-lib and qpdf in a worker, tesseract.js for the OCR, Electron itself to print HTML. An encrypted PDF must be unlocked before using the other tools.
 
-| Herramienta | Qué hace | Resultado |
+| Tool | What it does | Result |
 |---|---|---|
-| Unir PDF… | Lista reordenable con el documento abierto más los PDF que añadas | un PDF |
-| Dividir o extraer páginas… | Rangos (`1-3,5,8-`) a un PDF, cada N páginas, o una página por archivo | uno o varios PDF (`… - parte 01.pdf`) |
-| Organizar páginas… | Miniaturas con arrastre; rotar, duplicar, quitar, insertar página en blanco | un PDF |
-| Rotar páginas… | 90°, 180° o 270° sobre las páginas elegidas (se suma a la rotación que tengan) | un PDF |
-| Números de página… | Texto con `{n}` y `{total}` en seis posiciones, tamaño y número inicial; Helvetica | un PDF |
-| Marca de agua… | Texto (color, opacidad, ángulo, mosaico) o imagen PNG/JPG (otros formatos se convierten) | un PDF |
-| Recortar páginas… | Marca un rectángulo sobre la página o escribe las medidas; cambia el CropBox | un PDF |
-| PDF a imágenes… | PNG o JPEG por página a la resolución elegida; pide la carpeta al empezar y guarda cada imagen al salir | una carpeta (`… - página 01.png`) |
-| Imágenes a PDF… | Una página por imagen (A4, Carta o el tamaño de la imagen); el formato se detecta por el contenido, las fotos con orientación EXIF se enderezan y las ilegibles se omiten con aviso | un PDF |
-| Página web o HTML a PDF… | Una dirección http(s) (con internet) o un archivo `.html` local, impreso por Electron | un PDF |
-| Aplanar formularios y anotaciones… | Los campos pasan a contenido fijo; opcionalmente quita todas las anotaciones | un PDF |
-| Metadatos… | Título, autor, asunto, palabras clave y aplicación creadora (precarga los actuales) | un PDF |
-| Proteger con contraseña… | AES-256 con contraseña de apertura y de propietario; permisos de imprimir, copiar y modificar | un PDF |
-| Desbloquear PDF… | Quita el cifrado con la contraseña | un PDF |
-| Reparar PDF… | qpdf reescribe el archivo; si faltan la xref o el trailer (archivo truncado) se reconstruyen, también con object streams (el formato de pdflatex, Word o Chrome); pdf-lib como último recurso. Un PDF cifrado hay que desbloquearlo antes. Permite elegir otro archivo, porque un PDF roto a menudo no abre | un PDF |
-| OCR (texto en PDF escaneado)… | Reconoce el texto de cada página (español, inglés o ambos; 200 o 300 ppp) y lo añade como capa invisible (modo de texto invisible, también en páginas giradas o recortadas): el PDF queda buscable y copiable | un PDF |
-| Comprimir… | Recodifica las fotos como JPEG (alta, media o baja) y recomprime la estructura con qpdf; si no baja al menos un 2 %, avisa y no guarda | un PDF |
+| Merge PDF… | Reorderable list with the open document plus the PDFs you add | one PDF |
+| Split or extract pages… | Ranges (`1-3,5,8-`) to one PDF, every N pages, or one page per file | one or several PDFs (`… - part 01.pdf`) |
+| Organize pages… | Thumbnails with drag and drop; rotate, duplicate, remove, insert a blank page | one PDF |
+| Rotate pages… | 90°, 180° or 270° on the chosen pages (added to their current rotation) | one PDF |
+| Page numbers… | Text with `{n}` and `{total}` in six positions, size and first number; Helvetica | one PDF |
+| Watermark… | Text (color, opacity, angle, tiling) or a PNG/JPG image (other formats are converted) | one PDF |
+| Crop pages… | Mark a rectangle on the page or type the measurements; changes the CropBox | one PDF |
+| PDF to images… | PNG or JPEG per page at the chosen resolution; asks for the folder first and saves each image as it comes out | a folder (`… - page 01.png`) |
+| Images to PDF… | One page per image (A4, Letter or the image size); the format is detected from the content, photos with EXIF orientation are straightened and unreadable files are skipped with a notice | one PDF |
+| Web page or HTML to PDF… | An http(s) address (needs internet) or a local `.html` file, printed by Electron | one PDF |
+| Flatten forms and annotations… | Fields become fixed content; optionally removes all annotations | one PDF |
+| Metadata… | Title, author, subject, keywords and creator application (preloads the current ones) | one PDF |
+| Protect with password… | AES-256 with open and owner passwords; print, copy and modify permissions | one PDF |
+| Unlock PDF… | Removes the encryption with the password | one PDF |
+| Repair PDF… | qpdf rewrites the file; a missing xref or trailer (truncated file) is rebuilt, object streams included (the format of pdflatex, Word or Chrome); pdf-lib as a last resort. An encrypted PDF must be unlocked first. Lets you pick another file, since a broken PDF often does not open | one PDF |
+| OCR (text in scanned PDF)… | Recognizes the text of each page (Spanish, English or both; 200 or 300 dpi) and adds it as an invisible layer (invisible text mode, also on rotated or cropped pages): the PDF becomes searchable and copyable | one PDF |
+| Compress… | Re-encodes photos as JPEG (high, medium or low) and recompresses the structure with qpdf; if it does not shrink by at least 2 %, it warns and saves nothing | one PDF |
 
-- **OCR**: tarda unos 2–5 s por página a 200 ppp en un PC normal; los idiomas van dentro del programa (`recursos/tessdata`, 6 MB) y no se descarga nada. Un texto girado o muy pegado al borde se reconoce peor.
-- **Cancelar** detiene la herramienta sin dejar archivos a medias.
-- **Limitaciones**: al unir, dividir u organizar, los campos de formulario (incluidas las animaciones de `animate`, que son campos) se copian sin su formulario y dejan de funcionar en el resultado; «Comprimir» no toca imágenes con máscara, indexadas o de 1 bit, y solo cambia una imagen si el JPEG resultante pesa menos que ella en el archivo; «Reparar» no recupera contenido que ya no esté en el archivo.
+- **OCR**: about 2–5 s per page at 200 dpi on an ordinary PC; the languages ship inside the program (`recursos/tessdata`, 6 MB) and nothing is downloaded. Rotated text or text very close to the edge is recognized worse.
+- **Cancel** stops the tool without leaving half-written files.
+- **Limitations**: merging, splitting or organizing copies the form fields (including the `animate` animations, which are fields) without their form, so they stop working in the result; Compress leaves masked, indexed or 1-bit images alone and only replaces an image if the resulting JPEG is smaller than it was in the file; Repair cannot recover content that is no longer in the file.
 
-## Videos dentro del PDF
+## Videos inside the PDF
 
-liberadoPDF reproduce, **sin audio**, los videos que un PDF lleva incrustados o enlazados: anotaciones *RichMedia* (paquete `media9`, video incrustado), *Screen* (`movie15`) y *Movie* (`\movie` del paquete `multimedia` de Beamer, archivo junto al PDF). pdf.js no los muestra; liberadoPDF superpone un reproductor silenciado exactamente sobre el rectángulo, en ventana y en presentación, y lo sigue al cambiar el zoom.
+liberadoPDF plays, **without audio**, the videos a PDF embeds or links: *RichMedia* annotations (`media9` package, embedded video), *Screen* (`movie15`) and *Movie* (`\movie` from Beamer's `multimedia` package, file next to the PDF). pdf.js does not show them; liberadoPDF overlays a muted player exactly on the rectangle, in the window and in presentation, and follows it when the zoom changes.
 
-- Arrancan solos y en bucle (Ajustes ▸ «Videos del PDF: reproducir solos» / «en bucle»); un clic sobre el video lo pausa o reanuda. Si la anotación trae sus propias opciones (`autostart`, `loop`), mandan ellas.
-- Formatos: los de Chromium (H.264/MP4, VP9/WebM y AV1); HEVC no. Si no se puede decodificar, aparece un aviso sobre el rectángulo.
-- Un video externo solo se busca en la carpeta del PDF o en sus subcarpetas.
+- They start by themselves and loop (Settings ▸ "PDF videos: play automatically" / "loop"); a click on the video pauses or resumes it. If the annotation carries its own options (`autostart`, `loop`), those win.
+- Formats: Chromium's (H.264/MP4, VP9/WebM and AV1); not HEVC. If it cannot be decoded, a notice appears on the rectangle.
+- An external video is only looked up in the PDF's folder or its subfolders.
 
-Para meter un video en una presentación de Beamer:
+To put a video in a Beamer presentation:
 
 ```latex
-\usepackage{multimedia}   % archivo externo: video.mp4 debe ir junto al PDF
+\usepackage{multimedia}   % external file: video.mp4 must sit next to the PDF
 \movie[autostart,loop,width=8cm,height=4.5cm]{\includegraphics[width=8cm]{poster.png}}{video.mp4}
 
-\usepackage{media9}       % video incrustado en el PDF (no hace falta llevar el archivo aparte)
+\usepackage{media9}       % video embedded in the PDF (no need to carry the file separately)
 \includemedia[width=8cm,height=4.5cm,activate=pageopen,addresource=video.mp4,
   flashvars={source=video.mp4&autoPlay=true&loop=true}]{\includegraphics[width=8cm]{poster.png}}{VPlayer.swf}
 ```
 
-Con `ffmpeg -i original.mp4 -an -c:v libx264 -profile:v baseline -pix_fmt yuv420p -movflags +faststart video.mp4` el video queda sin audio y en un formato que reproduce cualquier Chromium. Ese PDF seguirá sin moverse en Acrobat o Sumatra: la reproducción es cosa de liberadoPDF.
+With `ffmpeg -i original.mp4 -an -c:v libx264 -profile:v baseline -pix_fmt yuv420p -movflags +faststart video.mp4` the video has no audio and is in a format any Chromium plays. That PDF will still not move in Acrobat or Sumatra: playback is liberadoPDF's job.
 
-## Ajustes
+## Settings
 
-`Ctrl+,` o Ver ▸ Ajustes…: avance automático, bucle, transiciones, color de fondo, cursor, pantallas, unidad de medida, modo nocturno, tema, idioma y videos. Se guardan en `data\config.json` junto al ejecutable (modo portable; en `data\` queda también la caché de Chromium). Si esa carpeta no se puede escribir, en `%APPDATA%\liberadoPDF\config.json`.
+`Ctrl+,` or View ▸ Settings…: auto-advance, loop, transitions, background color, cursor, displays, measurement unit, night mode, theme, language and videos. They are saved in `data\config.json` next to the executable (portable mode; `data\` also holds Chromium's cache). If that folder is not writable, in `%APPDATA%\liberadoPDF\config.json`.
 
 ```json
 {
@@ -126,53 +126,53 @@ Con `ffmpeg -i original.mp4 -an -c:v libx264 -profile:v baseline -pix_fmt yuv420
   "barra": { "presentationMode": true },
   "idioma": "en",
   "video": { "autoarranque": true, "bucle": true },
-  "porDocumento": { "C:\\Charlas\\charla.pdf": { "notasDerecha": true, "calibracion": 1 } }
+  "porDocumento": { "C:\\Talks\\talk.pdf": { "notasDerecha": true, "calibracion": 1 } }
 }
 ```
 
-El archivo de notas (`<nombre>.pdf.notas.txt`) debe guardarse en UTF-8 (el Bloc de notas moderno lo hace; uno antiguo en ANSI estropea las tildes).
+The notes file (`<name>.pdf.notas.txt`) must be saved as UTF-8 (the modern Notepad does; an old ANSI editor garbles accented letters).
 
-- `avanceSegundos`: avanzar solo cada N segundos en presentación (0 = no).
-- `bucle`: al terminar, volver a la primera lámina (modo quiosco).
-- `fondo`: color alrededor de la lámina en presentación.
-- `ocultarCursor`: ocultar el cursor tras 2 s sin moverlo.
+- `avanceSegundos`: advance by itself every N seconds in presentation (0 = off).
+- `bucle`: when the end is reached, go back to the first slide (kiosk mode).
+- `fondo`: color around the slide in presentation.
+- `ocultarCursor`: hide the cursor after 2 s without moving it.
 
-## Construir desde WSL o Linux
+## Building from WSL or Linux
 
-Requisitos: Node 24, una pantalla (WSLg) para la prueba de humo, Python 3 con Pillow (icono y PDF de ejemplo escaneado y de fotos), ffmpeg (video de prueba, `scripts/generar_video.sh`), y para los PDF de ejemplo un TeX Live con `beamer`, `tikz`, `animate`, `graphicx`, `multimedia` y `media9`.
+Requirements: Node 24, a display (WSLg) for the smoke test, Python 3 with Pillow (icon and the scanned and photo sample PDFs), ffmpeg (test video, `scripts/generar_video.sh`), and for the sample PDFs a TeX Live with `beamer`, `tikz`, `animate`, `graphicx`, `multimedia` and `media9`.
 
-En Linux/WSLg Electron se lanza con `ELECTRON_DISABLE_SANDBOX=1` (lo ponen `npm start`, `npm run humo` y los scripts): no hay sandbox setuid, y añadir `no-sandbox` desde el código rompe la impresión a PDF.
+On Linux/WSLg, Electron is launched with `ELECTRON_DISABLE_SANDBOX=1` (set by `npm start`, `npm run humo` and the scripts): there is no setuid sandbox, and adding `no-sandbox` from the code breaks printing to PDF.
 
 ```bash
 npm install
-npm test            # pruebas unitarias (node --test)
-npm run humo        # prueba de humo (39 fases): visor, presentación, presentador, idioma, video y una fase por herramienta; genera sus PDF de prueba
-npm run construir   # dist/liberadoPDF-win32-x64(.zip) y dist/liberadoPDF-linux-x64(.tar.gz); scripts/construir.sh win32|linux para uno solo
-scripts/humo_windows.sh                                         # prueba de humo sobre el .exe, lanzado desde WSL
-scripts/humo_windows.sh presentacionAnimada "ruta/al/pdf" 11    # ¿la animación de la página 11 corre en presentación?
-scripts/humo_windows.sh guardar | cuadricula | presentador | cierre   # otras fases sobre el .exe
-scripts/humo_windows.sh unir | proteger | ocr | comprimir               # herramientas sobre el .exe
-scripts/humo_linux.sh basica | video | …                                # las mismas fases sobre el paquete de Linux
+npm test            # unit tests (node --test)
+npm run humo        # smoke test (39 phases): viewer, presentation, presenter, language, video and one phase per tool; generates its test PDFs
+npm run construir   # dist/liberadoPDF-win32-x64(.zip) and dist/liberadoPDF-linux-x64(.tar.gz); scripts/construir.sh win32|linux for one
+scripts/humo_windows.sh                                         # smoke test on the .exe, launched from WSL
+scripts/humo_windows.sh presentacionAnimada "path/to/pdf" 11    # does the animation on page 11 run in presentation?
+scripts/humo_windows.sh guardar | cuadricula | presentador | cierre   # other phases on the .exe
+scripts/humo_windows.sh unir | proteger | ocr | comprimir               # tools on the .exe
+scripts/humo_linux.sh basica | video | …                                # the same phases on the Linux package
 ```
 
-El icono del `.exe` lo pone `wine` (si está instalado) o `rcedit-x64.exe` en `~/tools/rcedit/` ejecutado por interop de WSL ([electron/rcedit](https://github.com/electron/rcedit/releases)). Sin ninguno de los dos, el ejecutable queda con el icono por defecto de Electron.
+The `.exe` icon is set by `wine` (if installed) or by `rcedit-x64.exe` in `~/tools/rcedit/` run through WSL interop ([electron/rcedit](https://github.com/electron/rcedit/releases)). Without either, the executable keeps Electron's default icon.
 
-## Estructura
+## Structure
 
-- `src/main/`: proceso principal de Electron (protocolo `liberadopdf://`, ventanas, menú, IPC, configuración, prueba de humo).
-- `src/preload/preload.cjs`: puente seguro hacia el renderer e inyección de la capa propia sobre el visor de pdf.js.
-- `src/renderer/`: la capa de liberadoPDF sobre el visor (teclas, presentación, contador, ayuda) y la pantalla de inicio; `herramientas/` tiene un módulo por herramienta, el diálogo base y el worker (`trabajador.mjs`, con pdf-lib y qpdf).
-- `src/comun/`: lógica pura, probada con `node --test` (`herramientas/` para rangos, nombres, estampado, recorte, imágenes, reparación, OCR y compresión; `i18n.mjs` + `i18n/en.mjs` para el idioma; `video.mjs` para los videos).
-- `recursos/`: PDF de ejemplo (animado, transiciones, notas, escaneado, fotos), icono y `tessdata/` (idiomas del OCR).
-- `vendor/pdfjs/`: pdf.js 6.4.299 tal cual (no se modifica).
-- `docs/superpowers/`: diseño y planes.
+- `src/main/`: Electron main process (`liberadopdf://` protocol, windows, menu, IPC, configuration, smoke test).
+- `src/preload/preload.cjs`: safe bridge to the renderer and injection of liberadoPDF's own layer over the pdf.js viewer.
+- `src/renderer/`: liberadoPDF's layer over the viewer (keys, presentation, counter, help) and the start page; `herramientas/` has one module per tool, the base dialog and the worker (`trabajador.mjs`, with pdf-lib and qpdf).
+- `src/comun/`: pure logic, tested with `node --test` (`herramientas/` for ranges, names, stamping, cropping, images, repair, OCR and compression; `i18n.mjs` + `i18n/en.mjs` for the language; `video.mjs` for the videos).
+- `recursos/`: sample PDFs (animated, transitions, notes, scanned, photos), icon, `linux/` (launcher) and `tessdata/` (OCR languages).
+- `vendor/pdfjs/`: pdf.js 6.4.299 as is (not modified).
+- `docs/superpowers/`: design and plans (in Spanish).
 
-## Pendiente
+## Pending
 
-- Herramientas 54–59 del plan: PDF ↔ Office (Word, Excel, PowerPoint), editar texto, redactar (tachar contenido), comparar PDF, PDF/A y escanear desde cámara.
-- Abrir «Herramientas ▸ Reparar» desde la pantalla de inicio (hoy hace falta tener un PDF abierto y elegir el archivo roto desde el diálogo).
-- Fuera de alcance: leer en voz alta, audio, video externo por URL, Flash y 3D, validación de firmas digitales, empaquetado para macOS.
+- Tools 54–59 of the plan: PDF ↔ Office (Word, Excel, PowerPoint), edit text, redact (black out content), compare PDFs, PDF/A and scan from a camera.
+- Opening "Tools ▸ Repair" from the start page (today a PDF must be open and the broken file is chosen in the dialog).
+- Out of scope: read aloud, audio, external video by URL, Flash and 3D, digital signature validation, macOS packaging.
 
-## Licencia
+## License
 
-MIT. pdf.js se distribuye en `vendor/pdfjs/` bajo Apache 2.0 (ver `vendor/pdfjs/LICENSE`). Las herramientas usan pdf-lib (MIT), qpdf-wasm (Apache 2.0, qpdf) y tesseract.js / tesseract.js-core (Apache 2.0); los datos de idioma `tessdata_fast` son Apache 2.0 (ver `recursos/tessdata/LICENSE.txt`).
+MIT. pdf.js is distributed in `vendor/pdfjs/` under Apache 2.0 (see `vendor/pdfjs/LICENSE`). The tools use pdf-lib (MIT), qpdf-wasm (Apache 2.0, qpdf) and tesseract.js / tesseract.js-core (Apache 2.0); the `tessdata_fast` language data is Apache 2.0 (see `recursos/tessdata/LICENSE.txt`).
