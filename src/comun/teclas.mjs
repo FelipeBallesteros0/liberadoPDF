@@ -18,17 +18,17 @@ export function accionDeTecla(ev, { modo, enEntrada, digitos = '' }) {
   if (ctrlKey && !altKey && !metaKey && !shiftKey) {
     if (minuscula === 'z' && modo === 'presentacion') return { accion: 'deshacerDibujo' };
     if (minuscula === 'o') return { accion: 'abrir' };
-    if (minuscula === 's') return modo === 'ventana' ? { accion: 'guardar' } : null;
+    if (minuscula === 's') return modo === 'ventana' ? { accion: 'guardar' } : { accion: 'nada' }; // en presentación no llega al guardado de pdf.js
     if (minuscula === 'n') return { accion: 'abrirNueva' };
     if (key === ',') return { accion: 'ajustes' };
     return null;
   }
   if (altKey || metaKey || ctrlKey) return null;
   if (key === 'F1') return { accion: 'ayuda' };
-  if (key === 'Tab') return { accion: 'cuadricula' };
   if (key === 'Escape') return null; // lo maneja pdf.js (salir de presentación)
   if (key === 'F5') return modo === 'ventana' ? { accion: 'presentacion' } : null;
-  if (enEntrada) return null; // el foco está en un campo de texto: pdf.js lo necesita
+  if (enEntrada) return null; // el foco está en un campo de texto: pdf.js lo necesita (y Tab debe mover el foco)
+  if (key === 'Tab') return { accion: 'cuadricula' };
 
   if (shiftKey) {
     if (key === 'ArrowRight') return { accion: 'siguienteLamina' };

@@ -6,15 +6,22 @@
 // pregunta; si solo cambió la animación, cierra.
 export function instalarCierre({ app }) {
   let avisado = false;
+  let ediciones = false;
   const marcar = () => {
+    ediciones = true;
     if (avisado) return;
     avisado = true;
     window.liberadopdf.edicionesUsuario();
   };
-  app.eventBus.on('annotationeditorstateschanged', ({ details }) => {
-    if (details?.hasSomethingToUndo) marcar();
-  });
+  // pdf.js 6.4 lo llama «editingstateschanged»; versiones anteriores «annotationeditorstateschanged»
+  for (const evento of ['editingstateschanged', 'annotationeditorstateschanged']) {
+    app.eventBus.on(evento, ({ details }) => { if (details?.hasSomethingToUndo) marcar(); });
+  }
   document.addEventListener('change', (ev) => {
     if (ev.target instanceof Element && ev.target.closest('.annotationLayer')) marcar();
   }, { capture: true });
+  return {
+    hayEdiciones: () => ediciones,
+    marcarGuardado: () => { ediciones = false; avisado = false; },
+  };
 }

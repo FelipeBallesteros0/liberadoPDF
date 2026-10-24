@@ -288,6 +288,14 @@ async function faseGuardar({ ruta, preload, salida }) {
   win.show(); win.focus(); win.moveTop();
   await espera(500);
   r.editoresVisibles = await js('window.liberadopdfEstado.editoresVisibles');
+  // Sin ediciones del usuario (la animación sí toca el almacén de pdf.js): Ctrl+S no escribe nada y avisa
+  await js('PDFViewerApplication.page = 2');
+  await espera(1200);
+  await js('window.liberadopdfAcciones.guardar()');
+  await espera(800);
+  r.sinEdicionesNoGuarda = !existsSync(destino) && Boolean(await js('document.querySelector(".liberadopdf-toast")'));
+  await js('PDFViewerApplication.page = 1');
+  await espera(300);
   // Texto libre: modo FreeText (3), clic en la página, escribir y confirmar con Escape
   await js('PDFViewerApplication.pdfViewer.annotationEditorMode = { mode: 3 }');
   await espera(300);
@@ -301,7 +309,12 @@ async function faseGuardar({ ruta, preload, salida }) {
   tecla('Escape');
   await espera(400);
   r.anotaciones = await js('PDFViewerApplication.pdfDocument.annotationStorage.size');
+  r.hayEdiciones = await js('window.liberadopdfEstado.hayEdiciones?.() ?? null');
+  const { session } = await import('electron');
+  session.defaultSession.once('will-download', (e, item) => { r.descarga = { nombre: item.getFilename(), mime: item.getMimeType(), pedidoHace: Date.now() - (win.liberadopdfGuardadoEn ?? 0) }; });
   await js('window.liberadopdfAcciones.guardar()');
+  await espera(300);
+  r.toastTrasGuardar = await js('document.querySelector(".liberadopdf-toast")?.textContent ?? null');
   for (let i = 0; i < 40 && !existsSync(destino); i++) await espera(250);
   await espera(500);
   r.archivo = existsSync(destino) && statSync(destino).size > 0;
@@ -310,7 +323,7 @@ async function faseGuardar({ ruta, preload, salida }) {
     r.contieneTexto = bytes.includes('/FreeText') || bytes.includes('hola');
   }
   r.sinEdiciones = win.liberadopdfEdiciones === false;
-  r.ok = r.editoresVisibles && r.archivo && r.contieneTexto && r.sinEdiciones;
+  r.ok = r.editoresVisibles && r.sinEdicionesNoGuarda && r.archivo && r.contieneTexto && r.sinEdiciones;
   return r;
 }
 
@@ -319,9 +332,10 @@ async function faseTransiciones({ ruta, preload, salida }) {
   const r = { leidas: null, capaFundido: false, capaRetirada: false, capaBarrido: false, instantanea: false };
   const { js, tecla, presentar } = abrirVentanaDePrueba({ ruta, preload, salida });
   await esperarEvento('primera-pagina', 10_000);
+  r.antesDePresentar = JSON.parse(await js('JSON.stringify(window.liberadopdfEstado.transiciones ?? null)')); // null: no se ha leído aún
+  r.presentacion = await presentar();
   await espera(800);
   r.leidas = JSON.parse(await js('JSON.stringify((window.liberadopdfEstado.transiciones || []).map(t => t && t.S))'));
-  r.presentacion = await presentar();
   tecla('Right');
   await espera(300);
   r.capaFundido = Boolean(await js('document.querySelector(".liberadopdf-transicion.liberadopdf-trans-fade")'));
@@ -334,7 +348,7 @@ async function faseTransiciones({ ruta, preload, salida }) {
   await js('PDFViewerApplication.page = 5');
   await espera(150);
   r.instantanea = !(await js('document.querySelector(".liberadopdf-transicion")')) && (await js('PDFViewerApplication.page')) === 5;
-  r.ok = r.presentacion && r.capaFundido && r.capaRetirada && r.capaBarrido && r.instantanea && JSON.stringify(r.leidas) === JSON.stringify(['R', 'Fade', 'Wipe', 'Split', 'R']);
+  r.ok = r.presentacion && r.antesDePresentar === null && r.capaFundido && r.capaRetirada && r.capaBarrido && r.instantanea && JSON.stringify(r.leidas) === JSON.stringify(['R', 'Fade', 'Wipe', 'Split', 'R']);
   return r;
 }
 
@@ -367,7 +381,13 @@ async function fasePunteros({ ruta, preload, salida }) {
   tecla('Right');
   await espera(400);
   r.borradoAlCambiar = (await js('PDFViewerApplication.page')) === paginaAntes + 1 && (await pixel()) === 0;
-  r.ok = r.presentacion && r.laser && r.laserSigue && r.dibujo && r.trazo && r.borradoAlCambiar;
+  // Con el dibujo activo, G abre la cuadrícula y apaga el dibujo (la rejilla queda por encima y recibe los clics)
+  tecla('G');
+  await espera(600);
+  r.cuadriculaApagaPunteros = Boolean(await js('document.querySelector(".liberadopdf-cuadricula")')) && !(await js('document.querySelector("canvas.liberadopdf-dibujo")'));
+  tecla('Escape');
+  await espera(200);
+  r.ok = r.presentacion && r.laser && r.laserSigue && r.dibujo && r.trazo && r.borradoAlCambiar && r.cuadriculaApagaPunteros;
   return r;
 }
 
@@ -447,7 +467,11 @@ async function fasePresentador({ ruta, preload, salida }) {
   presentador.webContents.sendInputEvent({ type: 'keyUp', keyCode: 'Right' });
   await espera(500);
   r.navegacion = (await js('PDFViewerApplication.page')) === 3;
-  r.ok = r.ventana && r.actual && r.notaVacia && r.nota2 === 'Nota de la dos' && r.siguiente && r.navegacion;
+  // Abrir otro documento en la misma ventana cierra el presentador (mostraría el PDF anterior)
+  const cerrado = new Promise(resolver => presentador.once('closed', () => resolver(true)));
+  await js(`window.liberadopdf.abrirEnEstaVentana(${JSON.stringify(ruta)})`);
+  r.presentadorCerradoAlCambiar = await Promise.race([cerrado, espera(3000).then(() => false)]);
+  r.ok = r.ventana && r.actual && r.notaVacia && r.nota2 === 'Nota de la dos' && r.siguiente && r.navegacion && r.presentadorCerradoAlCambiar;
   return r;
 }
 
@@ -461,6 +485,11 @@ async function faseNotasDerecha({ ruta, preload, salida }) {
   r.presentacion = await presentar();
   await espera(1500);
   r.clase = await js('document.getElementById("viewerContainer").classList.contains("liberadopdf-notas-derecha")');
+  // Escala: hasta ×2, limitada por la altura (láminas 4:3 no se recortan); comparada con la geometría real
+  r.escala = Number(await js('getComputedStyle(document.getElementById("viewerContainer")).getPropertyValue("--liberadopdf-notas-escala")'));
+  const geometria = JSON.parse(await js(`JSON.stringify((() => { const c = document.getElementById('viewerContainer'); const p = document.querySelector('.pdfViewer .page[data-page-number="' + PDFViewerApplication.page + '"]'); return { ch: c.clientHeight, ph: p.offsetHeight, pw: p.offsetWidth }; })())`));
+  r.escalaEsperada = Math.min(2, geometria.ch / geometria.ph);
+  r.escalaCorrecta = Math.abs(r.escala - r.escalaEsperada) < 0.02;
   const con = await win.webContents.capturePage();
   await js('document.getElementById("viewerContainer").classList.remove("liberadopdf-notas-derecha")');
   await espera(600);
@@ -478,9 +507,11 @@ async function faseNotasDerecha({ ruta, preload, salida }) {
   if (presentador) {
     const t = JSON.parse(await presentador.webContents.executeJavaScript('JSON.stringify((c => ({ w: c.width, h: c.height }))(document.querySelector(".actual canvas")))'));
     r.aspecto = t.h ? t.w / t.h : 0;
-    r.presentador16x9 = r.aspecto > 1.6 && r.aspecto < 1.95 && (await presentador.webContents.executeJavaScript(`(${NO_EN_BLANCO})('.actual canvas')`));
+    // La mitad derecha tiene el aspecto de media página (16:9 → 1,78; 4:3 → 1,33)
+    r.aspectoEsperado = geometria.pw / 2 / geometria.ph;
+    r.presentador16x9 = Math.abs(r.aspecto - r.aspectoEsperado) < 0.08 * r.aspectoEsperado && (await presentador.webContents.executeJavaScript(`(${NO_EN_BLANCO})('.actual canvas')`));
   }
-  r.ok = r.presentacion && r.clase && r.mitadDerechaDistinta && r.presentador16x9;
+  r.ok = r.presentacion && r.clase && r.escalaCorrecta && r.mitadDerechaDistinta && r.presentador16x9;
   return r;
 }
 

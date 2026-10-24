@@ -52,14 +52,14 @@ const acciones = {
     if (p) app.page = p;
   },
   async presentacion() { await window.liberadopdf.antesDePresentar().catch(() => {}); app.requestPresentationMode(); },
-  ayuda() { alternarAyuda(); },
+  ayuda() { punteros.desactivarTodo(); alternarAyuda(); },
   reloj() { presentacion.reloj(); },
   negro() { presentacion.negro(); },
   blanco() { presentacion.blanco(); },
   nocturno() { nocturno.alternar(); },
   instantanea() { if (modoActual() === 'ventana') instantanea.iniciar(); },
   ajustes() { ajustes.abrir(); },
-  cuadricula() { cuadricula.alternar(); },
+  cuadricula() { punteros.desactivarTodo(); cuadricula.alternar(); },
   presentador() { window.liberadopdf.presentadorAbrir(); },
   medirDistancia() { if (modoActual() === 'ventana') medicion.distancia(); },
   medirArea() { if (modoActual() === 'ventana') medicion.area(); },
@@ -69,7 +69,13 @@ const acciones = {
   dibujo() { punteros.dibujo(); },
   limpiarDibujo() { punteros.limpiar(); },
   deshacerDibujo() { punteros.deshacer(); },
-  async guardar() { await window.liberadopdf.modoGuardado('sobrescribir'); await guardarConPdfjs(); },
+  async guardar() {
+    // Sin ediciones del usuario no hay nada que guardar: las animaciones también escriben en el almacén de
+    // anotaciones de pdf.js y save() dejaría grabado el fotograma del momento (antimeta: no «mejorar» el PDF).
+    if (!cierre.hayEdiciones()) { mostrarToast('No hay cambios que guardar'); return; }
+    await window.liberadopdf.modoGuardado('sobrescribir');
+    await guardarConPdfjs();
+  },
   async guardarComo() { await window.liberadopdf.modoGuardado('como'); await guardarConPdfjs(); },
   async abrir() { const r = await window.liberadopdf.abrirDialogo(); if (r) window.liberadopdf.abrirEnEstaVentana(r); },
   async abrirNueva() { const r = await window.liberadopdf.abrirDialogo(); if (r) window.liberadopdf.abrirEnVentanaNueva(r); },
@@ -79,7 +85,8 @@ const { modoActual } = presentacion;
 const contador = instalarContador({ app, obtenerGrupos: () => grupos, modoActual });
 const miniaturas = crearMiniaturas({ app });
 const cuadricula = instalarCuadricula({ app, miniaturas, obtenerGrupos: () => grupos });
-instalarCierre({ app });
+const cierre = instalarCierre({ app });
+window.liberadopdfEstado.hayEdiciones = () => cierre.hayEdiciones();
 const barra = instalarBarra({ config, app, guardar: parcial => window.liberadopdf.guardarConfig(parcial) });
 // Aplicación en vivo de la configuración (ajustes, nocturno…)
 const aplicarTema = (tema) => { document.documentElement.style.colorScheme = tema === 'claro' ? 'light' : tema === 'oscuro' ? 'dark' : ''; };
@@ -110,8 +117,27 @@ const transiciones = instalarTransiciones({ app, obtenerConfig, modoActual });
 const punteros = instalarPunteros({ app, modoActual });
 // Páginas de Beamer con las notas en la mitad derecha (pgfpages): en presentación se muestra solo la izquierda.
 const notasDerecha = () => Boolean(obtenerConfig().porDocumento?.[ruta]?.notasDerecha);
-const aplicarNotasDerecha = () => document.getElementById('viewerContainer').classList.toggle('liberadopdf-notas-derecha', notasDerecha());
-app.eventBus.on('presentationmodechanged', () => setTimeout(aplicarNotasDerecha, 0));
+const aplicarNotasDerecha = () => {
+  const contenedor = document.getElementById('viewerContainer');
+  const activo = notasDerecha();
+  contenedor.classList.toggle('liberadopdf-notas-derecha', activo);
+  if (!activo || modoActual() !== 'presentacion') return;
+  // La mitad izquierda se amplía hasta llenar la altura (máximo ×2) y se centra; con láminas 4:3 no se recorta nada.
+  const pagina = contenedor.querySelector('.pdfViewer .page[data-page-number="' + app.page + '"]');
+  if (!pagina) return;
+  // Se mide sin transformación (getBoundingClientRect la incluiría y realimentaría el cálculo)
+  contenedor.style.setProperty('--liberadopdf-notas-escala', '1');
+  contenedor.style.setProperty('--liberadopdf-notas-dx', '0px');
+  const r = pagina.getBoundingClientRect();
+  const c = contenedor.getBoundingClientRect();
+  const escala = Math.min(2, c.height / r.height);
+  const dx = (c.width - escala * r.width / 2) / 2 - (r.left - c.left);
+  contenedor.style.setProperty('--liberadopdf-notas-escala', String(escala));
+  contenedor.style.setProperty('--liberadopdf-notas-dx', `${dx}px`);
+};
+app.eventBus.on('presentationmodechanged', () => setTimeout(aplicarNotasDerecha, 50));
+app.eventBus.on('pagerendered', () => aplicarNotasDerecha());
+window.addEventListener('resize', () => aplicarNotasDerecha());
 // Estado para la vista de presentador
 let etiquetasDocumento = null;
 const enviarEstado = () => window.liberadopdf.presentadorEstado({ pagina: app.page, totalPaginas: app.pagesCount, etiquetas: etiquetasDocumento, notasDerecha: notasDerecha() });
@@ -131,9 +157,9 @@ window.liberadopdfAplicarExtra = (nueva) => nocturno.aplicar(nueva.nocturno);
 // pdf.js: save() incorpora formularios y anotaciones; download() baja el original si no hay cambios.
 const guardarConPdfjs = async () => {
   if (!app.pdfDocument) return;
-  if (app.pdfDocument.annotationStorage.size > 0) await app.save(); else await app.download();
+  if (cierre.hayEdiciones()) await app.save(); else await app.download(); // sin ediciones, los bytes originales
 };
-window.liberadopdf.alGuardado(({ ruta }) => mostrarToast(`Guardado: ${ruta.split(/[\\/]/).pop()}`));
+window.liberadopdf.alGuardado(({ ruta }) => { cierre.marcarGuardado(); mostrarToast(`Guardado: ${ruta.split(/[\\/]/).pop()}`); });
 // Editores de pdf.js (notas, firma, resaltado, texto, dibujo, imagen): deben estar activos (funciones 25–27).
 const EDITORES = ['editorCommentButton', 'editorSignatureButton', 'editorHighlightButton', 'editorFreeTextButton', 'editorInkButton', 'editorStampButton'];
 window.liberadopdfEstado.editoresVisibles = EDITORES.every(id => { const b = document.getElementById(id); return b && !b.hidden && !b.closest('.liberadopdf-oculto'); });
@@ -164,10 +190,21 @@ const alCargar = async () => {
   const modoPagina = await app.pdfDocument.getPageMode().catch(() => null);
   if (modoPagina === 'FullScreen') window.liberadopdf.pedirPresentacion();
   enviarEstado();
-  // /Trans de cada página (pdf-lib), para las transiciones en presentación
+  // /Trans de cada página (pdf-lib) se lee al entrar por primera vez en presentación, solo si las transiciones
+  // están activas y el PDF no es enorme (pdf-lib analiza todo el archivo en este hilo).
   const urlPdf = parametros.get('file');
-  if (urlPdf) await transiciones.cargar(urlPdf);
-  window.liberadopdfEstado.transiciones = transiciones.obtener();
+  const LIMITE_TRANSICIONES = 50 * 1024 * 1024;
+  let transicionesCargadas = false;
+  const cargarTransiciones = async () => {
+    if (transicionesCargadas || !urlPdf || !obtenerConfig().presentacion.transiciones) return;
+    transicionesCargadas = true;
+    const { length } = await app.pdfDocument.getDownloadInfo();
+    if (length > LIMITE_TRANSICIONES) { console.warn('liberadoPDF: PDF de más de 50 MB, sin transiciones'); return; }
+    await transiciones.cargar(urlPdf);
+    window.liberadopdfEstado.transiciones = transiciones.obtener();
+  };
+  app.eventBus.on('presentationmodechanged', () => { if (modoActual() === 'presentacion') cargarTransiciones(); });
+  if (modoPagina === 'FullScreen') cargarTransiciones();
 };
 if (app.pdfDocument) alCargar(); else app.eventBus.on('documentloaded', alCargar);
 // PDF corrupto, cifrado sin contraseña válida o ilegible: pdf.js solo lo registra en consola; aquí se vuelve

@@ -20,3 +20,9 @@ test('opciones de pantalla: automático más una por pantalla', () => {
   const o = opcionesDePantalla([{ id: 7, etiqueta: 'DELL', ancho: 1920, alto: 1080, principal: true }]);
   assert.deepEqual(o, [{ valor: 'auto', etiqueta: 'Automático' }, { valor: '7', etiqueta: 'DELL (1920×1080)' }]);
 });
+
+test('elegir una pantalla concreta se escribe como id entero (C1)', () => {
+  const c = valoresPorDefecto();
+  assert.equal(leerCampo(escribirCampo(c, 'monitorPresentacion', '2528732444'), 'monitorPresentacion'), 2528732444);
+  assert.equal(leerCampo(escribirCampo(c, 'monitorPresentador', 'auto'), 'monitorPresentador'), 'auto');
+});

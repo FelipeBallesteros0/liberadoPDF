@@ -31,6 +31,7 @@ const FASES = [
   { nombre: 'medicion', env: {} },
   { nombre: 'presentador', env: {} },
   { nombre: 'notasDerecha', env: { LIBERADOPDF_PDF: path.join(raiz, 'recursos', 'ejemplo_notas.pdf'), LIBERADOPDF_CONFIG_PRUEBA: JSON.stringify({ porDocumento: { [path.join(raiz, 'recursos', 'ejemplo_notas.pdf')]: { notasDerecha: true } } }) } },
+  { nombre: 'notasDerecha43', fase: 'notasDerecha', env: { LIBERADOPDF_PDF: path.join(raiz, 'recursos', 'ejemplo_notas_43.pdf'), LIBERADOPDF_CONFIG_PRUEBA: JSON.stringify({ porDocumento: { [path.join(raiz, 'recursos', 'ejemplo_notas_43.pdf')]: { notasDerecha: true } } }) } },
 ];
 writeFileSync(pdfPrueba + '.notas.txt', '## 2\nNota de la dos\n');
 writeFileSync(path.join(salida, 'corrupto.pdf'), 'esto no es un PDF\n');
@@ -42,7 +43,7 @@ function lanzar(fase) {
     const carpeta = path.join(carpetaHumo, fase.nombre);
     const hijo = spawn(electron, ['.'], {
       cwd: raiz,
-      env: { ...process.env, LIBERADOPDF_HUMO: carpeta, LIBERADOPDF_HUMO_FASE: fase.nombre, LIBERADOPDF_PDF: pdfPrueba, ...fase.env },
+      env: { ...process.env, LIBERADOPDF_HUMO: carpeta, LIBERADOPDF_HUMO_FASE: fase.fase ?? fase.nombre, LIBERADOPDF_PDF: pdfPrueba, ...fase.env },
       stdio: ['ignore', 'pipe', 'pipe'],
     });
     let registro = '';

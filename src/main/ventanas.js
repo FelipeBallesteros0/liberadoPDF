@@ -60,10 +60,20 @@ export function instalarGuardado() {
   session.defaultSession.on('will-download', (evento, item, contenido) => {
     const win = BrowserWindow.fromWebContents(contenido);
     if (!win) return;
+    const original = win.liberadopdfRuta;
+    const nombreDoc = original ? original.split(/[\\/]/).pop() : null;
+    // Solo es «guardar el documento» si liberadoPDF lo pidió hace poco o pdf.js descarga el propio PDF;
+    // los adjuntos del panel lateral (otros nombres o tipos) van al diálogo normal sin tocar nada más.
+    const pedidoReciente = Date.now() - (win.liberadopdfGuardadoEn ?? 0) < 5000;
+    const esElDocumento = item.getMimeType() === 'application/pdf' && item.getFilename() === nombreDoc;
+    if (!pedidoReciente && !esElDocumento) {
+      item.setSaveDialogOptions({ title: 'Guardar adjunto', defaultPath: item.getFilename() });
+      return;
+    }
     const modo = win.liberadopdfGuardado ?? 'como';
     win.liberadopdfGuardado = null;
-    const original = win.liberadopdfRuta;
-    const forzada = process.env.LIBERADOPDF_HUMO_GUARDAR; // prueba de humo: sin diálogos
+    win.liberadopdfGuardadoEn = 0;
+    const forzada = process.env.LIBERADOPDF_HUMO ? process.env.LIBERADOPDF_HUMO_GUARDAR : null; // prueba de humo: sin diálogos
     if (forzada) {
       item.setSavePath(forzada);
     } else if (modo === 'sobrescribir' && original) {
@@ -91,9 +101,18 @@ export function instalarGuardado() {
   });
 }
 
-export function abrirEnVentana(win, ruta) {
+// Al cambiar de documento se olvidan las ediciones y se cierra la vista de presentador (mostraba el PDF anterior).
+function alCambiarDocumento(win, ruta) {
   win.liberadopdfEdiciones = false;
+  win.liberadopdfGuardado = null;
   win.liberadopdfRuta = ruta;
+  const presentador = win.liberadopdfPresentador;
+  if (presentador && !presentador.isDestroyed()) presentador.close();
+  win.liberadopdfPresentador = null;
+}
+
+export function abrirEnVentana(win, ruta) {
+  alCambiarDocumento(win, ruta);
   win.loadURL(urlVisor(ruta));
 }
 
@@ -120,13 +139,16 @@ export function crearVentanaPresentador({ win, preload, pantalla }) {
   const archivo = parametros.get('file');
   const ruta = parametros.get('ruta') ?? '';
   presentador.loadURL(`${ESQUEMA}://app/presentador.html?file=${encodeURIComponent(archivo ?? '')}&ruta=${encodeURIComponent(ruta)}`);
-  presentador.on('closed', () => { if (!win.isDestroyed()) win.liberadopdfPresentador = null; });
-  win.on('closed', () => { if (!presentador.isDestroyed()) presentador.close(); });
+  presentador.on('closed', () => { if (!win.isDestroyed() && win.liberadopdfPresentador === presentador) win.liberadopdfPresentador = null; });
+  if (!win.liberadopdfCierraPresentador) { // un solo oyente por ventana del visor
+    win.liberadopdfCierraPresentador = true;
+    win.on('closed', () => { const p = win.liberadopdfPresentador; if (p && !p.isDestroyed()) p.close(); });
+  }
   return presentador;
 }
 
 export function abrirInicioEnVentana(win, mensaje) {
-  win.liberadopdfEdiciones = false;
+  alCambiarDocumento(win, null);
   win.loadURL(urlInicio(mensaje));
 }
 

@@ -12,6 +12,11 @@ export function puntosAPdf(punto, { escala, rotacion, ancho, alto }) {
   }
 }
 
+// pdf.js pinta a viewport.scale × UserUnit pero deja viewport.scale nominal: la escala real en píxeles por unidad es esta.
+export function escalaEfectiva(scale, userUnit) {
+  return (scale || 1) * (Number.isFinite(userUnit) && userUnit > 0 ? userUnit : 1);
+}
+
 export function distanciaPdf(a, b) {
   return Math.hypot(b.x - a.x, b.y - a.y);
 }

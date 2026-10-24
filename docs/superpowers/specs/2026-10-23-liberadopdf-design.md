@@ -122,10 +122,10 @@ La numeración es la de la lista acordada con Felipe el 2026-10-23. «pdf.js» =
 | `L` / `S` / `D` | — (en ventana `s` sigue siendo «selección» de pdf.js) | láser / foco / dibujo |
 | `C` / `Ctrl+Z` | — | limpiar / deshacer dibujo |
 | `Ctrl+O` / `Ctrl+N` | abrir / abrir en ventana nueva | igual |
-| `Ctrl+S` | guardar | — |
+| `Ctrl+S` / `Ctrl+Mayús+G` | guardar / guardar como (`Ctrl+Mayús+G` sustituye «buscar anterior» de pdf.js; en la barra de búsqueda Enter/Mayús+Enter navegan) | `Ctrl+S` anulada |
 | `Ctrl+Shift+S` | instantánea | — |
 | `Ctrl+Shift+P` | vista de presentador | igual |
-| `Ctrl+,` | ajustes | — |
+| `Ctrl+,` | ajustes | ajustes (decidido en la entrega 2: útil para cambiar el avance o el fondo sin salir) |
 | `F1` | ayuda de teclas | ayuda de teclas |
 
 Los clickers habituales envían `PgUp`/`PgDn` (algunos `F5`/`Esc` y `b`): todos quedan cubiertos.
@@ -209,3 +209,46 @@ liberadoPDF/
 ## 7. Pendiente (fuera de v1, documentado en el README)
 
 14 leer en voz alta · 23 video y audio incrustados · 24 3D · 28 validación de firmas digitales · 30 comparar PDF · empaquetado macOS/Linux · icono del `.exe` si no hay wine.
+
+## 8. Entrega 3: herramientas de archivo (añadido el 2026-10-23, aprobado por Felipe)
+
+Felipe pidió las herramientas de iLovePDF que se puedan hacer en local (numeradas 37–53 en la conversación). Todas corren dentro de liberadoPDF sin red, sobre el documento abierto y, cuando hace falta, sobre archivos elegidos con el diálogo del sistema. **Nunca sobrescriben el documento abierto**: el resultado se guarda en un archivo nuevo (diálogo «Guardar como» con nombre sugerido `<nombre> - <herramienta>.pdf` en la misma carpeta) o, cuando son varios archivos, en una carpeta elegida; al terminar se ofrece «Abrir el resultado» en una ventana nueva.
+
+### 8.1 Herramientas
+
+| # | Herramienta | Entrada | Opciones | Motor |
+|---|---|---|---|---|
+| 37 | Unir | el documento abierto + PDFs elegidos | orden (subir/bajar), quitar | pdf-lib (`copyPages`) |
+| 38 | Dividir / extraer | el documento abierto | rangos («1-3,5,8-»), cada N páginas, extraer rangos a un solo PDF | pdf-lib |
+| 39 | Organizar páginas | el documento abierto | reordenar arrastrando miniaturas, rotar, borrar, insertar en blanco, duplicar | pdf-lib |
+| 40 | Rotar | el documento abierto | 90/180/270, todas o rangos | pdf-lib (`setRotation`) |
+| 41 | Números de página | el documento abierto | posición (6), formato (`{n}`, `{n} / {total}`, `Página {n}`), tamaño, número inicial, rangos | pdf-lib (Helvetica) |
+| 42 | Marca de agua | el documento abierto | texto (tamaño, color, opacidad, ángulo, centrada o en mosaico) o imagen (escala, opacidad) | pdf-lib |
+| 43 | Recortar | el documento abierto | rectángulo arrastrado sobre la página actual; aplicar a esa página o a todas | pdf-lib (`setCropBox`) |
+| 44 | PDF → imágenes | el documento abierto | PNG/JPG, resolución (72–300 ppp), rangos; a una carpeta | pdf.js (`render`) |
+| 45 | Imágenes → PDF | imágenes elegidas | tamaño de página (A4, Carta, el de la imagen), orientación, márgenes, ajuste | pdf-lib (`embedJpg`/`embedPng`; otros formatos pasan por canvas a PNG) |
+| 46 | Página web / HTML → PDF | URL escrita por el usuario o archivo .html | tamaño, orientación, fondos | Electron `printToPDF` en una ventana oculta |
+| 47 | Aplanar | el documento abierto | aplanar formularios; opcionalmente quitar anotaciones | pdf-lib (`form.flatten`, `/Annots`) |
+| 48 | Metadatos | el documento abierto | título, autor, asunto, palabras clave, creador | pdf-lib |
+| 49 | Proteger | el documento abierto | contraseña de apertura, contraseña de permisos, permitir imprimir/copiar/modificar; AES-256 | qpdf-wasm (`--encrypt`) |
+| 50 | Desbloquear | un PDF cifrado + su contraseña | — | qpdf-wasm (`--decrypt`) |
+| 51 | Reparar | el documento abierto o un archivo elegido | — | qpdf-wasm (reescritura) con pdf-lib como segundo intento; informe de avisos |
+| 52 | OCR | el documento abierto | idiomas (español, inglés, ambos), resolución (200/300 ppp), rangos | pdf.js renderiza → tesseract.js (local) → pdf-lib añade texto invisible alineado con cada palabra |
+| 53 | Comprimir | el documento abierto | calidad alta/media/baja (escala y calidad JPEG de las imágenes) | imágenes DCT y Flate RGB/Gris sin máscara recodificadas con canvas y reemplazadas con pdf-lib; después qpdf (`--object-streams=generate --recompress-flate`); informe de tamaño antes/después. Las imágenes que no se entienden se dejan intactas |
+
+### 8.2 Decisiones
+
+- **Interfaz**: menú «Herramientas» con una entrada por herramienta; cada una abre un diálogo propio (misma estética que Ajustes) con sus opciones y «Ejecutar». Las operaciones largas (OCR, comprimir, imágenes) muestran progreso por página y se pueden cancelar; la ventana sigue respondiendo porque pdf-lib y qpdf corren en un Web Worker propio y tesseract.js en el suyo.
+- **Bytes**: el documento abierto se lee del protocolo (`fetch` de su URL con token); los archivos extra que elige el usuario se registran en el main con un token (`registrarArchivo`) y se sirven igual (`/pdf/<token>` sirve cualquier archivo registrado con su MIME por extensión).
+- **Resultados**: canal `guardar-resultado({ nombre, bytes })` → diálogo de guardado y escritura; `guardar-resultados({ carpeta, archivos: [{ nombre, bytes }] })` para varios (diálogo de carpeta). Nunca se escribe sin diálogo salvo en modo humo (`LIBERADOPDF_HUMO_GUARDAR`, carpeta `LIBERADOPDF_HUMO_CARPETA`).
+- **Bibliotecas** (todas servidas por el protocolo desde `node_modules` y empaquetadas): `pdf-lib` 1.17.1 (MIT), `@neslinesli93/qpdf-wasm` 0.3.0 (qpdf, Apache 2.0; wrapper ISC), `tesseract.js` 7.0.0 + `tesseract.js-core` (Apache 2.0), datos de idioma `tessdata_fast` spa y eng en `recursos/tessdata/` (Apache 2.0; descargados en el repositorio, sin red en tiempo de ejecución).
+- **OCR**: el texto se añade invisible (opacidad 0, fuente Helvetica WinAnsi; los caracteres fuera de WinAnsi se sustituyen por `?`), con el tamaño ajustado para que cada palabra ocupe el ancho de su caja; así pdf.js lo hace seleccionable y buscable. No se altera la imagen.
+- **Comprimir**: se informa el tamaño antes y después; si no baja, se avisa y no se guarda nada.
+- **Qué no**: PDF ↔ Office, editar texto, redactar, comparar, PDF/A, escáner (54–59).
+
+### 8.3 Antimetas específicas
+
+- Perder el original: los resultados siempre van a un archivo nuevo.
+- Bloquear la ventana más de un segundo: todo lo pesado va a workers.
+- Depender de internet: idiomas de OCR y motores incluidos en el paquete.
+- «Redactar» a medias: no se ofrece.

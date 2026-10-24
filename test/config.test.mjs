@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { valoresPorDefecto, normalizarConfig, agregarReciente, MAX_RECIENTES } from '../src/comun/config.mjs';
+import { valoresPorDefecto, normalizarConfig, agregarReciente, fusionarConfigGuardada, MAX_RECIENTES } from '../src/comun/config.mjs';
 
 test('valores por defecto', () => {
   const c = valoresPorDefecto();
@@ -39,4 +39,20 @@ test('fondo: solo colores #rrggbb', () => {
 test('porDocumento conserva los objetos por ruta (calibración, notas a la derecha) y descarta lo demás', () => {
   const c = normalizarConfig({ porDocumento: { 'a.pdf': { notasDerecha: true, calibracion: 2 }, 'b.pdf': 5 } });
   assert.deepEqual(c.porDocumento, { 'a.pdf': { notasDerecha: true, calibracion: 2 } });
+});
+
+test('monitorPresentacion y monitorPresentador admiten "auto" o un id entero (C1 de la revisión)', () => {
+  assert.equal(normalizarConfig({ monitorPresentacion: 7, monitorPresentador: 'auto' }).monitorPresentacion, 7);
+  assert.equal(normalizarConfig({ monitorPresentacion: 'x' }).monitorPresentacion, 'auto');
+  assert.equal(normalizarConfig({ monitorPresentador: 2.5 }).monitorPresentador, 'auto');
+});
+
+test('fusionarConfigGuardada: los recientes son del main y porDocumento se fusiona por clave (I3)', () => {
+  const base = normalizarConfig({ recientes: [{ ruta: 'nuevo.pdf', nombre: 'nuevo.pdf', fecha: 2 }], porDocumento: { 'a.pdf': { calibracion: 2 } }, nocturno: false });
+  const parcial = { recientes: [], porDocumento: { 'b.pdf': { notasDerecha: true } }, nocturno: true };
+  const r = fusionarConfigGuardada(base, parcial);
+  assert.deepEqual(r.recientes.map(x => x.ruta), ['nuevo.pdf']);
+  assert.deepEqual(r.porDocumento, { 'a.pdf': { calibracion: 2 }, 'b.pdf': { notasDerecha: true } });
+  assert.equal(r.nocturno, true);
+  assert.equal(fusionarConfigGuardada(base, { presentacion: { bucle: true } }).presentacion.fondo, '#000000');
 });

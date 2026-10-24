@@ -61,14 +61,18 @@ Los clickers habituales envían `PgUp`/`PgDn`: funcionan sin configurar nada. En
 
 ```json
 {
-  "presentacion": {
-    "avanceSegundos": 0,
-    "bucle": false,
-    "fondo": "#000000",
-    "ocultarCursor": true
-  }
+  "presentacion": { "avanceSegundos": 0, "bucle": false, "transiciones": true, "fondo": "#000000", "ocultarCursor": true },
+  "unidadMedida": "mm",
+  "nocturno": false,
+  "tema": "sistema",
+  "monitorPresentacion": "auto",
+  "monitorPresentador": "auto",
+  "barra": { "presentationMode": true },
+  "porDocumento": { "C:\\Charlas\\inmoov.pdf": { "notasDerecha": true, "calibracion": 1 } }
 }
 ```
+
+El archivo de notas (`<nombre>.pdf.notas.txt`) debe guardarse en UTF-8 (el Bloc de notas moderno lo hace; uno antiguo en ANSI estropea las tildes).
 
 - `avanceSegundos`: avanzar solo cada N segundos en presentación (0 = no).
 - `bucle`: al terminar, volver a la primera lámina (modo quiosco).

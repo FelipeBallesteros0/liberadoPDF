@@ -54,7 +54,7 @@ test('N alterna nocturno; Ctrl+Mayús+S es instantánea solo en ventana; Ctrl+, 
 test('Ctrl+S guarda y Ctrl+Mayús+G guarda como, solo en ventana', () => {
   assert.equal(accionDeTecla(ev('s', { ctrlKey: true }), ventana).accion, 'guardar');
   assert.equal(accionDeTecla(ev('G', { ctrlKey: true, shiftKey: true }), ventana).accion, 'guardarComo');
-  assert.equal(accionDeTecla(ev('s', { ctrlKey: true }), presentacion), null);
+  assert.equal(accionDeTecla(ev('s', { ctrlKey: true }), presentacion).accion, 'nada');
 });
 
 test('L, S, D, C y Ctrl+Z solo en presentación', () => {
@@ -75,4 +75,10 @@ test('G y Tab abren la cuadrícula en ambos modos', () => {
 test('Ctrl+Mayús+P abre la vista de presentador', () => {
   assert.equal(accionDeTecla(ev('P', { ctrlKey: true, shiftKey: true }), ventana).accion, 'presentador');
   assert.equal(accionDeTecla(ev('P', { ctrlKey: true, shiftKey: true }), presentacion).accion, 'presentador');
+});
+
+test('Tab en un campo de texto no abre la cuadrícula (I1) y Ctrl+S en presentación no llega a pdf.js (M5)', () => {
+  assert.equal(accionDeTecla(ev('Tab'), { ...ventana, enEntrada: true }), null);
+  assert.equal(accionDeTecla(ev('Tab', { shiftKey: true }), { ...ventana, enEntrada: true }), null);
+  assert.equal(accionDeTecla(ev('s', { ctrlKey: true }), presentacion).accion, 'nada');
 });

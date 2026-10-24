@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { puntosAPdf, distanciaPdf, areaPoligonoPdf, aUnidad, formatear, factorDeCalibracion } from '../src/comun/medicion.mjs';
+import { puntosAPdf, distanciaPdf, areaPoligonoPdf, aUnidad, formatear, factorDeCalibracion, escalaEfectiva } from '../src/comun/medicion.mjs';
 
 test('píxeles a unidades PDF, independientes de zoom y rotación', () => {
   const v = { escala: 2, rotacion: 0, ancho: 1000, alto: 600 };
@@ -23,4 +23,12 @@ test('distancia, área y unidades', () => {
 test('calibración', () => {
   const f = factorDeCalibracion(72, 50.8, 'mm', 1);
   assert.equal(aUnidad(72, 'mm', 1, { factor: f }), 50.8);
+});
+
+test('escalaEfectiva: pdf.js pinta a scale × UserUnit, así que los píxeles se deshacen con ambos (I2)', () => {
+  assert.equal(escalaEfectiva(1.5, 2), 3);
+  assert.equal(escalaEfectiva(1.5, undefined), 1.5);
+  // 96 px a zoom 1 (scale 4/3) con UserUnit 2: 96 / (4/3 · 2) = 36 unidades → 36 · 2 / 72 in = 1 in = 25,4 mm
+  const unidades = puntosAPdf({ x: 96, y: 0 }, { escala: escalaEfectiva(4 / 3, 2), rotacion: 0, ancho: 100, alto: 100 }).x;
+  assert.ok(Math.abs(aUnidad(unidades, 'mm', 2) - 25.4) < 1e-9);
 });

@@ -1,6 +1,6 @@
 // Herramienta de medición (modo ventana): distancia (dos clics), área (clics, doble clic cierra) y calibración.
 // Dibuja en un SVG sobre la página; nada se escribe en el PDF. Esc borra y sale.
-import { puntosAPdf, distanciaPdf, areaPoligonoPdf, aUnidad, formatear, factorDeCalibracion } from '../comun/medicion.mjs';
+import { puntosAPdf, distanciaPdf, areaPoligonoPdf, aUnidad, formatear, factorDeCalibracion, escalaEfectiva } from '../comun/medicion.mjs';
 import { raizDeCapas } from './capas.mjs';
 
 const NS = 'http://www.w3.org/2000/svg';
@@ -11,16 +11,18 @@ export function instalarMedicion({ app, obtenerConfig, guardarPorDocumento, ruta
   let svg = null;
   let pagina = null;    // número de página sobre la que se mide
   let puntos = [];      // en píxeles CSS relativos a la página
+  let cerrado = false;  // área: el polígono ya se cerró con doble clic
   let userUnit = 1;
 
   const factor = () => obtenerConfig().porDocumento?.[ruta]?.calibracion ?? 1;
   const unidad = () => obtenerConfig().unidadMedida || 'mm';
   const viewportDe = (n) => {
-    const v = app.pdfViewer.getPageView(n - 1)?.viewport;
-    return v ? { escala: v.scale, rotacion: v.rotation, ancho: v.width, alto: v.height } : null;
+    const vista = app.pdfViewer.getPageView(n - 1);
+    const v = vista?.viewport;
+    return v ? { escala: escalaEfectiva(v.scale, vista.pdfPage?.userUnit), rotacion: v.rotation, ancho: v.width, alto: v.height } : null;
   };
 
-  const limpiar = () => { svg?.remove(); svg = null; puntos = []; pagina = null; };
+  const limpiar = () => { svg?.remove(); svg = null; puntos = []; pagina = null; cerrado = false; };
   const salir = () => { limpiar(); modo = null; contenedor.classList.remove('liberadopdf-midiendo'); };
 
   const asegurarSvg = (divPagina) => {
@@ -115,7 +117,8 @@ export function instalarMedicion({ app, obtenerConfig, guardarPorDocumento, ruta
     asegurarSvg(divPagina);
     const r = divPagina.getBoundingClientRect();
     const punto = { x: ev.clientX - r.left, y: ev.clientY - r.top };
-    if (modo === 'area' && ev.detail >= 2) { pintar(); return; } // doble clic: cierra el polígono (ya está pintado)
+    if (modo === 'area' && ev.detail >= 2) { cerrado = true; pintar(); return; } // doble clic: cierra el polígono (el vértice ya se añadió en el primer clic)
+    if (modo === 'area' && cerrado) { puntos = []; cerrado = false; } // el siguiente clic empieza otro polígono
     if ((modo === 'distancia' || modo === 'calibrar') && puntos.length >= 2) puntos = [];
     puntos.push(punto);
     pintar();

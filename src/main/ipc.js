@@ -1,11 +1,10 @@
 // Canales IPC entre el renderer (preload) y el proceso principal.
 import { ipcMain, dialog, shell, BrowserWindow, screen, clipboard, ClipboardItem } from 'electron';
 import { EventEmitter } from 'node:events';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
-import { agregarReciente } from '../comun/config.mjs';
+import { agregarReciente, fusionarConfigGuardada } from '../comun/config.mjs';
 import { abrirEnVentana, abrirInicioEnVentana, crearVentanaPresentador } from './ventanas.js';
-import { readFileSync } from 'node:fs';
 import { errorDeRutaPdf } from '../comun/argumentos.mjs';
 import { elegirPantallas } from '../comun/pantallas.mjs';
 
@@ -50,7 +49,7 @@ export function instalarIpc({ obtenerConfig, obtenerConfigBase = obtenerConfig, 
   // Modo del próximo guardado que pedirá pdf.js (Ctrl+S → sobrescribir; botón o Guardar como → diálogo)
   ipcMain.handle('modo-guardado', (evento, modo) => {
     const win = ventanaDe(evento);
-    if (win) win.liberadopdfGuardado = modo === 'sobrescribir' ? 'sobrescribir' : 'como';
+    if (win) { win.liberadopdfGuardado = modo === 'sobrescribir' ? 'sobrescribir' : 'como'; win.liberadopdfGuardadoEn = Date.now(); }
   });
   // Vista de presentador
   ipcMain.handle('presentador-abrir', (evento) => {
@@ -74,7 +73,8 @@ export function instalarIpc({ obtenerConfig, obtenerConfigBase = obtenerConfig, 
     if (visor && !visor.isDestroyed()) visor.webContents.executeJavaScript(`window.liberadopdfAcciones?.${delta > 0 ? 'siguiente' : 'anterior'}?.()`).catch(() => {});
   });
   // Notas: solo el archivo <ruta del pdf>.notas.txt
-  ipcMain.handle('leer-notas', (evento, rutaPdf) => {
+  ipcMain.handle('leer-notas', (evento) => {
+    const rutaPdf = ventanaDe(evento)?.liberadopdfVisor?.liberadopdfRuta; // solo el documento de la ventana emparejada
     if (typeof rutaPdf !== 'string' || !/\.pdf$/i.test(rutaPdf)) return '';
     try { return readFileSync(rutaPdf + '.notas.txt', 'utf8'); } catch { return ''; }
   });
@@ -105,8 +105,7 @@ export function instalarIpc({ obtenerConfig, obtenerConfigBase = obtenerConfig, 
     evento.returnValue = tema === 'claro' ? 1 : tema === 'oscuro' ? 2 : 0;
   });
   ipcMain.handle('guardar-config', (evento, parcial) => {
-    const config = obtenerConfigBase();
-    guardar({ ...config, ...parcial, presentacion: { ...config.presentacion, ...(parcial?.presentacion ?? {}) } });
+    guardar(fusionarConfigGuardada(obtenerConfigBase(), parcial));
   });
   ipcMain.handle('abrir-externo', (evento, url) => {
     if (typeof url === 'string' && ENLACE_EXTERNO.test(url)) shell.openExternal(url);
