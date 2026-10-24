@@ -5,7 +5,8 @@ import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { agregarReciente, fusionarConfigGuardada } from '../comun/config.mjs';
 import { abrirEnVentana, abrirInicioEnVentana, crearVentanaPresentador } from './ventanas.js';
-import { registrarArchivo, urlDeToken } from './protocolo.js';
+import { registrarArchivo, urlDeToken, rutaDeToken } from './protocolo.js';
+import { urlPermitida } from '../comun/herramientas/html.mjs';
 import { errorDeRutaPdf } from '../comun/argumentos.mjs';
 import { elegirPantallas } from '../comun/pantallas.mjs';
 
@@ -140,6 +141,38 @@ export function instalarIpc({ obtenerConfig, obtenerConfigBase = obtenerConfig, 
     return carpeta;
   });
   ipcMain.handle('abrir-resultado', (evento, ruta) => { if (!errorDeRutaPdf(ruta, existsSync)) abrirEnNueva(ruta); });
+  // Página web o HTML a PDF: ventana oculta y aislada; solo http(s) o un archivo .html elegido con el diálogo (token).
+  ipcMain.handle('html-a-pdf', async (evento, { origen, valor, tamano, apaisado, fondos } = {}) => {
+    let destino;
+    if (origen === 'url') { destino = urlPermitida(valor); if (!destino) return { error: 'Dirección no permitida' }; }
+    else {
+      const token = String(valor ?? '').split('/pdf/')[1];
+      const ruta = token ? rutaDeToken(token) : null;
+      if (!ruta || !/\.html?$/i.test(ruta) || !existsSync(ruta)) return { error: 'Archivo HTML no válido' };
+      destino = ruta;
+    }
+    const oculta = new BrowserWindow({ show: false, width: 1024, height: 768, webPreferences: { sandbox: true, contextIsolation: true, nodeIntegration: false, images: true } });
+    oculta.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+    oculta.webContents.session.setPermissionRequestHandler((wc, permiso, cb) => cb(false));
+    oculta.webContents.on('will-navigate', (ev, url) => { if (!/^https?:/.test(url)) ev.preventDefault(); });
+    const cerrar = () => { if (!oculta.isDestroyed()) oculta.destroy(); };
+    try {
+      const cargada = new Promise((resolver, rechazar) => {
+        oculta.webContents.once('did-finish-load', resolver);
+        oculta.webContents.once('did-fail-load', (ev, codigo, descripcion) => rechazar(new Error(`No se pudo cargar (${descripcion || codigo})`)));
+      });
+      const tiempo = new Promise((_, rechazar) => setTimeout(() => rechazar(new Error('Tiempo agotado (30 s)')), 30_000));
+      if (origen === 'url') oculta.loadURL(destino).catch(() => {}); else oculta.loadFile(destino).catch(() => {});
+      await Promise.race([cargada, tiempo]);
+      await new Promise(r => setTimeout(r, 500));
+      const pdf = await Promise.race([oculta.webContents.printToPDF({ pageSize: tamano === 'Letter' ? 'Letter' : 'A4', landscape: Boolean(apaisado), printBackground: Boolean(fondos) }), tiempo]);
+      return { bytes: new Uint8Array(pdf) };
+    } catch (e) {
+      return { error: e.message };
+    } finally {
+      cerrar();
+    }
+  });
   // La pantalla de inicio con un mensaje (p. ej. PDF corrupto detectado por pdf.js en el renderer).
   ipcMain.handle('abrir-inicio', (evento, mensaje) => { abrirInicioEnVentana(ventanaDe(evento), String(mensaje ?? '').slice(0, 300)); });
   ipcMain.handle('recientes', () => obtenerConfig().recientes.filter(r => existsSync(r.ruta)));

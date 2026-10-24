@@ -10,6 +10,7 @@ import { instalarMetadatos } from './metadatos.mjs';
 import { instalarAplanar } from './aplanar.mjs';
 import { instalarAImagenes } from './aImagenes.mjs';
 import { instalarDeImagenes } from './deImagenes.mjs';
+import { instalarHtmlAPdf } from './htmlAPdf.mjs';
 
 export function instalarHerramientas(H) {
   instalarUnir(H);
@@ -23,4 +24,5 @@ export function instalarHerramientas(H) {
   instalarAplanar(H);
   instalarAImagenes(H);
   instalarDeImagenes(H);
+  instalarHtmlAPdf(H);
 }

@@ -5,7 +5,7 @@
   "main": "src/main/main.js",
   "type": "module",
   "scripts": {
-    "start": "electron .",
+    "start": "node scripts/iniciar.mjs",
     "test": "node --test \"test/**/*.test.mjs\"",
     "humo": "node scripts/humo.mjs",
     "construir": "bash scripts/construir.sh"

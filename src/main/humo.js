@@ -795,6 +795,22 @@ async function faseDeImagenes({ ruta, preload, salida }) {
   return r;
 }
 
+// HTML a PDF: un prueba.html elegido por el diálogo → PDF cuyo texto contiene «Hola liberadoPDF».
+async function faseHtmlAPdf({ ruta, preload, salida }) {
+  const r = { dialogo: false, archivo: false, texto: null, urlRechazada: null };
+  const { js } = abrirVentanaDePrueba({ ruta, preload, salida });
+  await esperarEvento('primera-pagina', 10_000);
+  r.dialogo = await abrirYEjecutarHerramienta(js, 'htmlAPdf', { origen: 'archivo' }, ['.liberadopdf-herramienta [data-accion="anadir"]']);
+  const destino = process.env.LIBERADOPDF_HUMO_GUARDAR;
+  r.archivo = await esperarArchivo(destino, 40_000);
+  if (!r.archivo) r.mensajeDialogo = await js(`document.querySelector('.liberadopdf-herramienta .mensaje')?.textContent ?? null`);
+  if (r.archivo) r.texto = await textoDePagina(js, destino, 1);
+  // Una URL que no es http(s) se rechaza en el main sin abrir ventana.
+  r.urlRechazada = JSON.parse(await js(`window.liberadopdf.htmlAPdf({ origen: 'url', valor: 'file:///etc/passwd' }).then(JSON.stringify)`));
+  r.ok = r.dialogo && r.archivo && /Hola liberadoPDF/.test(r.texto ?? '') && Boolean(r.urlRechazada?.error);
+  return r;
+}
+
 // Cifrado: las herramientas rechazan un PDF cifrado con el mensaje acordado. Hasta que exista la operación
 // «proteger» (Tarea 8) no hay con qué generar el PDF cifrado: la fase queda pendiente y no cuenta.
 async function faseCifrado({ ruta, preload, salida }) {
@@ -812,7 +828,7 @@ async function faseCifrado({ ruta, preload, salida }) {
   return r;
 }
 
-const FASES = { aImagenes: faseAImagenes, deImagenes: faseDeImagenes, recortar: faseRecortar, metadatos: faseMetadatos, aplanar: faseAplanar, numerar: faseNumerar, marcaDeAgua: faseMarcaDeAgua, organizar: faseOrganizar, unir: faseUnir, dividir: faseDividir, rotar: faseRotar, cifrado: faseCifrado, herramientasBase: faseHerramientasBase, basica: faseBasica, bucle: faseBucle, inexistente: faseInexistente, presentacionAnimada: fasePresentacionAnimada, cierre: faseCierre, corrupto: faseCorrupto, ajustes: faseAjustes, nocturno: faseNocturno, instantanea: faseInstantanea, guardar: faseGuardar, transiciones: faseTransiciones, punteros: fasePunteros, cuadricula: faseCuadricula, medicion: faseMedicion, presentador: fasePresentador, notasDerecha: faseNotasDerecha };
+const FASES = { htmlAPdf: faseHtmlAPdf, aImagenes: faseAImagenes, deImagenes: faseDeImagenes, recortar: faseRecortar, metadatos: faseMetadatos, aplanar: faseAplanar, numerar: faseNumerar, marcaDeAgua: faseMarcaDeAgua, organizar: faseOrganizar, unir: faseUnir, dividir: faseDividir, rotar: faseRotar, cifrado: faseCifrado, herramientasBase: faseHerramientasBase, basica: faseBasica, bucle: faseBucle, inexistente: faseInexistente, presentacionAnimada: fasePresentacionAnimada, cierre: faseCierre, corrupto: faseCorrupto, ajustes: faseAjustes, nocturno: faseNocturno, instantanea: faseInstantanea, guardar: faseGuardar, transiciones: faseTransiciones, punteros: fasePunteros, cuadricula: faseCuadricula, medicion: faseMedicion, presentador: fasePresentador, notasDerecha: faseNotasDerecha };
 
 export async function ejecutarHumo({ ruta, salida, fase, preload }) {
   mkdirSync(salida, { recursive: true });

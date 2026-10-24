@@ -26,7 +26,8 @@ const raices = [
 
 app.setName('liberadoPDF');
 app.commandLine.appendSwitch('lang', 'es-ES'); // interfaz de pdf.js (y de Electron) en español
-if (process.platform === 'linux') app.commandLine.appendSwitch('no-sandbox'); // WSLg sin chrome-sandbox setuid
+// En Linux (WSLg, sin chrome-sandbox setuid) el lanzador pone ELECTRON_DISABLE_SANDBOX=1: añadir «no-sandbox» con
+// appendSwitch en tiempo de ejecución rompe printToPDF (el proceso de impresión no puede crear memoria compartida).
 registrarEsquemaPrivilegiado();
 
 // En modo humo no se pide el lock: la prueba debe poder correr aunque haya un liberadoPDF abierto.

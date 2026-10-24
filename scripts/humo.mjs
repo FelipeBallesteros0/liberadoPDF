@@ -27,6 +27,8 @@ const imagenA = path.join(salida, 'imagen_a.png'), imagenB = path.join(salida, '
 writeFileSync(imagenA, png(80, 60, () => [220, 30, 30, 255]));
 writeFileSync(imagenB, png(60, 90, (x, y) => [30, 30, 220, x < 30 ? 255 : 90])); // mitad transparente
 writeFileSync(imagenFalsa, 'esto no es una imagen\n');
+const htmlPrueba = path.join(salida, 'prueba.html');
+writeFileSync(htmlPrueba, '<!doctype html><meta charset="utf-8"><title>Prueba</title><h1>Hola liberadoPDF</h1><p>Página de prueba del humo.</p>\n');
 
 const FASES = [
   { nombre: 'basica', env: {} },
@@ -51,6 +53,7 @@ const FASES = [
   { nombre: 'rotar', env: { LIBERADOPDF_HUMO_GUARDAR: path.join(carpetaHumo, 'rotar', 'rotado.pdf') } },
   { nombre: 'cifrado', env: {} },
   { nombre: 'organizar', env: {} },
+  { nombre: 'htmlAPdf', env: { LIBERADOPDF_HUMO_GUARDAR: path.join(carpetaHumo, 'htmlAPdf', 'pagina.pdf'), LIBERADOPDF_HUMO_ELEGIR: htmlPrueba } },
   { nombre: 'aImagenes', env: { LIBERADOPDF_HUMO_CARPETA: path.join(carpetaHumo, 'aImagenes', 'imagenes') } },
   { nombre: 'deImagenes', env: { LIBERADOPDF_HUMO_GUARDAR: path.join(carpetaHumo, 'deImagenes', 'imagenes.pdf'), LIBERADOPDF_HUMO_ELEGIR: [imagenA, imagenB, imagenFalsa].join(path.delimiter) } },
   { nombre: 'recortar', env: { LIBERADOPDF_HUMO_GUARDAR: path.join(carpetaHumo, 'recortar', 'recortado.pdf') } },
@@ -70,7 +73,7 @@ function lanzar(fase) {
     const carpeta = path.join(carpetaHumo, fase.nombre);
     const hijo = spawn(electron, ['.'], {
       cwd: raiz,
-      env: { ...process.env, LIBERADOPDF_HUMO: carpeta, LIBERADOPDF_HUMO_FASE: fase.fase ?? fase.nombre, LIBERADOPDF_PDF: pdfPrueba, ...fase.env },
+      env: { ...(process.platform === 'linux' ? { ELECTRON_DISABLE_SANDBOX: '1' } : {}), ...process.env, LIBERADOPDF_HUMO: carpeta, LIBERADOPDF_HUMO_FASE: fase.fase ?? fase.nombre, LIBERADOPDF_PDF: pdfPrueba, ...fase.env },
       stdio: ['ignore', 'pipe', 'pipe'],
     });
     let registro = '';

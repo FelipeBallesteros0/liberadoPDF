@@ -42,6 +42,7 @@ contextBridge.exposeInMainWorld('liberadopdf', {
   guardarResultado: ({ nombre, bytes }) => ipcRenderer.invoke('guardar-resultado', { nombre, bytes }),
   guardarResultados: ({ archivos }) => ipcRenderer.invoke('guardar-resultados', { archivos }),
   abrirResultado: ruta => ipcRenderer.invoke('abrir-resultado', ruta),
+  htmlAPdf: opciones => ipcRenderer.invoke('html-a-pdf', opciones),
   alGuardado: cb => { ipcRenderer.on('guardado', (evento, info) => cb(info)); },
   guardarConfig: parcial => ipcRenderer.invoke('guardar-config', parcial),
   abrirExterno: url => ipcRenderer.invoke('abrir-externo', url),
