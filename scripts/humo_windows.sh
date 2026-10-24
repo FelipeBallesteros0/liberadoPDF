@@ -52,8 +52,10 @@ W_OBJSTM="$(wslpath -w "$(fx truncadoObjstm)")"
 W_VIDEO_SCREEN="$(wslpath -w "$(fx videoScreen)")"
 # Las fases leen textos en español; la fase idioma comprueba el inglés por defecto (sin forzar idioma).
 case "$FASE" in idioma) IDIOMA="" ;; *) IDIOMA="es" ;; esac
+# Configuración de prueba por fase (la misma que en humo.mjs): video apaga el autoarranque para probar la precedencia de la anotación.
+case "$FASE" in video) CONFIG='{"video":{"autoarranque":false}}' ;; *) CONFIG='' ;; esac
 LOTE="$SALIDA/lanzar.cmd"
-printf '@echo off\r\nset "LIBERADOPDF_HUMO=%s"\r\nset "LIBERADOPDF_HUMO_FASE=%s"\r\nset "LIBERADOPDF_HUMO_PAGINA=%s"\r\nset "LIBERADOPDF_PDF=%s"\r\nset "LIBERADOPDF_HUMO_GUARDAR=%s"\r\nset "LIBERADOPDF_HUMO_CARPETA=%s"\r\nset "LIBERADOPDF_HUMO_ELEGIR=%s"\r\nset "LIBERADOPDF_HUMO_ANIMADO=%s"\r\nset "LIBERADOPDF_HUMO_OPTIMIZADO=%s"\r\nset "LIBERADOPDF_HUMO_GIRADO=%s"\r\nset "LIBERADOPDF_HUMO_OBJSTM=%s"\r\nset "LIBERADOPDF_HUMO_VIDEO_SCREEN=%s"\r\nset "LIBERADOPDF_IDIOMA=%s"\r\n"%s"\r\n' "$W_SALIDA" "$FASE" "$PAGINA" "$W_PDF" "$W_GUARDAR" "$W_CARPETA" "$W_ELEGIR" "$W_ANIMADO" "$W_OPTIMIZADO" "$W_GIRADO" "$W_OBJSTM" "$W_VIDEO_SCREEN" "$IDIOMA" "$W_EXE" > "$LOTE"
+printf '@echo off\r\nset "LIBERADOPDF_HUMO=%s"\r\nset "LIBERADOPDF_HUMO_FASE=%s"\r\nset "LIBERADOPDF_HUMO_PAGINA=%s"\r\nset "LIBERADOPDF_PDF=%s"\r\nset "LIBERADOPDF_HUMO_GUARDAR=%s"\r\nset "LIBERADOPDF_HUMO_CARPETA=%s"\r\nset "LIBERADOPDF_HUMO_ELEGIR=%s"\r\nset "LIBERADOPDF_HUMO_ANIMADO=%s"\r\nset "LIBERADOPDF_HUMO_OPTIMIZADO=%s"\r\nset "LIBERADOPDF_HUMO_GIRADO=%s"\r\nset "LIBERADOPDF_HUMO_OBJSTM=%s"\r\nset "LIBERADOPDF_HUMO_VIDEO_SCREEN=%s"\r\nset "LIBERADOPDF_IDIOMA=%s"\r\nset "LIBERADOPDF_CONFIG_PRUEBA=%s"\r\n"%s"\r\n' "$W_SALIDA" "$FASE" "$PAGINA" "$W_PDF" "$W_GUARDAR" "$W_CARPETA" "$W_ELEGIR" "$W_ANIMADO" "$W_OPTIMIZADO" "$W_GIRADO" "$W_OBJSTM" "$W_VIDEO_SCREEN" "$IDIOMA" "$CONFIG" "$W_EXE" > "$LOTE"
 /mnt/c/Windows/System32/cmd.exe /c "$(wslpath -w "$LOTE")" >/dev/null 2>&1 || true
 for i in $(seq 1 240); do [ -f "$SALIDA/resultado.json" ] && break; sleep 1; done
 [ -f "$SALIDA/resultado.json" ] || { echo "Sin resultado.json tras 240 s" >&2; exit 1; }
