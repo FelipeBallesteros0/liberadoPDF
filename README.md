@@ -2,7 +2,7 @@
 
 Visor y presentador de PDF para Windows, portable, que reproduce las animaciones del paquete LaTeX `animate` igual que Adobe Acrobat Reader. Por dentro lleva el visor de pdf.js, cuyo sandbox de JavaScript ejecuta las animaciones; liberadoPDF le añade la experiencia de presentación: pantalla completa, teclas y clicker, láminas con pasos, pantalla en negro, reloj, avance automático y recientes.
 
-Nació para presentar un paper en IEEE ICA-ACCA 2026 cuya lámina 11 lleva un video incrustado con `animate`, que ningún visor instalado reproducía.
+Nació para presentar un paper en IEEE ICA-ACCA 2026 cuya lámina 11 lleva un video incrustado con `animate`, que ningún visor instalado reproducía. Desde la entrega 3 trae además un menú «Herramientas» con 17 operaciones de archivo (unir, dividir, OCR, comprimir…) que funcionan sin conexión y sin instalar nada.
 
 ## Uso
 
@@ -55,6 +55,34 @@ Los clickers habituales envían `PgUp`/`PgDn`: funcionan sin configurar nada. En
 - `Ctrl+Mayús+S` copia al portapapeles el rectángulo que arrastres sobre la ventana.
 - Guardar (`Ctrl+S`) escribe sobre el archivo abierto tras confirmar; «Guardar como…» abre el diálogo. Los editores de pdf.js (notas, firma, resaltado, texto, dibujo, imagen) están activos en la barra.
 
+## Herramientas
+
+El menú **Herramientas** opera sobre el documento abierto y **nunca lo sobrescribe**: cada herramienta guarda un archivo nuevo (se propone `<nombre> - <herramienta>.pdf` en la carpeta del documento) o pide una carpeta cuando salen varios archivos; después ofrece «Abrir el resultado». Todo corre en el equipo: pdf-lib y qpdf en un worker, tesseract.js para el OCR, el propio Electron para imprimir HTML. Un PDF cifrado hay que desbloquearlo antes de usar las demás herramientas.
+
+| Herramienta | Qué hace | Resultado |
+|---|---|---|
+| Unir PDF… | Lista reordenable con el documento abierto más los PDF que añadas | un PDF |
+| Dividir o extraer páginas… | Rangos (`1-3,5,8-`) a un PDF, cada N páginas, o una página por archivo | uno o varios PDF (`… - parte 01.pdf`) |
+| Organizar páginas… | Miniaturas con arrastre; rotar, duplicar, quitar, insertar página en blanco | un PDF |
+| Rotar páginas… | 90°, 180° o 270° sobre las páginas elegidas (se suma a la rotación que tengan) | un PDF |
+| Números de página… | Texto con `{n}` y `{total}` en seis posiciones, tamaño y número inicial; Helvetica | un PDF |
+| Marca de agua… | Texto (color, opacidad, ángulo, mosaico) o imagen PNG/JPG (otros formatos se convierten) | un PDF |
+| Recortar páginas… | Marca un rectángulo sobre la página o escribe las medidas; cambia el CropBox | un PDF |
+| PDF a imágenes… | PNG o JPEG por página a la resolución elegida | una carpeta (`… - página 01.png`) |
+| Imágenes a PDF… | Una página por imagen (A4, Carta o el tamaño de la imagen); las ilegibles se omiten | un PDF |
+| Página web o HTML a PDF… | Una dirección http(s) (con internet) o un archivo `.html` local, impreso por Electron | un PDF |
+| Aplanar formularios y anotaciones… | Los campos pasan a contenido fijo; opcionalmente quita todas las anotaciones | un PDF |
+| Metadatos… | Título, autor, asunto, palabras clave y aplicación creadora (precarga los actuales) | un PDF |
+| Proteger con contraseña… | AES-256 con contraseña de apertura y de propietario; permisos de imprimir, copiar y modificar | un PDF |
+| Desbloquear PDF… | Quita el cifrado con la contraseña | un PDF |
+| Reparar PDF… | qpdf reescribe el archivo; si faltan la xref o el trailer (archivo truncado) se reconstruyen; pdf-lib como último recurso. Permite elegir otro archivo, porque un PDF roto a menudo no abre | un PDF |
+| OCR (texto en PDF escaneado)… | Reconoce el texto de cada página (español, inglés o ambos; 200 o 300 ppp) y lo añade como capa invisible: el PDF queda buscable y copiable | un PDF |
+| Comprimir… | Recodifica las fotos como JPEG (alta, media o baja) y recomprime la estructura con qpdf; si no baja al menos un 2 %, avisa y no guarda | un PDF |
+
+- **OCR**: tarda unos 2–5 s por página a 200 ppp en un PC normal; los idiomas van dentro del programa (`recursos/tessdata`, 6 MB) y no se descarga nada. Un texto girado o muy pegado al borde se reconoce peor.
+- **Cancelar** detiene la herramienta sin dejar archivos a medias.
+- **Limitaciones**: al unir, dividir u organizar, los campos de formulario (incluidas las animaciones de `animate`, que son campos) se copian sin su formulario y dejan de funcionar en el resultado; «Comprimir» no toca imágenes con máscara, indexadas o de 1 bit; «Reparar» no recupera contenido que ya no esté en el archivo.
+
 ## Ajustes
 
 `Ctrl+,` o Ver ▸ Ajustes…: avance automático, bucle, transiciones, color de fondo, cursor, pantallas, unidad de medida, modo nocturno y tema. Se guardan en `data\config.json` junto al ejecutable (modo portable; en `data\` queda también la caché de Chromium). Si esa carpeta no se puede escribir, en `%APPDATA%\liberadoPDF\config.json`.
@@ -81,16 +109,19 @@ El archivo de notas (`<nombre>.pdf.notas.txt`) debe guardarse en UTF-8 (el Bloc 
 
 ## Construir desde WSL o Linux
 
-Requisitos: Node 24, una pantalla (WSLg) para la prueba de humo, Python 3 con Pillow para el icono, y para el PDF de ejemplo un TeX Live con `beamer`, `tikz` y `animate`.
+Requisitos: Node 24, una pantalla (WSLg) para la prueba de humo, Python 3 con Pillow (icono y PDF de ejemplo escaneado y de fotos), y para los PDF de ejemplo un TeX Live con `beamer`, `tikz`, `animate` y `graphicx`.
+
+En Linux/WSLg Electron se lanza con `ELECTRON_DISABLE_SANDBOX=1` (lo ponen `npm start`, `npm run humo` y los scripts): no hay sandbox setuid, y añadir `no-sandbox` desde el código rompe la impresión a PDF.
 
 ```bash
 npm install
 npm test            # pruebas unitarias (node --test)
-npm run humo        # prueba de humo: lanza Electron, comprueba animación, teclas, presentación, contador, bucle, inicio
+npm run humo        # prueba de humo (36 fases): visor, presentación, presentador y una fase por herramienta; genera sus PDF de prueba
 npm run construir   # dist/liberadoPDF-win32-x64/ y dist/liberadoPDF-win32-x64.zip
 scripts/humo_windows.sh                                         # prueba de humo sobre el .exe, lanzado desde WSL
 scripts/humo_windows.sh presentacionAnimada "ruta/al/pdf" 11    # ¿la animación de la página 11 corre en presentación?
 scripts/humo_windows.sh guardar | cuadricula | presentador | cierre   # otras fases sobre el .exe
+scripts/humo_windows.sh unir | proteger | ocr | comprimir               # herramientas sobre el .exe
 ```
 
 El icono del `.exe` lo pone `wine` (si está instalado) o `rcedit-x64.exe` en `~/tools/rcedit/` ejecutado por interop de WSL ([electron/rcedit](https://github.com/electron/rcedit/releases)). Sin ninguno de los dos, el ejecutable queda con el icono por defecto de Electron.
@@ -99,15 +130,18 @@ El icono del `.exe` lo pone `wine` (si está instalado) o `rcedit-x64.exe` en `~
 
 - `src/main/`: proceso principal de Electron (protocolo `liberadopdf://`, ventanas, menú, IPC, configuración, prueba de humo).
 - `src/preload/preload.cjs`: puente seguro hacia el renderer e inyección de la capa propia sobre el visor de pdf.js.
-- `src/renderer/`: la capa de liberadoPDF sobre el visor (teclas, presentación, contador, ayuda) y la pantalla de inicio.
-- `src/comun/`: lógica pura, probada con `node --test`.
+- `src/renderer/`: la capa de liberadoPDF sobre el visor (teclas, presentación, contador, ayuda) y la pantalla de inicio; `herramientas/` tiene un módulo por herramienta, el diálogo base y el worker (`trabajador.mjs`, con pdf-lib y qpdf).
+- `src/comun/`: lógica pura, probada con `node --test` (`herramientas/` para rangos, nombres, estampado, recorte, imágenes, reparación, OCR y compresión).
+- `recursos/`: PDF de ejemplo (animado, transiciones, notas, escaneado, fotos), icono y `tessdata/` (idiomas del OCR).
 - `vendor/pdfjs/`: pdf.js 6.4.299 tal cual (no se modifica).
 - `docs/superpowers/`: diseño y planes.
 
 ## Pendiente
 
-Fuera de alcance: leer en voz alta, video y audio incrustados (media9), 3D, validación de firmas digitales, comparar PDF, empaquetado para macOS y Linux.
+- Herramientas 54–59 del plan: PDF ↔ Office (Word, Excel, PowerPoint), editar texto, redactar (tachar contenido), comparar PDF, PDF/A y escanear desde cámara.
+- Abrir «Herramientas ▸ Reparar» desde la pantalla de inicio (hoy hace falta tener un PDF abierto y elegir el archivo roto desde el diálogo).
+- Fuera de alcance: leer en voz alta, video y audio incrustados (media9), 3D, validación de firmas digitales, empaquetado para macOS y Linux.
 
 ## Licencia
 
-MIT. pdf.js se distribuye en `vendor/pdfjs/` bajo Apache 2.0 (ver `vendor/pdfjs/LICENSE`).
+MIT. pdf.js se distribuye en `vendor/pdfjs/` bajo Apache 2.0 (ver `vendor/pdfjs/LICENSE`). Las herramientas usan pdf-lib (MIT), qpdf-wasm (Apache 2.0, qpdf) y tesseract.js / tesseract.js-core (Apache 2.0); los datos de idioma `tessdata_fast` son Apache 2.0 (ver `recursos/tessdata/LICENSE.txt`).

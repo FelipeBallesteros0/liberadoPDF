@@ -21,6 +21,7 @@ const FILAS = [
   ['Ctrl + F', 'Buscar (pdf.js)'],
   ['Ctrl + P', 'Imprimir'],
   ['F1', 'Esta ayuda'],
+  ['Menú Herramientas', 'Unir, dividir, organizar, rotar, numerar, marca de agua, recortar, imágenes, HTML, aplanar, metadatos, contraseñas, reparar, OCR y comprimir: el resultado va siempre a un archivo nuevo'],
 ];
 
 let capa = null;
