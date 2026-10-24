@@ -191,3 +191,5 @@
 .liberadopdf-toast-accion { pointer-events: auto; display: flex; gap: 10px; align-items: center; }
 .liberadopdf-toast-accion button { padding: 4px 10px; border: 0; border-radius: 6px; background: #0077b6; color: #fff; font: inherit; cursor: pointer; }
 .liberadopdf-toast-accion button:last-child { background: transparent; color: #ccc; font-size: 18px; }
+.liberadopdf-herramienta .aviso-partes { margin: 6px 0 0; font-size: 13px; color: #555; }
+.liberadopdf-herramienta .fila[hidden] { display: none; }

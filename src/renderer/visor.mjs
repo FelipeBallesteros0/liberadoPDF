@@ -17,6 +17,7 @@ import { instalarCuadricula } from '/cuadricula.mjs';
 import { instalarMedicion } from '/medicion.mjs';
 import { crearCliente } from '/herramientas/cliente.mjs';
 import { bytesDelDocumento, dialogoHerramienta } from '/herramientas/base.mjs';
+import { instalarHerramientas } from '/herramientas/indice.mjs';
 
 const app = window.PDFViewerApplication;
 const parametros = new URLSearchParams(location.search);
@@ -100,6 +101,7 @@ window.liberadopdfHerramientas = {
   dialogoHerramienta,
   contexto: () => ({ app, ruta, nombre, obtenerConfig, totalPaginas: app.pagesCount }),
 };
+instalarHerramientas(window.liberadopdfHerramientas);
 const abrirHerramienta = (clave) => {
   if (herramientas[clave]) { herramientas[clave](window.liberadopdfHerramientas.contexto()); return; }
   mostrarToast(`Herramienta «${clave}»: próximamente`);

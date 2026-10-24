@@ -86,6 +86,9 @@ export function instalarIpc({ obtenerConfig, obtenerConfigBase = obtenerConfig, 
     html: [{ name: 'HTML', extensions: ['html', 'htm'] }],
   };
   ipcMain.handle('elegir-archivos', async (evento, { filtros = 'pdf', varios = true } = {}) => {
+    if (process.env.LIBERADOPDF_HUMO && process.env.LIBERADOPDF_HUMO_ELEGIR) { // la prueba de humo no puede pulsar el diálogo nativo
+      return process.env.LIBERADOPDF_HUMO_ELEGIR.split(path.delimiter).map(ruta => ({ ruta, nombre: path.basename(ruta), url: urlDeToken(registrarArchivo(ruta)) }));
+    }
     const { canceled, filePaths } = await dialog.showOpenDialog(ventanaDe(evento), {
       title: 'Elegir archivos', filters: FILTROS[filtros] ?? FILTROS.pdf, properties: varios ? ['openFile', 'multiSelections'] : ['openFile'],
     });

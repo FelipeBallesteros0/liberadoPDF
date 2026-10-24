@@ -3,6 +3,8 @@ import { raizDeCapas } from '../capas.mjs';
 import { mostrarToast } from '../instantanea.mjs';
 import { analizarRangos } from '../comun/herramientas/rangos.mjs';
 
+export const MENSAJE_CIFRADO = 'Este PDF está cifrado: primero desbloquéalo (Herramientas ▸ Desbloquear).';
+
 export async function bytesDelDocumento() {
   const url = new URLSearchParams(location.search).get('file');
   if (!url) throw new Error('No hay documento abierto');
@@ -79,7 +81,7 @@ export function dialogoHerramienta({ clave, titulo, descripcion, campos = [], to
   const pie = document.createElement('div');
   pie.className = 'pie';
   const cancelar = document.createElement('button'); cancelar.type = 'button'; cancelar.textContent = 'Cancelar';
-  const ejecutar = document.createElement('button'); ejecutar.type = 'button'; ejecutar.textContent = 'Ejecutar';
+  const ejecutar = document.createElement('button'); ejecutar.type = 'button'; ejecutar.textContent = 'Ejecutar'; ejecutar.dataset.accion = 'ejecutar';
   pie.append(cancelar, ejecutar);
   caja.append(progreso, mensaje, pie);
   capa.append(caja);
@@ -121,7 +123,9 @@ export function dialogoHerramienta({ clave, titulo, descripcion, campos = [], to
       ejecutar.disabled = false;
       await guardar();
     } catch (e) {
-      if (e?.cancelado) avisar('Cancelado'); else avisar(`Error: ${e.message}`, true);
+      if (e?.cancelado) avisar('Cancelado');
+      else if (e?.message === 'cifrado') avisar(MENSAJE_CIFRADO, true);
+      else avisar(`Error: ${e.message}`, true);
       resultado = null;
       ejecutar.disabled = false;
       progreso.hidden = true;

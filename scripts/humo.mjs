@@ -32,6 +32,10 @@ const FASES = [
   { nombre: 'presentador', env: {} },
   { nombre: 'notasDerecha', env: { LIBERADOPDF_PDF: path.join(raiz, 'recursos', 'ejemplo_notas.pdf'), LIBERADOPDF_CONFIG_PRUEBA: JSON.stringify({ porDocumento: { [path.join(raiz, 'recursos', 'ejemplo_notas.pdf')]: { notasDerecha: true } } }) } },
   { nombre: 'herramientasBase', env: {} },
+  { nombre: 'unir', env: { LIBERADOPDF_HUMO_GUARDAR: path.join(carpetaHumo, 'unir', 'unido.pdf'), LIBERADOPDF_HUMO_ELEGIR: pdfPrueba } },
+  { nombre: 'dividir', env: { LIBERADOPDF_HUMO_CARPETA: path.join(carpetaHumo, 'dividir', 'partes') } },
+  { nombre: 'rotar', env: { LIBERADOPDF_HUMO_GUARDAR: path.join(carpetaHumo, 'rotar', 'rotado.pdf') } },
+  { nombre: 'cifrado', env: {} },
   { nombre: 'notasDerecha43', fase: 'notasDerecha', env: { LIBERADOPDF_PDF: path.join(raiz, 'recursos', 'ejemplo_notas_43.pdf'), LIBERADOPDF_CONFIG_PRUEBA: JSON.stringify({ porDocumento: { [path.join(raiz, 'recursos', 'ejemplo_notas_43.pdf')]: { notasDerecha: true } } }) } },
 ];
 writeFileSync(pdfPrueba + '.notas.txt', '## 2\nNota de la dos\n');

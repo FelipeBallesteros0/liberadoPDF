@@ -43,8 +43,54 @@ export async function qpdf(args, { entradas = {}, salida = 'salida.pdf' } = {}) 
 const cancelado = (id) => cancelados.has(id);
 const progreso = (id, hecho, total, texto) => postMessage({ id, progreso: { hecho, total, texto } });
 
+// Carga un PDF para editarlo; un documento cifrado se rechaza con el error 'cifrado' (el diálogo lo traduce).
+async function cargarDocumento(bytes) {
+  const { PDFDocument } = await cargarPdfLib();
+  const doc = await PDFDocument.load(bytes, { ignoreEncryption: true, updateMetadata: false });
+  if (doc.isEncrypted) throw new Error('cifrado');
+  return doc;
+}
+
 const operaciones = {
   async eco({ texto }) { return texto; },
+  async unir({ documentos }, { progreso, cancelado }) {
+    const { PDFDocument } = await cargarPdfLib();
+    const salida = await PDFDocument.create();
+    for (const [i, bytes] of documentos.entries()) {
+      if (cancelado()) return null;
+      progreso(i, documentos.length, `Uniendo ${i + 1} de ${documentos.length}…`);
+      const doc = await cargarDocumento(bytes);
+      const paginas = await salida.copyPages(doc, doc.getPageIndices());
+      for (const p of paginas) salida.addPage(p);
+    }
+    return await salida.save();
+  },
+  // grupos: listas de páginas 1-based; un PDF por grupo.
+  async dividir({ bytes, grupos }, { progreso, cancelado }) {
+    const { PDFDocument } = await cargarPdfLib();
+    const doc = await cargarDocumento(bytes);
+    const partes = [];
+    for (const [i, grupo] of grupos.entries()) {
+      if (cancelado()) return null;
+      progreso(i, grupos.length, `Parte ${i + 1} de ${grupos.length}…`);
+      const parte = await PDFDocument.create();
+      const paginas = await parte.copyPages(doc, grupo.map(n => n - 1));
+      for (const p of paginas) parte.addPage(p);
+      partes.push(await parte.save());
+    }
+    return partes;
+  },
+  async rotar({ bytes, paginas, grados }, { progreso }) {
+    const { degrees } = await cargarPdfLib();
+    const doc = await cargarDocumento(bytes);
+    const todas = doc.getPages();
+    for (const [i, n] of paginas.entries()) {
+      progreso(i, paginas.length);
+      const pagina = todas[n - 1];
+      if (pagina) pagina.setRotation(degrees((pagina.getRotation().angle + grados) % 360));
+    }
+    return await doc.save();
+  },
   async cargar({ bytes }) {
     const { PDFDocument } = await cargarPdfLib();
     const doc = await PDFDocument.load(bytes, { ignoreEncryption: true, updateMetadata: false });

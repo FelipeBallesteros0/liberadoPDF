@@ -528,7 +528,95 @@ async function faseHerramientasBase({ ruta, preload, salida }) {
   return r;
 }
 
-const FASES = { herramientasBase: faseHerramientasBase, basica: faseBasica, bucle: faseBucle, inexistente: faseInexistente, presentacionAnimada: fasePresentacionAnimada, cierre: faseCierre, corrupto: faseCorrupto, ajustes: faseAjustes, nocturno: faseNocturno, instantanea: faseInstantanea, guardar: faseGuardar, transiciones: faseTransiciones, punteros: fasePunteros, cuadricula: faseCuadricula, medicion: faseMedicion, presentador: fasePresentador, notasDerecha: faseNotasDerecha };
+// --- Herramientas de archivo: cada fase abre el diálogo real, rellena los campos y pulsa Ejecutar. ---
+async function pdfLibMain() {
+  const m = await import('pdf-lib');
+  return m.PDFDocument ? m : m.default;
+}
+async function esperarArchivo(ruta, ms = 20_000) {
+  const limite = Date.now() + ms;
+  while (Date.now() < limite) { if (existsSync(ruta) && readFileSync(ruta).length > 0) return true; await espera(200); }
+  return false;
+}
+async function abrirYEjecutarHerramienta(js, clave, ajustes = {}, clics = []) {
+  await js(`window.liberadopdfAcciones.herramienta(${JSON.stringify(clave)})`, true);
+  await espera(400);
+  const abierto = await js(`Boolean(document.querySelector('.liberadopdf-herramienta[data-herramienta=${JSON.stringify(clave)}]'))`);
+  if (!abierto) return false;
+  for (const [clave2, valor] of Object.entries(ajustes)) {
+    await js(`(e => { e.value = ${JSON.stringify(String(valor))}; e.dispatchEvent(new Event('input', { bubbles: true })); e.dispatchEvent(new Event('change', { bubbles: true })); })(document.querySelector('.liberadopdf-herramienta [data-clave=${JSON.stringify(clave2)}]'))`);
+  }
+  for (const selector of clics) { await js(`document.querySelector(${JSON.stringify(selector)}).click()`, true); await espera(600); }
+  await js(`document.querySelector('.liberadopdf-herramienta [data-accion="ejecutar"]').click()`, true);
+  return true;
+}
+async function paginasDe(ruta) {
+  const { PDFDocument } = await pdfLibMain();
+  const doc = await PDFDocument.load(readFileSync(ruta), { ignoreEncryption: true, updateMetadata: false });
+  return { paginas: doc.getPageCount(), rotaciones: doc.getPages().map(p => p.getRotation().angle), cifrado: doc.isEncrypted };
+}
+
+// Unir: el documento abierto + él mismo (elegido por LIBERADOPDF_HUMO_ELEGIR) → 8 páginas.
+async function faseUnir({ ruta, preload, salida }) {
+  const r = { dialogo: false, archivo: false, paginas: 0, filas: 0 };
+  const { js } = abrirVentanaDePrueba({ ruta, preload, salida });
+  await esperarEvento('primera-pagina', 10_000);
+  r.dialogo = await abrirYEjecutarHerramienta(js, 'unir', {}, ['.liberadopdf-herramienta [data-accion="anadir"]']);
+  r.filas = Number(await js(`document.querySelectorAll('.liberadopdf-herramienta .lista .elemento').length`)) || 0;
+  const destino = process.env.LIBERADOPDF_HUMO_GUARDAR;
+  r.archivo = await esperarArchivo(destino);
+  if (r.archivo) r.paginas = (await paginasDe(destino)).paginas;
+  r.ok = r.dialogo && r.archivo && r.paginas === 8;
+  return r;
+}
+
+// Dividir cada 2 páginas → carpeta con «… - parte 01.pdf» y «… - parte 02.pdf» de 2 páginas.
+async function faseDividir({ ruta, preload, salida }) {
+  const r = { dialogo: false, archivos: [], paginas: [], aviso: null };
+  const { js } = abrirVentanaDePrueba({ ruta, preload, salida });
+  await esperarEvento('primera-pagina', 10_000);
+  r.dialogo = await abrirYEjecutarHerramienta(js, 'dividir', { modo: 'cada', cada: 2 });
+  r.aviso = await js(`document.querySelector('.liberadopdf-herramienta .aviso-partes')?.textContent ?? null`);
+  const carpeta = process.env.LIBERADOPDF_HUMO_CARPETA;
+  const base = path.basename(ruta, '.pdf');
+  const esperados = [1, 2].map(i => path.join(carpeta, `${base} - parte 0${i}.pdf`));
+  for (const e of esperados) if (await esperarArchivo(e)) r.archivos.push(path.basename(e));
+  for (const e of esperados) if (existsSync(e)) r.paginas.push((await paginasDe(e)).paginas);
+  r.ok = r.dialogo && r.archivos.length === 2 && r.paginas.every(p => p === 2) && /2 archivos/.test(r.aviso ?? '');
+  return r;
+}
+
+// Rotar 90° todas las páginas → /Rotate 90 en las 4.
+async function faseRotar({ ruta, preload, salida }) {
+  const r = { dialogo: false, archivo: false, rotaciones: [] };
+  const { js } = abrirVentanaDePrueba({ ruta, preload, salida });
+  await esperarEvento('primera-pagina', 10_000);
+  r.dialogo = await abrirYEjecutarHerramienta(js, 'rotar', { grados: 90, paginas: '' });
+  const destino = process.env.LIBERADOPDF_HUMO_GUARDAR;
+  r.archivo = await esperarArchivo(destino);
+  if (r.archivo) r.rotaciones = (await paginasDe(destino)).rotaciones;
+  r.ok = r.dialogo && r.archivo && r.rotaciones.length === 4 && r.rotaciones.every(g => g === 90);
+  return r;
+}
+
+// Cifrado: las herramientas rechazan un PDF cifrado con el mensaje acordado. Hasta que exista la operación
+// «proteger» (Tarea 8) no hay con qué generar el PDF cifrado: la fase queda pendiente y no cuenta.
+async function faseCifrado({ ruta, preload, salida }) {
+  const r = { pendiente: false, mensaje: null };
+  const { js } = abrirVentanaDePrueba({ ruta, preload, salida });
+  await esperarEvento('primera-pagina', 10_000);
+  const cifrado = await js(`window.liberadopdfHerramientas.bytesDelDocumento().then(bytes => window.liberadopdfHerramientas.ejecutar('proteger', { bytes, contrasena: 'clave', propietario: 'clave' })).then(b => Array.from(b)).catch(e => e.message)`);
+  if (typeof cifrado === 'string') { r.pendiente = true; r.ok = true; r.motivo = cifrado; return r; }
+  const rutaCifrado = path.join(salida, 'cifrado.pdf');
+  writeFileSync(rutaCifrado, Buffer.from(cifrado));
+  r.cifrado = (await paginasDe(rutaCifrado)).cifrado;
+  await js(`window.liberadopdfHerramientas.ejecutar('rotar', { bytes: new Uint8Array(${JSON.stringify(cifrado)}), paginas: [1], grados: 90 }).catch(e => { window.__errorCifrado = e.message; })`);
+  r.mensaje = await js('window.__errorCifrado ?? null');
+  r.ok = r.cifrado === true && r.mensaje === 'cifrado';
+  return r;
+}
+
+const FASES = { unir: faseUnir, dividir: faseDividir, rotar: faseRotar, cifrado: faseCifrado, herramientasBase: faseHerramientasBase, basica: faseBasica, bucle: faseBucle, inexistente: faseInexistente, presentacionAnimada: fasePresentacionAnimada, cierre: faseCierre, corrupto: faseCorrupto, ajustes: faseAjustes, nocturno: faseNocturno, instantanea: faseInstantanea, guardar: faseGuardar, transiciones: faseTransiciones, punteros: fasePunteros, cuadricula: faseCuadricula, medicion: faseMedicion, presentador: fasePresentador, notasDerecha: faseNotasDerecha };
 
 export async function ejecutarHumo({ ruta, salida, fase, preload }) {
   mkdirSync(salida, { recursive: true });
