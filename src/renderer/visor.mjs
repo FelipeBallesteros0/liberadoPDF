@@ -5,6 +5,7 @@ import { alternarAyuda } from '/ayuda.mjs';
 import { agruparEtiquetas } from '/comun/etiquetas.mjs';
 import { instalarContador } from '/contador.mjs';
 import { instalarPresentacion } from '/presentacion.mjs';
+import { instalarCierre } from '/cierre.mjs';
 
 const app = window.PDFViewerApplication;
 const parametros = new URLSearchParams(location.search);
@@ -55,6 +56,7 @@ for (const nombre of ['siguiente', 'anterior', 'siguienteLamina', 'anteriorLamin
   acciones[nombre] = (...args) => { original(...args); presentacion.reiniciarAvance(); };
 }
 const contador = instalarContador({ app, obtenerGrupos: () => grupos, modoActual });
+instalarCierre({ app });
 instalarTeclas({ acciones, modoActual, interceptor: presentacion.interceptor });
 window.liberadopdf.alAccion(nombre => acciones[nombre]?.());
 

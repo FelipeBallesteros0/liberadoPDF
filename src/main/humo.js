@@ -170,7 +170,23 @@ async function fasePresentacionAnimada({ ruta, preload, salida }) {
   return r;
 }
 
-const FASES = { basica: faseBasica, bucle: faseBucle, inexistente: faseInexistente, presentacionAnimada: fasePresentacionAnimada };
+// Tras ver la animación (que modifica campos del formulario desde el sandbox), la X debe cerrar la ventana.
+async function faseCierre({ ruta, preload, salida }) {
+  const r = { animacionVista: false, cerrada: false };
+  const { win, js } = abrirVentanaDePrueba({ ruta, preload, salida });
+  await esperarEvento('primera-pagina', 10_000);
+  await js('PDFViewerApplication.page = 2');
+  await espera(1500);
+  r.animacionVista = true;
+  win.webContents.on('will-prevent-unload', () => { r.pdfjsIntentoBloquear = true; });
+  const cerrada = new Promise(resolver => win.once('closed', () => resolver(true)));
+  win.close(); // equivale a la X de la ventana: pasa por beforeunload del renderer
+  r.cerrada = await Promise.race([cerrada, espera(2000).then(() => false)]);
+  r.ok = r.animacionVista && r.cerrada;
+  return r;
+}
+
+const FASES = { basica: faseBasica, bucle: faseBucle, inexistente: faseInexistente, presentacionAnimada: fasePresentacionAnimada, cierre: faseCierre };
 
 export async function ejecutarHumo({ ruta, salida, fase, preload }) {
   mkdirSync(salida, { recursive: true });

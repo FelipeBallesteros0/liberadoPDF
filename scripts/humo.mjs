@@ -19,6 +19,7 @@ const FASES = [
   { nombre: 'bucle', env: { LIBERADOPDF_CONFIG_PRUEBA: JSON.stringify({ presentacion: { avanceSegundos: 1, bucle: true } }) } },
   { nombre: 'inexistente', env: { LIBERADOPDF_PDF: path.join(salida, 'no-existe.pdf') } },
   { nombre: 'presentacionAnimada', env: { LIBERADOPDF_HUMO_PAGINA: '2' } },
+  { nombre: 'cierre', env: {} },
 ];
 
 const electron = path.join(raiz, 'node_modules', '.bin', process.platform === 'win32' ? 'electron.cmd' : 'electron');

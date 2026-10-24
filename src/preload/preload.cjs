@@ -26,6 +26,7 @@ contextBridge.exposeInMainWorld('liberadopdf', {
   abrirExterno: url => ipcRenderer.invoke('abrir-externo', url),
   rutaDeArchivo: archivo => webUtils.getPathForFile(archivo),
   documentoAbierto: info => ipcRenderer.invoke('documento-abierto', info),
+  edicionesUsuario: () => ipcRenderer.send('ediciones-usuario'),
   humoEvento: nombre => ipcRenderer.send('humo-evento', { nombre, t: Date.now() }),
   alAccion: cb => { ipcRenderer.on('accion', (evento, nombre) => cb(nombre)); },
 });

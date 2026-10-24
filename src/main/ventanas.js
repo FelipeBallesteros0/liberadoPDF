@@ -1,5 +1,5 @@
 // Ventanas de liberadoPDF: visor (un PDF por ventana) o pantalla de inicio.
-import { BrowserWindow, shell } from 'electron';
+import { BrowserWindow, dialog, shell } from 'electron';
 import { ESQUEMA, urlVisor, urlInicio } from './protocolo.js';
 
 const ENLACE_EXTERNO = /^(https?:|mailto:)/i;
@@ -25,6 +25,22 @@ export function crearVentana({ ruta, preload, mensaje }) {
     evento.preventDefault();
     if (ENLACE_EXTERNO.test(url)) shell.openExternal(url);
   });
+  // pdf.js bloquea el cierre (beforeunload) en cuanto su almacén de anotaciones cambia, y las animaciones
+  // lo cambian solas. Aquí se decide de verdad: sin ediciones del usuario se cierra; con ellas se pregunta.
+  win.webContents.on('will-prevent-unload', (evento) => {
+    if (!win.liberadopdfEdiciones) { evento.preventDefault(); return; }
+    const respuesta = dialog.showMessageBoxSync(win, {
+      type: 'warning',
+      title: 'Cambios sin guardar',
+      message: 'Hay anotaciones o campos modificados sin guardar.',
+      detail: 'Si cierras ahora se perderán. Pulsa Cancelar y usa Guardar (Ctrl+S) para conservarlos.',
+      buttons: ['Cerrar sin guardar', 'Cancelar'],
+      defaultId: 1,
+      cancelId: 1,
+      noLink: true,
+    });
+    if (respuesta === 0) evento.preventDefault();
+  });
   win.on('enter-html-full-screen', () => win.setMenuBarVisibility(false));
   win.on('leave-html-full-screen', () => win.setMenuBarVisibility(true));
   win.loadURL(ruta ? urlVisor(ruta) : urlInicio(mensaje));
@@ -32,6 +48,7 @@ export function crearVentana({ ruta, preload, mensaje }) {
 }
 
 export function abrirEnVentana(win, ruta) {
+  win.liberadopdfEdiciones = false;
   win.loadURL(urlVisor(ruta));
 }
 

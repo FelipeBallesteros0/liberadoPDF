@@ -37,6 +37,8 @@ export function instalarIpc({ obtenerConfig, obtenerConfigBase = obtenerConfig, 
     guardar({ ...config, recientes: agregarReciente(config.recientes, { ruta, nombre: nombre || path.basename(ruta), fecha: Date.now() }) });
     alCambiarRecientes();
   });
+  // El renderer avisa una vez cuando el usuario anota o rellena campos: la ventana lo recuerda para el cierre.
+  ipcMain.on('ediciones-usuario', (evento) => { const win = ventanaDe(evento); if (win) win.liberadopdfEdiciones = true; });
   ipcMain.on('humo-evento', (evento, { nombre, t }) => { eventosHumo.emit(nombre, t); });
 }
 

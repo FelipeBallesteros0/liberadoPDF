@@ -10,6 +10,7 @@ Nació para presentar un paper en IEEE ICA-ACCA 2026 cuya lámina 11 lleva un vi
 2. Doble clic en `liberadoPDF.exe` abre la pantalla de inicio: «Abrir PDF», los últimos archivos abiertos y una zona para arrastrar un PDF.
 3. También puedes usar «Abrir con…» sobre un PDF, arrastrar un PDF sobre el ejecutable o sobre la ventana, o pasarlo por línea de comandos.
 4. `F5` o doble clic entran en presentación; `Esc` sale.
+5. La X cierra la ventana sin preguntar, salvo que hayas anotado o rellenado campos sin guardar: entonces pregunta. (Las animaciones también modifican el PDF por dentro; eso no cuenta.)
 
 **Primer arranque en un PC nuevo**: Windows y el antivirus analizan el ejecutable la primera vez y puede tardar 10–20 s; después abre en menos de 2 s. Ábrelo una vez antes de la charla. Desde un pendrive USB 2.0 el primer arranque también es lento: conviene copiar la carpeta al disco.
 
