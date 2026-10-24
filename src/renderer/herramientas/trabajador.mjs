@@ -5,13 +5,15 @@ import { tamanoDeFuente, textoWinAnsi } from '../comun/herramientas/ocr.mjs';
 import { cajaVisible } from '../comun/herramientas/caja.mjs';
 import { despredecir } from '../comun/herramientas/prediccion.mjs';
 import { expandirObjectStreams } from '../comun/herramientas/reparacion.mjs';
+import { argumentosDeCifrado, argumentosDeDescifrado } from '../comun/herramientas/qpdf.mjs';
+import { crearRegistroDeCancelaciones } from '../comun/herramientas/cancelaciones.mjs';
 import { textoDeNumero, posicionDeTexto, mosaicoDeMarca, colorHex, origenCentrado, aCoordenadasSinRotar, tamanoVisual } from '../comun/herramientas/estampar.mjs';
 // Protocolo: { id, operacion, argumentos } → mensajes { id, progreso } y al final { id, resultado } | { id, error } | { id, cancelado }.
 let pdfLib = null;
 let qpdfModulo = null;
 let sesionImagenes = null; // { id, doc, objetos } de la última listarImagenes (una sola a la vez)
 let contadorSesiones = 0;
-const cancelados = new Set();
+const cancelaciones = crearRegistroDeCancelaciones();
 
 async function cargarPdfLib() {
   pdfLib ??= await import('/lib/pdf-lib/pdf-lib.esm.min.js');
@@ -49,7 +51,7 @@ export async function qpdf(args, { entradas = {}, salida = 'salida.pdf' } = {}) 
   return { codigo, bytes, avisos: mensajes };
 }
 
-const cancelado = (id) => cancelados.has(id);
+const cancelado = (id) => cancelaciones.cancelada(id);
 const progreso = (id, hecho, total, texto) => postMessage({ id, progreso: { hecho, total, texto } });
 
 // Flate (zlib) con la API del navegador, para los object streams de «Reparar».
@@ -67,6 +69,15 @@ function cajaDePagina(pagina) {
   return cajaVisible({ mediaBox: pagina.getMediaBox(), cropBox: crop ? pagina.getCropBox() : undefined });
 }
 
+// Documento nuevo con los metadatos de liberadoPDF (en vez de «pdf-lib»).
+async function crearDocumento() {
+  const { PDFDocument } = await cargarPdfLib();
+  const doc = await PDFDocument.create();
+  doc.setProducer('liberadoPDF');
+  doc.setCreator('liberadoPDF');
+  return doc;
+}
+
 // Carga un PDF para editarlo; un documento cifrado se rechaza con el error 'cifrado' (el diálogo lo traduce).
 async function cargarDocumento(bytes) {
   const { PDFDocument } = await cargarPdfLib();
@@ -78,8 +89,7 @@ async function cargarDocumento(bytes) {
 const operaciones = {
   async eco({ texto }) { return texto; },
   async unir({ documentos }, { progreso, cancelado }) {
-    const { PDFDocument } = await cargarPdfLib();
-    const salida = await PDFDocument.create();
+    const salida = await crearDocumento();
     for (const [i, bytes] of documentos.entries()) {
       if (cancelado()) return null;
       progreso(i, documentos.length, `Uniendo ${i + 1} de ${documentos.length}…`);
@@ -97,7 +107,7 @@ const operaciones = {
     for (const [i, grupo] of grupos.entries()) {
       if (cancelado()) return null;
       progreso(i, grupos.length, `Parte ${i + 1} de ${grupos.length}…`);
-      const parte = await PDFDocument.create();
+      const parte = await crearDocumento();
       const paginas = await parte.copyPages(doc, grupo.map(n => n - 1));
       for (const p of paginas) parte.addPage(p);
       partes.push(await parte.save());
@@ -107,9 +117,9 @@ const operaciones = {
   // plan: [{ origen: página 1-based | null (en blanco), rotacion }]. Cada página repetida se copia aparte
   // (copyPages reutiliza el mismo objeto para un índice repetido en una misma llamada).
   async organizar({ bytes, plan }, { progreso, cancelado }) {
-    const { PDFDocument, degrees } = await cargarPdfLib();
+    const { degrees } = await cargarPdfLib();
     const doc = await cargarDocumento(bytes);
-    const salida = await PDFDocument.create();
+    const salida = await crearDocumento();
     const { width, height } = doc.getPage(0).getSize();
     const unicos = [...new Set(plan.filter(p => p.origen !== null).map(p => p.origen - 1))];
     const copias = new Map((await salida.copyPages(doc, unicos)).map((pagina, i) => [unicos[i], [pagina]]));
@@ -223,12 +233,12 @@ const operaciones = {
       const annots = pagina.node.Annots();
       if (annots) { anotacionesQuitadas += annots.size(); pagina.node.delete(PDFName.of('Annots')); }
     }
+    if (quitarAnotaciones) doc.catalog.delete(PDFName.of('AcroForm')); // sin widgets, el formulario solo dejaría referencias colgantes
     return { bytes: await doc.save(), camposAplanados, anotacionesQuitadas };
   },
   // imagenes: [{ bytes, tipo: 'image/png' | 'image/jpeg' }]; una página por imagen, encajada con margen.
   async deImagenes({ imagenes, tamano, orientacion, margen }, { progreso, cancelado }) {
-    const { PDFDocument } = await cargarPdfLib();
-    const doc = await PDFDocument.create();
+    const doc = await crearDocumento();
     let omitidas = 0;
     for (const [i, img] of imagenes.entries()) {
       if (cancelado()) return null;
@@ -344,13 +354,13 @@ const operaciones = {
   // --- qpdf ---
   async proteger({ bytes, usuario, propietario, imprimir, copiar, modificar }, { progreso }) {
     progreso(0, 1, 'Cifrando…');
-    const r = await qpdf(['--encrypt', usuario ?? '', propietario, '256', `--print=${imprimir ? 'full' : 'none'}`, `--extract=${copiar ? 'y' : 'n'}`, `--modify=${modificar ? 'all' : 'none'}`, '--', 'entrada.pdf', 'salida.pdf'], { entradas: { 'entrada.pdf': bytes } });
+    const r = await qpdf(argumentosDeCifrado({ usuario, propietario, imprimir, copiar, modificar }), { entradas: { 'entrada.pdf': bytes } });
     if (r.codigo !== 0 || !r.bytes) throw new Error(`qpdf no pudo cifrar: ${r.avisos.join(' ') || `código ${r.codigo}`}`);
     return { bytes: r.bytes, avisos: r.avisos };
   },
   async desbloquear({ bytes, contrasena }, { progreso }) {
     progreso(0, 1, 'Descifrando…');
-    const r = await qpdf([`--password=${contrasena ?? ''}`, '--decrypt', 'entrada.pdf', 'salida.pdf'], { entradas: { 'entrada.pdf': bytes } });
+    const r = await qpdf(argumentosDeDescifrado(contrasena), { entradas: { 'entrada.pdf': bytes } });
     if (r.codigo !== 0 || !r.bytes) {
       if (r.avisos.some(a => /invalid password/i.test(a))) throw new Error('Contraseña incorrecta');
       throw new Error(`qpdf no pudo descifrar: ${r.avisos.join(' ') || `código ${r.codigo}`}`);
@@ -414,15 +424,16 @@ export function registrar(nombre, fn) { operaciones[nombre] = fn; }
 
 self.onmessage = async (evento) => {
   const { id, operacion, argumentos, cancelar } = evento.data;
-  if (cancelar) { cancelados.add(id); return; }
+  if (cancelar) { cancelaciones.cancelar(id); return; } // solo cuenta si la operación sigue en curso
   const fn = operaciones[operacion];
   if (!fn) { postMessage({ id, error: `Operación desconocida: ${operacion}` }); return; }
+  cancelaciones.empezar(id);
   try {
     const resultado = await fn(argumentos ?? {}, { progreso: (h, t, texto) => progreso(id, h, t, texto), cancelado: () => cancelado(id), qpdf, cargarPdfLib });
     if (cancelado(id)) postMessage({ id, cancelado: true }); else postMessage({ id, resultado }, resultado?.transferir ?? []);
   } catch (e) {
     postMessage({ id, error: String(e?.message ?? e) });
   } finally {
-    cancelados.delete(id);
+    cancelaciones.terminar(id);
   }
 };

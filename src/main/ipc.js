@@ -7,6 +7,7 @@ import { agregarReciente, fusionarConfigGuardada } from '../comun/config.mjs';
 import { abrirEnVentana, abrirInicioEnVentana, crearVentanaPresentador } from './ventanas.js';
 import { registrarArchivo, urlDeToken, rutaDeToken } from './protocolo.js';
 import { urlPermitida } from '../comun/herramientas/html.mjs';
+import { mismaRuta } from '../comun/rutas.mjs';
 import { errorDeRutaPdf } from '../comun/argumentos.mjs';
 import { elegirPantallas } from '../comun/pantallas.mjs';
 
@@ -127,6 +128,7 @@ export function instalarIpc({ obtenerConfig, obtenerConfigBase = obtenerConfig, 
       if (canceled || !filePath) return null;
       destino = filePath;
     }
+    if (win?.liberadopdfRuta && mismaRuta(destino, win.liberadopdfRuta)) return { error: 'No se puede sobrescribir el documento abierto: elige otro nombre.' };
     mkdirSync(path.dirname(destino), { recursive: true });
     writeFileSync(destino, Buffer.from(bytes));
     return destino;

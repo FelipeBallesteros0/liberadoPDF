@@ -566,8 +566,8 @@ async function faseUnir({ ruta, preload, salida }) {
   r.filas = Number(await js(`document.querySelectorAll('.liberadopdf-herramienta .lista .elemento').length`)) || 0;
   const destino = process.env.LIBERADOPDF_HUMO_GUARDAR;
   r.archivo = await esperarArchivo(destino);
-  if (r.archivo) r.paginas = (await paginasDe(destino)).paginas;
-  r.ok = r.dialogo && r.archivo && r.paginas === 8;
+  if (r.archivo) { r.paginas = (await paginasDe(destino)).paginas; const { PDFDocument } = await pdfLibMain(); r.productor = (await PDFDocument.load(readFileSync(destino), { updateMetadata: false })).getProducer(); }
+  r.ok = r.dialogo && r.archivo && r.paginas === 8 && r.productor === 'liberadoPDF';
   return r;
 }
 
@@ -576,7 +576,7 @@ async function faseDividir({ ruta, preload, salida }) {
   const r = { dialogo: false, archivos: [], paginas: [], aviso: null };
   const { js } = abrirVentanaDePrueba({ ruta, preload, salida });
   await esperarEvento('primera-pagina', 10_000);
-  r.dialogo = await abrirYEjecutarHerramienta(js, 'dividir', { modo: 'cada', cada: 2 });
+  r.dialogo = await abrirYEjecutarHerramienta(js, 'dividir', { paginas: 'esto no es un rango', modo: 'cada', cada: 2 }); // el campo de rangos queda oculto y no debe validarse
   r.aviso = await js(`document.querySelector('.liberadopdf-herramienta .aviso-partes')?.textContent ?? null`);
   const carpeta = process.env.LIBERADOPDF_HUMO_CARPETA;
   const base = path.basename(ruta, '.pdf');
@@ -592,11 +592,25 @@ async function faseRotar({ ruta, preload, salida }) {
   const r = { dialogo: false, archivo: false, rotaciones: [] };
   const { js } = abrirVentanaDePrueba({ ruta, preload, salida });
   await esperarEvento('primera-pagina', 10_000);
-  r.dialogo = await abrirYEjecutarHerramienta(js, 'rotar', { grados: 90, paginas: '' });
+  // Abrir la herramienta dos veces deja un solo diálogo; Enter en un campo ejecuta (en vez del clic en Ejecutar).
+  await js(`window.liberadopdfAcciones.herramienta('rotar')`, true);
+  await js(`window.liberadopdfAcciones.herramienta('rotar')`, true);
+  await espera(300);
+  r.dialogos = Number(await js(`document.querySelectorAll('.liberadopdf-herramienta[data-herramienta="rotar"]').length`));
+  r.dialogo = r.dialogos === 1;
+  await js(`(e => { e.value = '90'; e.dispatchEvent(new Event('change', { bubbles: true })); })(document.querySelector('.liberadopdf-herramienta [data-clave="grados"]'))`);
+  await js(`(e => { e.focus(); e.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); })(document.querySelector('.liberadopdf-herramienta [data-clave="paginas"]'))`, true);
   const destino = process.env.LIBERADOPDF_HUMO_GUARDAR;
   r.archivo = await esperarArchivo(destino);
   if (r.archivo) r.rotaciones = (await paginasDe(destino)).rotaciones;
-  r.ok = r.dialogo && r.archivo && r.rotaciones.length === 4 && r.rotaciones.every(g => g === 90);
+  // Guardar sobre el propio documento abierto se rechaza con un aviso y el archivo no cambia.
+  const antes = statSync(ruta);
+  process.env.LIBERADOPDF_HUMO_GUARDAR = ruta;
+  await abrirYEjecutarHerramienta(js, 'rotar', { grados: 90, paginas: '' });
+  for (let i = 0; i < 40 && !r.avisoSobrescribir; i++) { await espera(250); r.avisoSobrescribir = await js(`document.querySelector('.liberadopdf-herramienta .mensaje:not([hidden])')?.textContent ?? null`); }
+  const despues = statSync(ruta);
+  r.documentoIntacto = antes.size === despues.size && antes.mtimeMs === despues.mtimeMs;
+  r.ok = r.dialogo && r.archivo && r.rotaciones.length === 4 && r.rotaciones.every(g => g === 90) && /sobrescribir/.test(r.avisoSobrescribir ?? '') && r.documentoIntacto;
   return r;
 }
 
@@ -686,12 +700,19 @@ async function faseMarcaDeAgua({ ruta, preload, salida }) {
   const r = { dialogo: false, archivo: false, texto: null, pixeles: 0 };
   const { js } = abrirVentanaDePrueba({ ruta, preload, salida });
   await esperarEvento('primera-pagina', 10_000);
+  await js(`window.liberadopdfAcciones.herramienta('marcaDeAgua')`, true);
+  await espera(300);
+  r.filasTexto = JSON.parse(await js(`JSON.stringify(['texto', 'escala'].map(k => document.querySelector('.liberadopdf-herramienta [data-clave="' + k + '"]').closest('.fila').hidden))`));
+  await js(`(e => { e.value = 'imagen'; e.dispatchEvent(new Event('change', { bubbles: true })); })(document.querySelector('.liberadopdf-herramienta [data-clave="tipo"]'))`);
+  r.filasImagen = JSON.parse(await js(`JSON.stringify(['texto', 'escala'].map(k => document.querySelector('.liberadopdf-herramienta [data-clave="' + k + '"]').closest('.fila').hidden))`));
+  await js(`document.querySelector('.liberadopdf-herramienta .pie button').click()`, true); // Cancelar
+  r.filasOk = JSON.stringify(r.filasTexto) === '[false,true]' && JSON.stringify(r.filasImagen) === '[true,false]';
   r.dialogo = await abrirYEjecutarHerramienta(js, 'marcaDeAgua', { opacidad: 0.3 });
   const destino = process.env.LIBERADOPDF_HUMO_GUARDAR;
   r.archivo = await esperarArchivo(destino);
   if (r.archivo) { r.texto = await textoDePagina(js, destino, 1); r.pixeles = Number(await pixelesDistintos(js, destino)); }
   // getTextContent de pdf.js pierde la primera letra de un texto girado 45° (PyMuPDF devuelve «BORRADOR» entero): se comprueba el resto.
-  r.ok = r.dialogo && r.archivo && /ORRADOR/.test(r.texto ?? '') && r.pixeles > 500;
+  r.ok = r.dialogo && r.archivo && /ORRADOR/.test(r.texto ?? '') && r.pixeles > 500 && r.filasOk;
   return r;
 }
 
@@ -762,10 +783,12 @@ async function faseAplanar({ ruta, preload, salida }) {
   const destino = process.env.LIBERADOPDF_HUMO_GUARDAR;
   r.archivo = await esperarArchivo(destino);
   if (r.archivo) {
+    const { PDFName } = await pdfLibMain();
     const doc = await PDFDocument.load(readFileSync(destino), { updateMetadata: false });
     r.anotacionesDespues = doc.getPages().reduce((n, p) => n + (p.node.Annots()?.size() ?? 0), 0);
+    r.sinAcroForm = !doc.catalog.has(PDFName.of('AcroForm'));
   }
-  r.ok = r.dialogo && r.archivo && r.anotacionesAntes > 0 && r.anotacionesDespues === 0;
+  r.ok = r.dialogo && r.archivo && r.anotacionesAntes > 0 && r.anotacionesDespues === 0 && r.sinAcroForm;
   return r;
 }
 
@@ -843,13 +866,13 @@ async function faseProteger({ ruta, preload, salida }) {
   const r = { dialogo: false, archivo: false, cifrado: null, conClave: null, sinClave: null };
   const { js } = abrirVentanaDePrueba({ ruta, preload, salida });
   await esperarEvento('primera-pagina', 10_000);
-  r.dialogo = await abrirYEjecutarHerramienta(js, 'proteger', { usuario: 'clave', propietario: 'dueño' });
+  r.dialogo = await abrirYEjecutarHerramienta(js, 'proteger', { usuario: '@clave', propietario: 'dueño' }); // «@» al principio no debe confundir a qpdf
   const destino = process.env.LIBERADOPDF_HUMO_GUARDAR;
   r.archivo = await esperarArchivo(destino);
   if (r.archivo) {
     r.cifrado = (await paginasDe(destino)).cifrado;
     const url = urlDeToken(registrarPdf(destino));
-    r.conClave = await js(`pdfjsLib.getDocument({ url: ${JSON.stringify(url)}, password: 'clave' }).promise.then(d => d.numPages)`);
+    r.conClave = await js(`pdfjsLib.getDocument({ url: ${JSON.stringify(url)}, password: '@clave' }).promise.then(d => d.numPages)`);
     r.sinClave = await js(`pdfjsLib.getDocument({ url: ${JSON.stringify(url)} }).promise.then(() => 'abrió', e => e.name)`);
   }
   r.ok = r.dialogo && r.archivo && r.cifrado === true && r.conClave === 4 && r.sinClave === 'PasswordException';

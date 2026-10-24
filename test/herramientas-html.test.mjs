@@ -17,3 +17,12 @@ test('nombreDeHtml: del host de la URL o del nombre del archivo, siempre .pdf', 
   assert.equal(nombreDeHtml('archivo', 'C:\\docs\\prueba.html'), 'prueba.pdf');
   assert.equal(nombreDeHtml('archivo', '/tmp/informe.htm'), 'informe.pdf');
 });
+
+test('urlPermitida acepta localhost con puerto e IPv6 entre corchetes', () => {
+  assert.equal(urlPermitida('localhost:8080'), 'http://localhost:8080/');
+  assert.equal(urlPermitida('localhost:8080/ruta'), 'http://localhost:8080/ruta');
+  assert.equal(urlPermitida('http://[::1]:3000/x'), 'http://[::1]:3000/x');
+  assert.equal(urlPermitida('[::1]:3000'), 'http://[::1]:3000/');
+  assert.equal(urlPermitida('192.168.1.5:8000'), 'http://192.168.1.5:8000/');
+  assert.equal(urlPermitida('ejemplo.cl:8443'), 'https://ejemplo.cl:8443/');
+});

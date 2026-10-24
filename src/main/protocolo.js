@@ -3,10 +3,12 @@ import { protocol } from 'electron';
 import { readFile } from 'node:fs/promises';
 import { randomBytes } from 'node:crypto';
 import { resolverRutaApp, mimeDe } from '../comun/rutas.mjs';
+import { crearRegistroDeTokens } from '../comun/tokens.mjs';
 
 export const ESQUEMA = 'liberadopdf';
 export const HOST = 'app';
-const pdfs = new Map(); // token → ruta en disco
+// token → ruta en disco; la misma ruta repite token y el registro se acota a los 500 más recientes.
+const pdfs = crearRegistroDeTokens({ maximo: 500, generar: () => randomBytes(16).toString('hex') });
 
 export function registrarEsquemaPrivilegiado() {
   protocol.registerSchemesAsPrivileged([
@@ -23,7 +25,7 @@ export function instalarProtocolo({ raices }) {
     const url = new URL(peticion.url);
     if (url.host !== HOST) return noEncontrado();
     if (url.pathname.startsWith('/pdf/')) {
-      const ruta = pdfs.get(url.pathname.slice('/pdf/'.length));
+      const ruta = pdfs.rutaDe(url.pathname.slice('/pdf/'.length));
       if (!ruta) return noEncontrado();
       try {
         const bytes = await readFile(ruta);
@@ -50,13 +52,11 @@ export function instalarProtocolo({ raices }) {
 }
 
 export function registrarPdf(ruta) {
-  const token = randomBytes(16).toString('hex');
-  pdfs.set(token, ruta);
-  return token;
+  return pdfs.registrar(ruta);
 }
 
 export function rutaDeToken(token) {
-  return pdfs.get(token);
+  return pdfs.rutaDe(token);
 }
 
 // Cualquier archivo que el usuario eligió con un diálogo (imágenes, otros PDF) se sirve igual, por token.

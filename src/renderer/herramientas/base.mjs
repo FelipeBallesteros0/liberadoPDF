@@ -6,7 +6,7 @@ import { analizarRangos } from '../comun/herramientas/rangos.mjs';
 // Última ejecución de cada herramienta (para la prueba de humo: demuestra que una cancelación asienta la promesa).
 const anotarEjecucion = (clave, estado) => { if (window.liberadopdfHerramientas) window.liberadopdfHerramientas.ultimaEjecucion = { clave, estado, cuando: Date.now() }; };
 
-export const MENSAJE_CIFRADO = 'Este PDF está cifrado: primero desbloquéalo (Herramientas ▸ Desbloquear).';
+export const MENSAJE_CIFRADO = 'Este PDF está cifrado: primero desbloquéalo (Herramientas ▸ Desbloquear). Si abrió sin pedir contraseña, deja la contraseña vacía.';
 
 export async function bytesDelDocumento() {
   const url = new URLSearchParams(location.search).get('file');
@@ -59,6 +59,9 @@ function crearCampo(campo, valores, totalPaginas) {
 }
 
 export function dialogoHerramienta({ clave, titulo, descripcion, campos = [], totalPaginas = 0, cuerpo = null, alEjecutar }) {
+  // Una sola instancia por herramienta: si ya está abierta, se trae al frente en vez de apilar otra.
+  const abierta = raizDeCapas().querySelector(`.liberadopdf-herramienta[data-herramienta="${clave}"]`);
+  if (abierta) { abierta.hidden = false; abierta.querySelector('input, select, button')?.focus(); return { cerrar: () => abierta.remove(), capa: abierta }; }
   const capa = document.createElement('div');
   capa.className = 'liberadopdf-dialogo liberadopdf-herramienta';
   capa.dataset.herramienta = clave;
@@ -96,12 +99,17 @@ export function dialogoHerramienta({ clave, titulo, descripcion, campos = [], to
   const leerValores = () => Object.fromEntries(Object.entries(valores).map(([k, f]) => [k, f()]));
 
   cancelar.addEventListener('click', cerrar);
-  capa.addEventListener('keydown', (ev) => { ev.stopPropagation(); if (ev.key === 'Escape') cerrar(); });
+  capa.addEventListener('keydown', (ev) => {
+    ev.stopPropagation();
+    if (ev.key === 'Escape') cerrar();
+    else if (ev.key === 'Enter' && !(ev.target instanceof HTMLButtonElement) && !(ev.target instanceof HTMLTextAreaElement) && !ejecutar.disabled) { ev.preventDefault(); ejecutar.click(); }
+  });
 
   ejecutar.addEventListener('click', async () => {
     if (resultado) { await guardar(); return; }
     const v = leerValores();
     for (const campo of campos) {
+      if (capa.querySelector(`[data-clave="${campo.clave}"]`)?.closest('.fila')?.hidden) continue; // un campo oculto no se valida
       if (campo.tipo === 'rangos') {
         const r = analizarRangos(v[campo.clave], totalPaginas);
         if (r.error) { avisar(r.error, true); return; }
@@ -150,6 +158,7 @@ export function dialogoHerramienta({ clave, titulo, descripcion, campos = [], to
     if (resultado.archivos) destino = await window.liberadopdf.guardarResultados({ archivos: resultado.archivos });
     else destino = await window.liberadopdf.guardarResultado({ nombre: resultado.nombre, bytes: resultado.bytes });
     if (!destino) return; // el usuario canceló el diálogo
+    if (typeof destino === 'object') { avisar(destino.error ?? 'No se pudo guardar', true); return; } // p. ej. el documento abierto
     mostrarToast(`Guardado en ${destino}`);
     const ofrecerAbrir = resultado.bytes && /\.pdf$/i.test(destino);
     cerrar();

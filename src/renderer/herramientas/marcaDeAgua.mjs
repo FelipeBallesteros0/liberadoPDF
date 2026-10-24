@@ -29,7 +29,7 @@ export function instalarMarcaDeAgua(H) {
       if (e) { imagen = e; elegir.textContent = e.nombre; }
     });
     cuerpo.append(etiqueta, elegir);
-    H.dialogoHerramienta({
+    const { capa } = H.dialogoHerramienta({
       clave: 'marcaDeAgua',
       titulo: 'Marca de agua',
       campos: [
@@ -59,5 +59,14 @@ export function instalarMarcaDeAgua(H) {
         return { nombre: nombreResultado(ruta, 'marca de agua'), bytes: salida, resumen: `${v.paginas.length} páginas marcadas` };
       },
     });
+    // Solo se muestran los campos del tipo elegido (texto: texto, tamaño, color; imagen: elegir imagen, escala).
+    const ajustarFilas = () => {
+      const tipo = capa.querySelector('[data-clave="tipo"]').value;
+      for (const clave of ['texto', 'tamano', 'color']) capa.querySelector(`[data-clave="${clave}"]`).closest('.fila').hidden = tipo !== 'texto';
+      capa.querySelector('[data-clave="escala"]').closest('.fila').hidden = tipo !== 'imagen';
+      cuerpo.hidden = tipo !== 'imagen';
+    };
+    capa.addEventListener('change', ajustarFilas);
+    ajustarFilas();
   });
 }

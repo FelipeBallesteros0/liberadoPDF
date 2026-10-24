@@ -22,3 +22,11 @@ test('resolver dentro de las raíces y rechazar escapes', () => {
   assert.equal(resolverRutaApp('/%2e%2e/%2e%2e/etc/passwd', raices), null);
   assert.equal(resolverRutaApp('/vendor/pdfjs/web/locale/es-ES/viewer.ftl', raices).mime, 'text/plain');
 });
+
+test('mismaRuta compara sin distinguir separadores ni mayúsculas en Windows', async () => {
+  const { mismaRuta } = await import('../src/comun/rutas.mjs');
+  assert.equal(mismaRuta('C:\\Docs\\a.pdf', 'c:/docs/A.PDF', 'win32'), true);
+  assert.equal(mismaRuta('C:\\Docs\\a.pdf', 'C:\\Docs\\b.pdf', 'win32'), false);
+  assert.equal(mismaRuta('/home/f/a.pdf', '/home/f/A.pdf', 'linux'), false);
+  assert.equal(mismaRuta('/home/f/./a.pdf', '/home/f/a.pdf', 'linux'), true);
+});

@@ -29,6 +29,15 @@ export function mimeDe(nombre) {
   return MIME[ext] ?? 'application/octet-stream';
 }
 
+// ¿Son el mismo archivo? En Windows no distingue mayúsculas ni separadores; en Linux solo normaliza la ruta.
+export function mismaRuta(a, b, plataforma = process.platform) {
+  if (typeof a !== 'string' || typeof b !== 'string') return false;
+  const normalizar = plataforma === 'win32'
+    ? r => path.win32.normalize(r.replace(/\//g, '\\')).toLowerCase()
+    : r => path.posix.normalize(r);
+  return normalizar(a) === normalizar(b);
+}
+
 // `raices` es una lista ordenada de { prefijo, carpeta }; gana la primera cuyo prefijo coincide.
 // Devuelve null si la ruta decodificada intenta salir de la carpeta.
 export function resolverRutaApp(pathname, raices) {
