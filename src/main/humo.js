@@ -865,6 +865,34 @@ async function faseReparar({ ruta, preload, salida }) {
   return r;
 }
 
+// OCR: el ejemplo escaneado (una imagen, sin texto) → el resultado tiene «LIBERADO» en su capa de texto; y cancelar
+// a los 300 ms sobre el ejemplo animado deja el diálogo en «Cancelado» y no escribe archivo.
+async function faseOcr({ ruta, preload, salida }) {
+  const r = { dialogo: false, archivo: false, textoAntes: null, texto: null, cancelado: null, archivoTrasCancelar: null, resumen: null };
+  const { js } = abrirVentanaDePrueba({ ruta, preload, salida });
+  await esperarEvento('primera-pagina', 10_000);
+  r.textoAntes = await js(`PDFViewerApplication.pdfDocument.getPage(1).then(p => p.getTextContent()).then(t => t.items.map(i => i.str).join(' '))`);
+  r.dialogo = await abrirYEjecutarHerramienta(js, 'ocr', { idioma: 'spa', ppp: '200' });
+  const destino = process.env.LIBERADOPDF_HUMO_GUARDAR;
+  r.archivo = await esperarArchivo(destino, 120_000);
+  if (r.archivo) r.texto = await textoDePagina(js, destino, 1);
+  else r.mensaje = await js(`document.querySelector('.liberadopdf-herramienta .mensaje')?.textContent ?? null`);
+  // Cancelación (Review Focus 3): sobre el ejemplo animado de 4 páginas, Cancelar a los 300 ms.
+  const animado = path.join(path.dirname(ruta), '..', '..', 'recursos', 'ejemplo_animado.pdf');
+  const { js: js2 } = abrirVentanaDePrueba({ ruta: existsSync(animado) ? animado : process.env.LIBERADOPDF_HUMO_ANIMADO, preload, salida });
+  await esperarEvento('primera-pagina', 10_000);
+  const destino2 = destino + '.cancelado.pdf';
+  process.env.LIBERADOPDF_HUMO_GUARDAR = destino2;
+  await abrirYEjecutarHerramienta(js2, 'ocr', { idioma: 'spa', ppp: '200' });
+  await espera(300);
+  await js2(`document.querySelector('.liberadopdf-herramienta .pie button').click()`, true); // Cancelar
+  await espera(4000);
+  r.cancelado = !(await js2(`Boolean(document.querySelector('.liberadopdf-herramienta'))`));
+  r.archivoTrasCancelar = existsSync(destino2);
+  r.ok = r.dialogo && r.archivo && r.textoAntes === '' && /LIBERADO/.test(r.texto ?? '') && r.cancelado && !r.archivoTrasCancelar;
+  return r;
+}
+
 // Cifrado: las herramientas rechazan un PDF cifrado con el mensaje acordado. Hasta que exista la operación
 // «proteger» (Tarea 8) no hay con qué generar el PDF cifrado: la fase queda pendiente y no cuenta.
 async function faseCifrado({ ruta, preload, salida }) {
@@ -882,7 +910,7 @@ async function faseCifrado({ ruta, preload, salida }) {
   return r;
 }
 
-const FASES = { proteger: faseProteger, desbloquear: faseDesbloquear, reparar: faseReparar, htmlAPdf: faseHtmlAPdf, aImagenes: faseAImagenes, deImagenes: faseDeImagenes, recortar: faseRecortar, metadatos: faseMetadatos, aplanar: faseAplanar, numerar: faseNumerar, marcaDeAgua: faseMarcaDeAgua, organizar: faseOrganizar, unir: faseUnir, dividir: faseDividir, rotar: faseRotar, cifrado: faseCifrado, herramientasBase: faseHerramientasBase, basica: faseBasica, bucle: faseBucle, inexistente: faseInexistente, presentacionAnimada: fasePresentacionAnimada, cierre: faseCierre, corrupto: faseCorrupto, ajustes: faseAjustes, nocturno: faseNocturno, instantanea: faseInstantanea, guardar: faseGuardar, transiciones: faseTransiciones, punteros: fasePunteros, cuadricula: faseCuadricula, medicion: faseMedicion, presentador: fasePresentador, notasDerecha: faseNotasDerecha };
+const FASES = { ocr: faseOcr, proteger: faseProteger, desbloquear: faseDesbloquear, reparar: faseReparar, htmlAPdf: faseHtmlAPdf, aImagenes: faseAImagenes, deImagenes: faseDeImagenes, recortar: faseRecortar, metadatos: faseMetadatos, aplanar: faseAplanar, numerar: faseNumerar, marcaDeAgua: faseMarcaDeAgua, organizar: faseOrganizar, unir: faseUnir, dividir: faseDividir, rotar: faseRotar, cifrado: faseCifrado, herramientasBase: faseHerramientasBase, basica: faseBasica, bucle: faseBucle, inexistente: faseInexistente, presentacionAnimada: fasePresentacionAnimada, cierre: faseCierre, corrupto: faseCorrupto, ajustes: faseAjustes, nocturno: faseNocturno, instantanea: faseInstantanea, guardar: faseGuardar, transiciones: faseTransiciones, punteros: fasePunteros, cuadricula: faseCuadricula, medicion: faseMedicion, presentador: fasePresentador, notasDerecha: faseNotasDerecha };
 
 export async function ejecutarHumo({ ruta, salida, fase, preload }) {
   mkdirSync(salida, { recursive: true });

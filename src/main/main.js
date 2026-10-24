@@ -19,6 +19,7 @@ const raices = [
   { prefijo: '/lib/pdf-lib/', carpeta: path.join(raiz, 'node_modules', 'pdf-lib', 'dist') }, // lectura de /Trans y herramientas
   { prefijo: '/lib/qpdf/', carpeta: path.join(raiz, 'node_modules', '@neslinesli93', 'qpdf-wasm', 'dist') },
   { prefijo: '/lib/tesseract/', carpeta: path.join(raiz, 'node_modules', 'tesseract.js', 'dist') },
+  { prefijo: '/lib/tesseract-core/worker.min.js', carpeta: path.join(raiz, 'node_modules', 'tesseract.js', 'dist', 'worker.min.js') }, // el worker junto al núcleo: así importScripts y el .wasm se resuelven en la misma carpeta
   { prefijo: '/lib/tesseract-core/', carpeta: path.join(raiz, 'node_modules', 'tesseract.js-core') },
   { prefijo: '/tessdata/', carpeta: path.join(raiz, 'recursos', 'tessdata') },
   { prefijo: '/', carpeta: path.join(raiz, 'src', 'renderer') },

@@ -14,6 +14,7 @@ import { instalarHtmlAPdf } from './htmlAPdf.mjs';
 import { instalarProteger } from './proteger.mjs';
 import { instalarDesbloquear } from './desbloquear.mjs';
 import { instalarReparar } from './reparar.mjs';
+import { instalarOcr } from './ocr.mjs';
 
 export function instalarHerramientas(H) {
   instalarUnir(H);
@@ -31,4 +32,5 @@ export function instalarHerramientas(H) {
   instalarProteger(H);
   instalarDesbloquear(H);
   instalarReparar(H);
+  instalarOcr(H);
 }

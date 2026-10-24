@@ -1,6 +1,7 @@
 // Web Worker de las herramientas: pdf-lib y qpdf corren aquí para no bloquear el visor.
 import { ajustarEnPagina, tamanoDePagina } from '../comun/herramientas/imagenes.mjs';
 import { reconstruirXref } from '../comun/herramientas/reparacion.mjs';
+import { tamanoDeFuente, textoWinAnsi } from '../comun/herramientas/ocr.mjs';
 import { textoDeNumero, posicionDeTexto, mosaicoDeMarca, colorHex, origenCentrado, aCoordenadasSinRotar, tamanoVisual } from '../comun/herramientas/estampar.mjs';
 // Protocolo: { id, operacion, argumentos } → mensajes { id, progreso } y al final { id, resultado } | { id, error } | { id, cancelado }.
 let pdfLib = null;
@@ -220,6 +221,28 @@ const operaciones = {
       pagina.drawImage(incrustada, { x: caja.x, y: caja.y, width: caja.ancho, height: caja.alto });
     }
     if (doc.getPageCount() === 0) throw new Error('Ninguna imagen se pudo incrustar');
+    return await doc.save();
+  },
+  // paginas: [{ numero, palabras: [{ texto, x, y, ancho, alto }] }] → texto invisible (opacidad 0) sobre cada palabra.
+  async ocrEscribir({ bytes, paginas }, { progreso, cancelado }) {
+    const { StandardFonts, rgb } = await cargarPdfLib();
+    const doc = await cargarDocumento(bytes);
+    const fuente = await doc.embedFont(StandardFonts.Helvetica);
+    const todas = doc.getPages();
+    let escritas = 0;
+    for (const [i, p] of paginas.entries()) {
+      if (cancelado()) return null;
+      progreso(i, paginas.length);
+      const pagina = todas[p.numero - 1];
+      if (!pagina) continue;
+      for (const w of p.palabras) {
+        const texto = textoWinAnsi(w.texto);
+        const size = tamanoDeFuente(w.ancho, fuente.widthOfTextAtSize(texto, 1));
+        pagina.drawText(texto, { x: w.x, y: w.y, size, font: fuente, color: rgb(0, 0, 0), opacity: 0 });
+        escritas++;
+      }
+    }
+    if (!escritas) throw new Error('No se reconoció ninguna palabra');
     return await doc.save();
   },
   // --- qpdf ---
