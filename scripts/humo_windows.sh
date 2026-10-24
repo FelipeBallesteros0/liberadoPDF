@@ -12,11 +12,15 @@ rm -rf "$SALIDA"; mkdir -p "$SALIDA"
 FASE="${1:-basica}"
 PDF="${2:-$PWD/recursos/ejemplo_animado.pdf}"
 PAGINA="${3:-2}"
+# El PDF se copia a la carpeta de salida (con un archivo de notas al lado para la fase del presentador).
+cp "$PDF" "$SALIDA/prueba.pdf"
+printf '## 2\nNota de la dos\n' > "$SALIDA/prueba.pdf.notas.txt"
 W_SALIDA="$(wslpath -w "$SALIDA")"
-W_PDF="$(wslpath -w "$PDF")"
+W_PDF="$(wslpath -w "$SALIDA/prueba.pdf")"
+W_GUARDAR="$(wslpath -w "$SALIDA/guardado.pdf")"
 W_EXE="$(wslpath -w "$PWD/$EXE")"
 LOTE="$SALIDA/lanzar.cmd"
-printf '@echo off\r\nset "LIBERADOPDF_HUMO=%s"\r\nset "LIBERADOPDF_HUMO_FASE=%s"\r\nset "LIBERADOPDF_HUMO_PAGINA=%s"\r\nset "LIBERADOPDF_PDF=%s"\r\n"%s"\r\n' "$W_SALIDA" "$FASE" "$PAGINA" "$W_PDF" "$W_EXE" > "$LOTE"
+printf '@echo off\r\nset "LIBERADOPDF_HUMO=%s"\r\nset "LIBERADOPDF_HUMO_FASE=%s"\r\nset "LIBERADOPDF_HUMO_PAGINA=%s"\r\nset "LIBERADOPDF_PDF=%s"\r\nset "LIBERADOPDF_HUMO_GUARDAR=%s"\r\n"%s"\r\n' "$W_SALIDA" "$FASE" "$PAGINA" "$W_PDF" "$W_GUARDAR" "$W_EXE" > "$LOTE"
 /mnt/c/Windows/System32/cmd.exe /c "$(wslpath -w "$LOTE")" >/dev/null 2>&1 || true
 for i in $(seq 1 60); do [ -f "$SALIDA/resultado.json" ] && break; sleep 1; done
 [ -f "$SALIDA/resultado.json" ] || { echo "Sin resultado.json tras 60 s" >&2; exit 1; }

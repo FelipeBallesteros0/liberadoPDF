@@ -39,6 +39,7 @@ if ! command -v wine >/dev/null 2>&1; then
   fi
 fi
 
+npx @electron/asar list "$DESTINO/resources/app.asar" | grep -q "pdf-lib.esm.min.js" || { echo "ERROR: pdf-lib no está en el paquete" >&2; exit 1; }
 cp recursos/ejemplo_animado.pdf README.md "$DESTINO/"
 rm -f "dist/${NOMBRE}-win32-x64.zip"
 python3 - "$DESTINO" "dist/${NOMBRE}-win32-x64.zip" <<'PY'
