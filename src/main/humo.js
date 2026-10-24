@@ -599,6 +599,34 @@ async function faseRotar({ ruta, preload, salida }) {
   return r;
 }
 
+// Organizar: plan [4, 1 rotada 90°, en blanco] por el worker → 3 páginas, la 2.ª /Rotate 90, la 3.ª sin contenido; y el diálogo con 4 celdas (+1 en blanco).
+async function faseOrganizar({ ruta, preload, salida }) {
+  const r = { dialogo: false, celdas: 0, celdasTrasBlanco: 0, paginas: 0, rotaciones: [], terceraEnBlanco: false, mismoTamano: false };
+  const { js } = abrirVentanaDePrueba({ ruta, preload, salida });
+  await esperarEvento('primera-pagina', 10_000);
+  await js(`window.liberadopdfAcciones.herramienta('organizar')`, true);
+  await espera(800);
+  r.dialogo = Boolean(await js(`document.querySelector('.liberadopdf-herramienta[data-herramienta="organizar"]')`));
+  r.celdas = Number(await js(`document.querySelectorAll('.rejilla-organizar .celda').length`));
+  await js(`document.querySelector('.liberadopdf-herramienta [data-accion="blanco"]').click()`, true);
+  r.celdasTrasBlanco = Number(await js(`document.querySelectorAll('.rejilla-organizar .celda').length`));
+  r.miniaturas = Number(await js(`document.querySelectorAll('.rejilla-organizar .marco img').length`));
+  const plan = [{ origen: 4, rotacion: 0 }, { origen: 1, rotacion: 90 }, { origen: null, rotacion: 0 }];
+  const bytes = await js(`window.liberadopdfHerramientas.bytesDelDocumento().then(b => window.liberadopdfHerramientas.ejecutar('organizar', { bytes: b, plan: ${JSON.stringify(plan)} })).then(b => Array.from(b))`);
+  const destino = path.join(salida, 'organizado.pdf');
+  writeFileSync(destino, Buffer.from(bytes));
+  const { PDFDocument } = await pdfLibMain();
+  const doc = await PDFDocument.load(readFileSync(destino), { updateMetadata: false });
+  r.paginas = doc.getPageCount();
+  r.rotaciones = doc.getPages().map(p => p.getRotation().angle);
+  const tercera = doc.getPage(2);
+  r.terceraEnBlanco = tercera.node.Contents() === undefined;
+  const t1 = doc.getPage(0).getSize(); const t3 = tercera.getSize();
+  r.mismoTamano = Math.abs(t1.width - t3.width) < 0.01 && Math.abs(t1.height - t3.height) < 0.01;
+  r.ok = r.dialogo && r.celdas === 4 && r.celdasTrasBlanco === 5 && r.miniaturas >= 4 && r.paginas === 3 && r.rotaciones[1] === 90 && r.rotaciones[0] === 0 && r.terceraEnBlanco && r.mismoTamano;
+  return r;
+}
+
 // Cifrado: las herramientas rechazan un PDF cifrado con el mensaje acordado. Hasta que exista la operación
 // «proteger» (Tarea 8) no hay con qué generar el PDF cifrado: la fase queda pendiente y no cuenta.
 async function faseCifrado({ ruta, preload, salida }) {
@@ -616,7 +644,7 @@ async function faseCifrado({ ruta, preload, salida }) {
   return r;
 }
 
-const FASES = { unir: faseUnir, dividir: faseDividir, rotar: faseRotar, cifrado: faseCifrado, herramientasBase: faseHerramientasBase, basica: faseBasica, bucle: faseBucle, inexistente: faseInexistente, presentacionAnimada: fasePresentacionAnimada, cierre: faseCierre, corrupto: faseCorrupto, ajustes: faseAjustes, nocturno: faseNocturno, instantanea: faseInstantanea, guardar: faseGuardar, transiciones: faseTransiciones, punteros: fasePunteros, cuadricula: faseCuadricula, medicion: faseMedicion, presentador: fasePresentador, notasDerecha: faseNotasDerecha };
+const FASES = { organizar: faseOrganizar, unir: faseUnir, dividir: faseDividir, rotar: faseRotar, cifrado: faseCifrado, herramientasBase: faseHerramientasBase, basica: faseBasica, bucle: faseBucle, inexistente: faseInexistente, presentacionAnimada: fasePresentacionAnimada, cierre: faseCierre, corrupto: faseCorrupto, ajustes: faseAjustes, nocturno: faseNocturno, instantanea: faseInstantanea, guardar: faseGuardar, transiciones: faseTransiciones, punteros: fasePunteros, cuadricula: faseCuadricula, medicion: faseMedicion, presentador: fasePresentador, notasDerecha: faseNotasDerecha };
 
 export async function ejecutarHumo({ ruta, salida, fase, preload }) {
   mkdirSync(salida, { recursive: true });

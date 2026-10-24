@@ -80,6 +80,29 @@ const operaciones = {
     }
     return partes;
   },
+  // plan: [{ origen: página 1-based | null (en blanco), rotacion }]. Cada página repetida se copia aparte
+  // (copyPages reutiliza el mismo objeto para un índice repetido en una misma llamada).
+  async organizar({ bytes, plan }, { progreso, cancelado }) {
+    const { PDFDocument, degrees } = await cargarPdfLib();
+    const doc = await cargarDocumento(bytes);
+    const salida = await PDFDocument.create();
+    const { width, height } = doc.getPage(0).getSize();
+    const unicos = [...new Set(plan.filter(p => p.origen !== null).map(p => p.origen - 1))];
+    const copias = new Map((await salida.copyPages(doc, unicos)).map((pagina, i) => [unicos[i], [pagina]]));
+    for (const [i, p] of plan.entries()) {
+      if (cancelado()) return null;
+      progreso(i, plan.length);
+      let pagina;
+      if (p.origen === null) pagina = salida.addPage([width, height]);
+      else {
+        const lista = copias.get(p.origen - 1);
+        pagina = lista.length ? lista.pop() : (await salida.copyPages(doc, [p.origen - 1]))[0];
+        salida.addPage(pagina);
+      }
+      if (p.rotacion) pagina.setRotation(degrees((pagina.getRotation().angle + p.rotacion) % 360));
+    }
+    return await salida.save();
+  },
   async rotar({ bytes, paginas, grados }, { progreso }) {
     const { degrees } = await cargarPdfLib();
     const doc = await cargarDocumento(bytes);

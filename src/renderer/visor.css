@@ -193,3 +193,12 @@
 .liberadopdf-toast-accion button:last-child { background: transparent; color: #ccc; font-size: 18px; }
 .liberadopdf-herramienta .aviso-partes { margin: 6px 0 0; font-size: 13px; color: #555; }
 .liberadopdf-herramienta .fila[hidden] { display: none; }
+.liberadopdf-herramienta .rejilla-organizar { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; max-height: 50vh; overflow: auto; padding: 4px; }
+.liberadopdf-herramienta .rejilla-organizar .celda { border: 1px solid #ccc; border-radius: 6px; padding: 6px; background: #fafafa; cursor: grab; }
+.liberadopdf-herramienta .rejilla-organizar .celda.destino { outline: 2px solid #0077b6; }
+.liberadopdf-herramienta .rejilla-organizar .marco { height: 100px; display: flex; align-items: center; justify-content: center; transition: transform 0.15s; }
+.liberadopdf-herramienta .rejilla-organizar .marco img { max-width: 100%; max-height: 100px; box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
+.liberadopdf-herramienta .rejilla-organizar .marco.blanco { border: 1px dashed #999; color: #777; font-size: 12px; background: #fff; }
+.liberadopdf-herramienta .rejilla-organizar .pie-celda { display: flex; align-items: center; gap: 2px; margin-top: 6px; font-size: 12px; }
+.liberadopdf-herramienta .rejilla-organizar .pie-celda span { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.liberadopdf-herramienta .rejilla-organizar .pie-celda button { padding: 0 5px; border: 1px solid #bbb; border-radius: 4px; background: #f6f6f6; font: inherit; cursor: pointer; }
