@@ -18,6 +18,10 @@ Nació para dar una charla con una presentación de Beamer que lleva un video in
 
 **Primer arranque en un PC nuevo**: Windows y el antivirus analizan el ejecutable la primera vez y puede tardar 10–20 s; después abre en menos de 2 s. Ábrelo una vez antes de la charla. Desde un pendrive USB 2.0 el primer arranque también es lento: conviene copiar la carpeta al disco.
 
+## Linux
+
+Hay un paquete portable para Linux x64 (`liberadoPDF-linux-x64.tar.gz`): descomprímelo y ejecuta `./liberadoPDF.sh`. El lanzador usa el sandbox de Chromium si el sistema lo permite (user namespaces sin privilegios, o `chrome-sandbox` con setuid root: `sudo chown root chrome-sandbox && sudo chmod 4755 chrome-sandbox`) y, si no, arranca sin sandbox avisándolo por la terminal. Los datos van en `data/` junto al programa, igual que en Windows. Para «Abrir con…» desde el escritorio, apunta a `liberadoPDF.sh`.
+
 ## Teclas
 
 | Tecla | Ventana | Presentación |
@@ -143,11 +147,12 @@ En Linux/WSLg Electron se lanza con `ELECTRON_DISABLE_SANDBOX=1` (lo ponen `npm 
 npm install
 npm test            # pruebas unitarias (node --test)
 npm run humo        # prueba de humo (39 fases): visor, presentación, presentador, idioma, video y una fase por herramienta; genera sus PDF de prueba
-npm run construir   # dist/liberadoPDF-win32-x64/ y dist/liberadoPDF-win32-x64.zip
+npm run construir   # dist/liberadoPDF-win32-x64(.zip) y dist/liberadoPDF-linux-x64(.tar.gz); scripts/construir.sh win32|linux para uno solo
 scripts/humo_windows.sh                                         # prueba de humo sobre el .exe, lanzado desde WSL
 scripts/humo_windows.sh presentacionAnimada "ruta/al/pdf" 11    # ¿la animación de la página 11 corre en presentación?
 scripts/humo_windows.sh guardar | cuadricula | presentador | cierre   # otras fases sobre el .exe
 scripts/humo_windows.sh unir | proteger | ocr | comprimir               # herramientas sobre el .exe
+scripts/humo_linux.sh basica | video | …                                # las mismas fases sobre el paquete de Linux
 ```
 
 El icono del `.exe` lo pone `wine` (si está instalado) o `rcedit-x64.exe` en `~/tools/rcedit/` ejecutado por interop de WSL ([electron/rcedit](https://github.com/electron/rcedit/releases)). Sin ninguno de los dos, el ejecutable queda con el icono por defecto de Electron.
@@ -166,7 +171,7 @@ El icono del `.exe` lo pone `wine` (si está instalado) o `rcedit-x64.exe` en `~
 
 - Herramientas 54–59 del plan: PDF ↔ Office (Word, Excel, PowerPoint), editar texto, redactar (tachar contenido), comparar PDF, PDF/A y escanear desde cámara.
 - Abrir «Herramientas ▸ Reparar» desde la pantalla de inicio (hoy hace falta tener un PDF abierto y elegir el archivo roto desde el diálogo).
-- Fuera de alcance: leer en voz alta, audio, video externo por URL, Flash y 3D, validación de firmas digitales, empaquetado para macOS y Linux.
+- Fuera de alcance: leer en voz alta, audio, video externo por URL, Flash y 3D, validación de firmas digitales, empaquetado para macOS.
 
 ## Licencia
 

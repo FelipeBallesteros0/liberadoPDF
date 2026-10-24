@@ -1,6 +1,6 @@
 # liberadoPDF
 
-Portable PDF viewer and presenter for Windows that plays the animations of the LaTeX `animate` package just like Adobe Acrobat Reader, plays the videos embedded in or linked from a PDF (without audio), and brings a **Tools** menu with 17 file operations (merge, split, OCR, compress…) that work offline, without installing anything. Inside it runs the pdf.js viewer, whose JavaScript sandbox executes the animations; liberadoPDF adds the presentation experience: full screen, keys and clickers, slides with steps, black screen, clock, auto-advance and recent files.
+Portable PDF viewer and presenter for Windows and Linux that plays the animations of the LaTeX `animate` package just like Adobe Acrobat Reader, plays the videos embedded in or linked from a PDF (without audio), and brings a **Tools** menu with 17 file operations (merge, split, OCR, compress…) that work offline, without installing anything. Inside it runs the pdf.js viewer, whose JavaScript sandbox executes the animations; liberadoPDF adds the presentation experience: full screen, keys and clickers, slides with steps, black screen, clock, auto-advance and recent files.
 
 *Español: véase [README.md](README.md).*
 
@@ -15,6 +15,10 @@ Portable PDF viewer and presenter for Windows that plays the animations of the L
 7. **Language**: the interface starts in English. Settings (`Ctrl+,`) ▸ "Language / Idioma" switches to Spanish; the app restarts by itself with the same document (pdf.js changes language too).
 
 **First start on a new PC**: Windows and the antivirus scan the executable the first time, which can take 10–20 s; afterwards it opens in under 2 s.
+
+## Linux
+
+There is a portable Linux x64 package (`liberadoPDF-linux-x64.tar.gz`): extract it and run `./liberadoPDF.sh`. The launcher uses Chromium's sandbox when the system allows it (unprivileged user namespaces, or `chrome-sandbox` with setuid root: `sudo chown root chrome-sandbox && sudo chmod 4755 chrome-sandbox`) and otherwise starts without it, saying so on the terminal. Data lives in `data/` next to the program, as on Windows.
 
 ## Keys
 
@@ -96,7 +100,7 @@ Requirements: Node 24, a display (WSLg) for the smoke test, Python 3 with Pillow
 npm install
 npm test            # unit tests (node --test)
 npm run humo        # smoke test (39 phases) under WSLg
-npm run construir   # dist/liberadoPDF-win32-x64/ and the .zip
+npm run construir   # dist/liberadoPDF-win32-x64(.zip) and dist/liberadoPDF-linux-x64(.tar.gz); scripts/construir.sh win32|linux for one
 scripts/humo_windows.sh [phase] [pdf] [page]   # smoke phases on the real .exe, launched from WSL
 ```
 

@@ -1,6 +1,6 @@
 {
   "name": "liberadopdf",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Visor y presentador de PDF que reproduce las animaciones del paquete animate",
   "main": "src/main/main.js",
   "type": "module",

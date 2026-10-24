@@ -2,14 +2,19 @@
 import { BrowserWindow, dialog, shell, session } from 'electron';
 import { rutaDeGuardadoComo } from '../comun/guardado.mjs';
 import { ESQUEMA, urlVisor, urlInicio } from './protocolo.js';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const ENLACE_EXTERNO = /^(https?:|mailto:)/i;
 
 let t = x => x;
 export function usarTraductor(fn) { t = fn; }
 
+const ICONO_LINUX = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', 'recursos', 'icono.png');
+
 export function crearVentana({ ruta, preload, mensaje, pagina = null }) {
   const win = new BrowserWindow({
+    ...(process.platform === 'linux' ? { icon: ICONO_LINUX } : {}), // en Windows el icono va en el .exe
     width: 1280,
     height: 800,
     title: 'liberadoPDF',
@@ -132,6 +137,7 @@ export function crearVentanaPresentador({ win, preload, pantalla }) {
     return win.liberadopdfPresentador;
   }
   const opciones = {
+    ...(process.platform === 'linux' ? { icon: ICONO_LINUX } : {}),
     width: 1100, height: 700, title: t('Vista de presentador · liberadoPDF'), autoHideMenuBar: true, backgroundColor: '#141414',
     webPreferences: { preload, contextIsolation: true, nodeIntegration: false, sandbox: true, backgroundThrottling: false },
   };
