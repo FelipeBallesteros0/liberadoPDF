@@ -422,7 +422,8 @@ async function faseMedicion({ ruta, preload, salida }) {
 }
 
 // Vista de presentador: segunda ventana con la lámina actual, la siguiente, y la nota de la lámina 2 tras avanzar.
-const NO_EN_BLANCO = `(sel) => { const c = document.querySelector(sel); if (!c || !c.width) return false; const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let n = 0; for (let i = 0; i < d.length; i += 4 * 97) { if (d[i] < 235 || d[i + 1] < 235 || d[i + 2] < 235) n++; } return n > 20; }`;
+// Un canvas «no en blanco» tiene al menos 30 píxeles no blancos en una muestra de uno de cada 7 (páginas con poco texto incluidas).
+const NO_EN_BLANCO = `(sel) => { const c = document.querySelector(sel); if (!c || !c.width) return false; const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let n = 0; for (let i = 0; i < d.length; i += 4 * 7) { if (d[i] < 235 || d[i + 1] < 235 || d[i + 2] < 235) n++; } return n > 30; }`;
 async function fasePresentador({ ruta, preload, salida }) {
   const r = { ventana: false, actual: false, notaVacia: false, nota2: null, siguiente: false, navegacion: false };
   const { win, js } = abrirVentanaDePrueba({ ruta, preload, salida });
@@ -436,7 +437,7 @@ async function fasePresentador({ ruta, preload, salida }) {
   r.actual = await jsP(`(${NO_EN_BLANCO})('.actual canvas')`);
   r.notaVacia = (await jsP('document.getElementById("nota").textContent')) === '';
   await js('PDFViewerApplication.page = 2');
-  await espera(900);
+  await espera(1500); // actual y siguiente se pintan en cola
   r.nota2 = await jsP('document.getElementById("nota").textContent');
   r.diag = await jsP(`(async () => { const ruta = new URLSearchParams(location.search).get('ruta'); const texto = await window.liberadopdf.leerNotas(ruta); return JSON.stringify({ ruta, texto, pie: document.getElementById('pie-actual').textContent, error: window.liberadopdfError ?? null }); })()`);
   r.siguiente = await jsP(`(${NO_EN_BLANCO})('.siguiente canvas')`);
