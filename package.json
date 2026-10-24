@@ -18,6 +18,8 @@
     "electron": "45.0.0"
   },
   "dependencies": {
-    "pdf-lib": "1.17.1"
+    "@neslinesli93/qpdf-wasm": "0.3.0",
+    "pdf-lib": "1.17.1",
+    "tesseract.js": "7.0.0"
   }
 }

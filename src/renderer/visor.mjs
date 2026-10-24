@@ -15,6 +15,8 @@ import { instalarPunteros } from '/punteros.mjs';
 import { crearMiniaturas } from '/miniaturas.mjs';
 import { instalarCuadricula } from '/cuadricula.mjs';
 import { instalarMedicion } from '/medicion.mjs';
+import { crearCliente } from '/herramientas/cliente.mjs';
+import { bytesDelDocumento, dialogoHerramienta } from '/herramientas/base.mjs';
 
 const app = window.PDFViewerApplication;
 const parametros = new URLSearchParams(location.search);
@@ -87,6 +89,21 @@ const miniaturas = crearMiniaturas({ app });
 const cuadricula = instalarCuadricula({ app, miniaturas, obtenerGrupos: () => grupos });
 const cierre = instalarCierre({ app });
 window.liberadopdfEstado.hayEdiciones = () => cierre.hayEdiciones();
+// Herramientas de archivo (entrega 3): cada una se registra con su clave del menú; el trabajo pesado va al worker.
+const clienteHerramientas = crearCliente();
+const herramientas = {};
+window.liberadopdfHerramientas = {
+  cliente: clienteHerramientas,
+  ejecutar: (operacion, argumentos, opciones) => clienteHerramientas.ejecutar(operacion, argumentos, opciones),
+  registrar: (clave, abrir) => { herramientas[clave] = abrir; },
+  bytesDelDocumento,
+  dialogoHerramienta,
+  contexto: () => ({ app, ruta, nombre, obtenerConfig, totalPaginas: app.pagesCount }),
+};
+const abrirHerramienta = (clave) => {
+  if (herramientas[clave]) { herramientas[clave](window.liberadopdfHerramientas.contexto()); return; }
+  mostrarToast(`Herramienta «${clave}»: próximamente`);
+};
 const barra = instalarBarra({ config, app, guardar: parcial => window.liberadopdf.guardarConfig(parcial) });
 // Aplicación en vivo de la configuración (ajustes, nocturno…)
 const aplicarTema = (tema) => { document.documentElement.style.colorScheme = tema === 'claro' ? 'light' : tema === 'oscuro' ? 'dark' : ''; };
@@ -176,7 +193,7 @@ window.addEventListener('drop', (ev) => {
   const rutaSoltada = window.liberadopdf.rutaDeArchivo(archivo);
   if (/\.pdf$/i.test(rutaSoltada)) window.liberadopdf.abrirEnEstaVentana(rutaSoltada);
 }, { capture: true });
-window.liberadopdfAcciones = { presentacion: acciones.presentacion, ayuda: acciones.ayuda, personalizarBarra: () => barra.abrirDialogo(), ajustes: acciones.ajustes, instantanea: acciones.instantanea, guardar: acciones.guardar, guardarComo: acciones.guardarComo, cuadricula: acciones.cuadricula, medirDistancia: acciones.medirDistancia, medirArea: acciones.medirArea, calibrar: acciones.calibrar, presentador: acciones.presentador, siguiente: acciones.siguiente, anterior: acciones.anterior, enviarEstado };
+window.liberadopdfAcciones = { presentacion: acciones.presentacion, ayuda: acciones.ayuda, personalizarBarra: () => barra.abrirDialogo(), ajustes: acciones.ajustes, instantanea: acciones.instantanea, guardar: acciones.guardar, guardarComo: acciones.guardarComo, cuadricula: acciones.cuadricula, medirDistancia: acciones.medirDistancia, medirArea: acciones.medirArea, calibrar: acciones.calibrar, presentador: acciones.presentador, siguiente: acciones.siguiente, anterior: acciones.anterior, enviarEstado, herramienta: abrirHerramienta };
 
 const ponerTitulo = () => { document.title = nombre ? `${nombre} · liberadoPDF` : 'liberadoPDF'; };
 const alCargar = async () => {

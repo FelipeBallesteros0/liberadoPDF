@@ -1,7 +1,7 @@
 // Modo humo: lanza una fase de comprobación sobre el PDF indicado y escribe resultado.json.
 // Fases: basica (primera página, animación, teclas, presentación, contador, pantalla negra),
 //        bucle (avance automático con bucle, con LIBERADOPDF_CONFIG_PRUEBA).
-import { app, BrowserWindow, clipboard, screen, nativeImage } from 'electron';
+import { app, BrowserWindow, clipboard, screen, nativeImage, Menu } from 'electron';
 import { mkdirSync, writeFileSync, readFileSync, existsSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { crearVentana } from './ventanas.js';
@@ -515,7 +515,20 @@ async function faseNotasDerecha({ ruta, preload, salida }) {
   return r;
 }
 
-const FASES = { basica: faseBasica, bucle: faseBucle, inexistente: faseInexistente, presentacionAnimada: fasePresentacionAnimada, cierre: faseCierre, corrupto: faseCorrupto, ajustes: faseAjustes, nocturno: faseNocturno, instantanea: faseInstantanea, guardar: faseGuardar, transiciones: faseTransiciones, punteros: fasePunteros, cuadricula: faseCuadricula, medicion: faseMedicion, presentador: fasePresentador, notasDerecha: faseNotasDerecha };
+// Herramientas: el worker responde (eco) y lee el documento con pdf-lib (cargar).
+async function faseHerramientasBase({ ruta, preload, salida }) {
+  const r = { eco: null, cargar: null, qpdf: null, menu: false };
+  const { js } = abrirVentanaDePrueba({ ruta, preload, salida });
+  await esperarEvento('primera-pagina', 10_000);
+  r.eco = await js(`window.liberadopdfHerramientas.ejecutar('eco', { texto: 'hola' })`);
+  r.cargar = JSON.parse(await js(`window.liberadopdfHerramientas.bytesDelDocumento().then(bytes => window.liberadopdfHerramientas.ejecutar('cargar', { bytes })).then(JSON.stringify)`));
+  r.qpdf = await js(`window.liberadopdfHerramientas.ejecutar('qpdfVersion')`);
+  r.menu = Boolean(Menu.getApplicationMenu()?.items.find(i => i.label === 'Herramientas')?.submenu?.items.length >= 17);
+  r.ok = r.eco === 'hola' && r.cargar?.paginas === 4 && r.cargar?.cifrado === false && r.menu && / version \d+\.\d+/.test(r.qpdf) // qpdf-wasm ignora thisProgram en el navegador: imprime «this.program version …»;
+  return r;
+}
+
+const FASES = { herramientasBase: faseHerramientasBase, basica: faseBasica, bucle: faseBucle, inexistente: faseInexistente, presentacionAnimada: fasePresentacionAnimada, cierre: faseCierre, corrupto: faseCorrupto, ajustes: faseAjustes, nocturno: faseNocturno, instantanea: faseInstantanea, guardar: faseGuardar, transiciones: faseTransiciones, punteros: fasePunteros, cuadricula: faseCuadricula, medicion: faseMedicion, presentador: fasePresentador, notasDerecha: faseNotasDerecha };
 
 export async function ejecutarHumo({ ruta, salida, fase, preload }) {
   mkdirSync(salida, { recursive: true });

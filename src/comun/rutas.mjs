@@ -15,6 +15,11 @@ const MIME = {
   gif: 'image/gif',
   wasm: 'application/wasm',
   pdf: 'application/pdf',
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  webp: 'image/webp',
+  bmp: 'image/bmp',
+  traineddata: 'application/octet-stream',
 };
 
 export function mimeDe(nombre) {

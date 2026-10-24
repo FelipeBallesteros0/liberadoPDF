@@ -16,7 +16,11 @@ const preload = path.join(raiz, 'src', 'preload', 'preload.cjs');
 const raices = [
   { prefijo: '/vendor/pdfjs/', carpeta: path.join(raiz, 'vendor', 'pdfjs') },
   { prefijo: '/comun/', carpeta: path.join(raiz, 'src', 'comun') }, // lógica pura compartida con el renderer
-  { prefijo: '/lib/pdf-lib/', carpeta: path.join(raiz, 'node_modules', 'pdf-lib', 'dist') }, // lectura de /Trans
+  { prefijo: '/lib/pdf-lib/', carpeta: path.join(raiz, 'node_modules', 'pdf-lib', 'dist') }, // lectura de /Trans y herramientas
+  { prefijo: '/lib/qpdf/', carpeta: path.join(raiz, 'node_modules', '@neslinesli93', 'qpdf-wasm', 'dist') },
+  { prefijo: '/lib/tesseract/', carpeta: path.join(raiz, 'node_modules', 'tesseract.js', 'dist') },
+  { prefijo: '/lib/tesseract-core/', carpeta: path.join(raiz, 'node_modules', 'tesseract.js-core') },
+  { prefijo: '/tessdata/', carpeta: path.join(raiz, 'recursos', 'tessdata') },
   { prefijo: '/', carpeta: path.join(raiz, 'src', 'renderer') },
 ];
 
@@ -73,6 +77,7 @@ if (!process.env.LIBERADOPDF_HUMO && !app.requestSingleInstanceLock()) {
     alReciente: ruta => { const destino = ventanaActiva(); destino ? abrirEnVentana(destino, ruta) : abrirNueva(ruta); },
     alVaciarRecientes: () => { guardar({ ...obtenerConfigBase(), recientes: [] }); menu(); },
     alAccion: (win, nombre) => { (win ?? ventanaActiva())?.webContents.executeJavaScript(`window.liberadopdfAcciones?.${nombre}?.()`, true); },
+    alHerramienta: (win, clave) => { (win ?? ventanaActiva())?.webContents.executeJavaScript(`window.liberadopdfAcciones?.herramienta?.(${JSON.stringify(clave)})`, true); },
   });
 
   app.whenReady().then(() => {

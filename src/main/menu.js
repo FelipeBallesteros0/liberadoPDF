@@ -3,7 +3,17 @@ import { Menu, app, dialog } from 'electron';
 
 const VERSION_PDFJS = '6.4.299';
 
-export function construirMenu({ recientes, alAbrir, alAbrirNueva, alReciente, alVaciarRecientes, alAccion }) {
+// Herramientas de archivo (entrega 3): clave que recibe el renderer y texto del menú.
+export const HERRAMIENTAS = [
+  ['unir', 'Unir PDF…'], ['dividir', 'Dividir o extraer páginas…'], ['organizar', 'Organizar páginas…'], ['rotar', 'Rotar páginas…'],
+  ['numerar', 'Números de página…'], ['marcaDeAgua', 'Marca de agua…'], ['recortar', 'Recortar páginas…'],
+  ['aImagenes', 'PDF a imágenes…'], ['deImagenes', 'Imágenes a PDF…'], ['htmlAPdf', 'Página web o HTML a PDF…'],
+  ['aplanar', 'Aplanar formularios y anotaciones…'], ['metadatos', 'Metadatos…'],
+  ['proteger', 'Proteger con contraseña…'], ['desbloquear', 'Desbloquear PDF…'], ['reparar', 'Reparar PDF…'],
+  ['ocr', 'OCR (texto en PDF escaneado)…'], ['comprimir', 'Comprimir…'],
+];
+
+export function construirMenu({ recientes, alAbrir, alAbrirNueva, alReciente, alVaciarRecientes, alAccion, alHerramienta = () => {} }) {
   const submenuRecientes = recientes.map(r => ({ label: r.nombre, sublabel: r.ruta, click: () => alReciente(r.ruta) }));
   const plantilla = [
     {
@@ -40,6 +50,10 @@ export function construirMenu({ recientes, alAbrir, alAbrirNueva, alReciente, al
         { label: 'Calibrar escala…', click: (item, win) => alAccion(win, 'calibrar') },
         { label: 'Ajustes…', accelerator: 'CmdOrCtrl+,', registerAccelerator: false, click: (item, win) => alAccion(win, 'ajustes') },
       ],
+    },
+    {
+      label: 'Herramientas',
+      submenu: HERRAMIENTAS.map(([clave, etiqueta]) => ({ label: etiqueta, click: (item, win) => alHerramienta(win, clave) })),
     },
     {
       label: 'Ayuda',

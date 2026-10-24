@@ -9,6 +9,8 @@ test('mime por extensión', () => {
   assert.equal(mimeDe('viewer.mjs'), 'text/javascript');
   assert.equal(mimeDe('a.pdf'), 'application/pdf');
   assert.equal(mimeDe('x.bcmap'), 'application/octet-stream');
+  assert.equal(mimeDe('foto.JPG'), 'image/jpeg'); // imágenes a PDF se sirven por token
+  assert.equal(mimeDe('foto.webp'), 'image/webp');
   assert.equal(mimeDe('sinextension'), 'application/octet-stream');
 });
 

@@ -1,10 +1,11 @@
 // Canales IPC entre el renderer (preload) y el proceso principal.
 import { ipcMain, dialog, shell, BrowserWindow, screen, clipboard, ClipboardItem } from 'electron';
 import { EventEmitter } from 'node:events';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { agregarReciente, fusionarConfigGuardada } from '../comun/config.mjs';
 import { abrirEnVentana, abrirInicioEnVentana, crearVentanaPresentador } from './ventanas.js';
+import { registrarArchivo, urlDeToken } from './protocolo.js';
 import { errorDeRutaPdf } from '../comun/argumentos.mjs';
 import { elegirPantallas } from '../comun/pantallas.mjs';
 
@@ -78,6 +79,64 @@ export function instalarIpc({ obtenerConfig, obtenerConfigBase = obtenerConfig, 
     if (typeof rutaPdf !== 'string' || !/\.pdf$/i.test(rutaPdf)) return '';
     try { return readFileSync(rutaPdf + '.notas.txt', 'utf8'); } catch { return ''; }
   });
+  // Herramientas: archivos de entrada (servidos por token) y resultados (siempre a un archivo o carpeta nuevos).
+  const FILTROS = {
+    pdf: [{ name: 'PDF', extensions: ['pdf'] }],
+    imagenes: [{ name: 'Imágenes', extensions: ['png', 'jpg', 'jpeg', 'webp', 'bmp', 'gif'] }],
+    html: [{ name: 'HTML', extensions: ['html', 'htm'] }],
+  };
+  ipcMain.handle('elegir-archivos', async (evento, { filtros = 'pdf', varios = true } = {}) => {
+    const { canceled, filePaths } = await dialog.showOpenDialog(ventanaDe(evento), {
+      title: 'Elegir archivos', filters: FILTROS[filtros] ?? FILTROS.pdf, properties: varios ? ['openFile', 'multiSelections'] : ['openFile'],
+    });
+    if (canceled) return [];
+    return filePaths.map(ruta => ({ ruta, nombre: path.basename(ruta), url: urlDeToken(registrarArchivo(ruta)) }));
+  });
+  ipcMain.handle('elegir-carpeta', async (evento) => {
+    const { canceled, filePaths } = await dialog.showOpenDialog(ventanaDe(evento), { title: 'Elegir carpeta', properties: ['openDirectory', 'createDirectory'] });
+    return canceled || !filePaths.length ? null : filePaths[0];
+  });
+  const carpetaDelDocumento = win => (win?.liberadopdfRuta ? path.dirname(win.liberadopdfRuta) : undefined);
+  const nombreSeguro = nombre => path.basename(String(nombre)).replace(/[<>:"/\\|?*\x00-\x1f]/g, '_') || 'resultado';
+  ipcMain.handle('guardar-resultado', async (evento, { nombre, bytes }) => {
+    const win = ventanaDe(evento);
+    if (!(bytes instanceof Uint8Array) || typeof nombre !== 'string') return null;
+    const propuesto = nombreSeguro(nombre);
+    let destino = process.env.LIBERADOPDF_HUMO ? process.env.LIBERADOPDF_HUMO_GUARDAR : null;
+    if (!destino) {
+      const carpeta = carpetaDelDocumento(win);
+      const ext = propuesto.includes('.') ? propuesto.split('.').pop() : '';
+      const { canceled, filePath } = await dialog.showSaveDialog(win, {
+        title: 'Guardar resultado', defaultPath: carpeta ? path.join(carpeta, propuesto) : propuesto,
+        filters: ext ? [{ name: ext.toUpperCase(), extensions: [ext] }] : [],
+      });
+      if (canceled || !filePath) return null;
+      destino = filePath;
+    }
+    mkdirSync(path.dirname(destino), { recursive: true });
+    writeFileSync(destino, Buffer.from(bytes));
+    return destino;
+  });
+  ipcMain.handle('guardar-resultados', async (evento, { archivos }) => {
+    const win = ventanaDe(evento);
+    if (!Array.isArray(archivos)) return null;
+    let carpeta = process.env.LIBERADOPDF_HUMO ? process.env.LIBERADOPDF_HUMO_CARPETA : null;
+    if (!carpeta) {
+      const { canceled, filePaths } = await dialog.showOpenDialog(win, { title: 'Carpeta para los resultados', defaultPath: carpetaDelDocumento(win), properties: ['openDirectory', 'createDirectory'] });
+      if (canceled || !filePaths.length) return null;
+      carpeta = filePaths[0];
+    }
+    mkdirSync(carpeta, { recursive: true });
+    for (const { nombre, bytes } of archivos) {
+      if (!(bytes instanceof Uint8Array) || typeof nombre !== 'string') continue;
+      const base = nombreSeguro(nombre);
+      let destino = path.join(carpeta, base);
+      for (let n = 2; existsSync(destino); n++) destino = path.join(carpeta, base.replace(/(\.[^.]+)?$/, ` (${n})$1`)); // nunca sobrescribir
+      writeFileSync(destino, Buffer.from(bytes));
+    }
+    return carpeta;
+  });
+  ipcMain.handle('abrir-resultado', (evento, ruta) => { if (!errorDeRutaPdf(ruta, existsSync)) abrirEnNueva(ruta); });
   // La pantalla de inicio con un mensaje (p. ej. PDF corrupto detectado por pdf.js en el renderer).
   ipcMain.handle('abrir-inicio', (evento, mensaje) => { abrirInicioEnVentana(ventanaDe(evento), String(mensaje ?? '').slice(0, 300)); });
   ipcMain.handle('recientes', () => obtenerConfig().recientes.filter(r => existsSync(r.ruta)));

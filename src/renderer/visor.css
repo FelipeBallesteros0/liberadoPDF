@@ -173,3 +173,21 @@
 
 /* Notas de Beamer a la derecha (pgfpages): en presentación solo se ve la mitad izquierda, ampliada al doble */
 #viewerContainer.pdfPresentationMode.liberadopdf-notas-derecha .pdfViewer .page { clip-path: inset(0 50% 0 0); transform: translateX(var(--liberadopdf-notas-dx, 0px)) scale(var(--liberadopdf-notas-escala, 2)); transform-origin: 0 50%; }
+
+/* Herramientas */
+.liberadopdf-herramienta .fila { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 5px 0; cursor: default; }
+.liberadopdf-herramienta .fila span { flex: 1; }
+.liberadopdf-herramienta input[type="text"], .liberadopdf-herramienta input[type="password"] { width: 260px; }
+.liberadopdf-herramienta input[type="number"] { width: 90px; }
+.liberadopdf-herramienta .progreso { margin-top: 12px; }
+.liberadopdf-herramienta .progreso .barra { height: 8px; width: 0; border-radius: 4px; background: #0077b6; transition: width 0.2s; }
+.liberadopdf-herramienta .progreso span { display: block; margin-top: 4px; font-size: 13px; color: #555; }
+.liberadopdf-herramienta .mensaje { margin: 10px 0 0; padding: 8px 10px; border-radius: 6px; background: #eef7fc; }
+.liberadopdf-herramienta .mensaje.error { background: #fdecea; color: #7b1e12; }
+.liberadopdf-herramienta .lista { display: flex; flex-direction: column; gap: 4px; margin: 8px 0; max-height: 220px; overflow: auto; }
+.liberadopdf-herramienta .lista .elemento { display: flex; align-items: center; gap: 8px; padding: 4px 6px; border: 1px solid #ddd; border-radius: 6px; }
+.liberadopdf-herramienta .lista .elemento span { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.liberadopdf-herramienta .lista button, .liberadopdf-herramienta .botones button { padding: 2px 8px; border: 1px solid #bbb; border-radius: 4px; background: #f6f6f6; font: inherit; cursor: pointer; }
+.liberadopdf-toast-accion { pointer-events: auto; display: flex; gap: 10px; align-items: center; }
+.liberadopdf-toast-accion button { padding: 4px 10px; border: 0; border-radius: 6px; background: #0077b6; color: #fff; font: inherit; cursor: pointer; }
+.liberadopdf-toast-accion button:last-child { background: transparent; color: #ccc; font-size: 18px; }

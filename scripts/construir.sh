@@ -24,6 +24,7 @@ npx @electron/packager . "$NOMBRE" \
   --app-version="$VERSION" --app-copyright="MIT · liberadoPDF" \
   --ignore='^/(dist|test|docs|scripts|data|\.git|\.superpowers|\.gitignore)(/|$)' \
   --ignore='^/node_modules/@napi-rs(/|$)' \
+  --ignore='\.map$' \
   "${OPCIONES_ICONO[@]}"
 
 if ! command -v wine >/dev/null 2>&1; then
@@ -39,7 +40,9 @@ if ! command -v wine >/dev/null 2>&1; then
   fi
 fi
 
-npx @electron/asar list "$DESTINO/resources/app.asar" | grep -q "pdf-lib.esm.min.js" || { echo "ERROR: pdf-lib no está en el paquete" >&2; exit 1; }
+for ARCHIVO in pdf-lib.esm.min.js qpdf.wasm qpdf.js tesseract.js/dist/worker.min.js tesseract-core-simd-lstm.wasm.js spa.traineddata eng.traineddata; do
+  npx @electron/asar list "$DESTINO/resources/app.asar" | grep -q "$ARCHIVO" || { echo "ERROR: $ARCHIVO no está en el paquete" >&2; exit 1; }
+done
 cp recursos/ejemplo_animado.pdf README.md "$DESTINO/"
 rm -f "dist/${NOMBRE}-win32-x64.zip"
 python3 - "$DESTINO" "dist/${NOMBRE}-win32-x64.zip" <<'PY'
