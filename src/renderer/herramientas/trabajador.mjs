@@ -245,6 +245,55 @@ const operaciones = {
     if (!escritas) throw new Error('No se reconoció ninguna palabra');
     return await doc.save();
   },
+  // --- comprimir ---
+  // Imágenes del documento: JPEG con sus bytes tal cual; Flate ya decodificado a muestras. Las que son o tienen
+  // máscara se marcan para no tocarlas (recodificarlas como JPEG RGB rompería la transparencia).
+  async listarImagenes({ bytes }) {
+    const { PDFRawStream, PDFName, PDFRef, decodePDFRawStream } = await cargarPdfLib();
+    const doc = await cargarDocumento(bytes);
+    const nombre = v => (v instanceof PDFName ? v.decodeText() : v?.constructor?.name === 'PDFArray' && v.get(0) instanceof PDFName ? v.get(0).decodeText() : String(v ?? ''));
+    const imagenes = [];
+    const mascaras = new Set();
+    for (const [ref, obj] of doc.context.enumerateIndirectObjects()) {
+      if (!(obj instanceof PDFRawStream) || obj.dict.get(PDFName.of('Subtype')) !== PDFName.of('Image')) continue;
+      const d = obj.dict;
+      for (const clave of ['SMask', 'Mask']) { const m = d.get(PDFName.of(clave)); if (m instanceof PDFRef) mascaras.add(m.toString()); }
+      imagenes.push({ ref, obj });
+    }
+    const salida = [];
+    const transferir = [];
+    for (const { ref, obj } of imagenes) {
+      const d = obj.dict;
+      const filtro = nombre(d.get(PDFName.of('Filter')));
+      const espacioColor = nombre(d.get(PDFName.of('ColorSpace')));
+      const info = {
+        objeto: ref.objectNumber, generacion: ref.generationNumber, filtro,
+        ancho: Number(d.get(PDFName.of('Width'))?.asNumber?.() ?? 0), alto: Number(d.get(PDFName.of('Height'))?.asNumber?.() ?? 0),
+        bitsPorComponente: Number(d.get(PDFName.of('BitsPerComponent'))?.asNumber?.() ?? 0), espacioColor,
+        tieneMascara: mascaras.has(ref.toString()) || d.has(PDFName.of('SMask')) || d.has(PDFName.of('Mask')) || d.has(PDFName.of('Decode')),
+        bytes: null,
+      };
+      if (filtro === 'DCTDecode') info.bytes = obj.contents;
+      else if (filtro === 'FlateDecode') { try { info.bytes = decodePDFRawStream(obj).decode(); } catch { info.tieneMascara = true; info.bytes = new Uint8Array(0); } }
+      else info.bytes = new Uint8Array(0);
+      salida.push(info);
+    }
+    return salida;
+  },
+  // reemplazos: [{ objeto, generacion, jpeg, ancho, alto }] → el stream pasa a ser un JPEG RGB; luego qpdf recomprime.
+  async reemplazarImagenes({ bytes, reemplazos }, { progreso }) {
+    const { PDFRawStream, PDFRef } = await cargarPdfLib();
+    const doc = await cargarDocumento(bytes);
+    for (const r of reemplazos) {
+      const dict = doc.context.obj({ Type: 'XObject', Subtype: 'Image', Width: r.ancho, Height: r.alto, ColorSpace: 'DeviceRGB', BitsPerComponent: 8, Filter: 'DCTDecode', Length: r.jpeg.length });
+      doc.context.assign(PDFRef.of(r.objeto, r.generacion), PDFRawStream.of(dict, r.jpeg));
+    }
+    progreso(0, 1, 'Recomprimiendo con qpdf…');
+    const intermedio = await doc.save({ useObjectStreams: true });
+    const q = await qpdf(['--object-streams=generate', '--recompress-flate', '--compression-level=9', 'entrada.pdf', 'salida.pdf'], { entradas: { 'entrada.pdf': intermedio } });
+    const salida = q.codigo === 0 && q.bytes?.length ? q.bytes : intermedio; // si qpdf se queja, vale lo de pdf-lib
+    return { bytes: salida, avisos: q.avisos };
+  },
   // --- qpdf ---
   async proteger({ bytes, usuario, propietario, imprimir, copiar, modificar }, { progreso }) {
     progreso(0, 1, 'Cifrando…');

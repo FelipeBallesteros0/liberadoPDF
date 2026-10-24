@@ -893,6 +893,42 @@ async function faseOcr({ ruta, preload, salida }) {
   return r;
 }
 
+// Comprimir: ejemplo_fotos (dos JPEG 2000×1500) con calidad baja → menos de la mitad y 2 páginas; comprimir ese
+// resultado otra vez con calidad «alta» no reduce → mensaje y sin archivo; cancelar nada más empezar → sin archivo.
+async function faseComprimir({ ruta, preload, salida }) {
+  const r = { dialogo: false, archivo: false, antes: 0, despues: 0, paginas: 0, mensajeSegundaPasada: null, archivoSegundaPasada: null, cancelado: null, archivoTrasCancelar: null };
+  const { js } = abrirVentanaDePrueba({ ruta, preload, salida });
+  await esperarEvento('primera-pagina', 15_000);
+  r.antes = statSync(ruta).size;
+  r.dialogo = await abrirYEjecutarHerramienta(js, 'comprimir', { calidad: 'baja' });
+  const destino = process.env.LIBERADOPDF_HUMO_GUARDAR;
+  r.archivo = await esperarArchivo(destino, 90_000);
+  if (r.archivo) { r.despues = statSync(destino).size; r.paginas = (await paginasDe(destino)).paginas; }
+  else r.mensaje = await js(`document.querySelector('.liberadopdf-herramienta .mensaje')?.textContent ?? null`);
+  // No reducible: el propio resultado comprimido.
+  const { js: js2 } = abrirVentanaDePrueba({ ruta: destino, preload, salida });
+  await esperarEvento('primera-pagina', 10_000);
+  const destino2 = destino + '.segunda_pasada.pdf';
+  process.env.LIBERADOPDF_HUMO_GUARDAR = destino2;
+  await abrirYEjecutarHerramienta(js2, 'comprimir', { calidad: 'alta' }); // «alta» no reduce un JPEG ya pequeño ni una estructura ya recomprimida
+  for (let i = 0; i < 60 && !r.mensajeSegundaPasada; i++) { await espera(500); r.mensajeSegundaPasada = await js2(`document.querySelector('.liberadopdf-herramienta .mensaje:not([hidden])')?.textContent ?? null`); }
+  r.archivoSegundaPasada = existsSync(destino2);
+  // Cancelar: fotos otra vez; Ejecutar y Cancelar en el mismo tick (la segunda pasada tarda menos de 400 ms).
+  const { js: js3 } = abrirVentanaDePrueba({ ruta, preload, salida });
+  await esperarEvento('primera-pagina', 15_000);
+  const destino3 = destino + '.cancelado.pdf';
+  process.env.LIBERADOPDF_HUMO_GUARDAR = destino3;
+  await js3(`window.liberadopdfAcciones.herramienta('comprimir')`, true);
+  await espera(400);
+  r.dialogo3 = Boolean(await js3(`document.querySelector('.liberadopdf-herramienta[data-herramienta="comprimir"]')`));
+  await js3(`(d => { d.querySelector('[data-accion="ejecutar"]').click(); d.querySelector('.pie button').click(); })(document.querySelector('.liberadopdf-herramienta'))`, true);
+  await espera(6000);
+  r.cancelado = !(await js3(`Boolean(document.querySelector('.liberadopdf-herramienta'))`));
+  r.archivoTrasCancelar = existsSync(destino3);
+  r.ok = r.dialogo && r.archivo && r.despues < r.antes / 2 && r.paginas === 2 && /No se pudo reducir/.test(r.mensajeSegundaPasada ?? '') && !r.archivoSegundaPasada && r.dialogo3 && r.cancelado && !r.archivoTrasCancelar;
+  return r;
+}
+
 // Cifrado: las herramientas rechazan un PDF cifrado con el mensaje acordado. Hasta que exista la operación
 // «proteger» (Tarea 8) no hay con qué generar el PDF cifrado: la fase queda pendiente y no cuenta.
 async function faseCifrado({ ruta, preload, salida }) {
@@ -910,7 +946,7 @@ async function faseCifrado({ ruta, preload, salida }) {
   return r;
 }
 
-const FASES = { ocr: faseOcr, proteger: faseProteger, desbloquear: faseDesbloquear, reparar: faseReparar, htmlAPdf: faseHtmlAPdf, aImagenes: faseAImagenes, deImagenes: faseDeImagenes, recortar: faseRecortar, metadatos: faseMetadatos, aplanar: faseAplanar, numerar: faseNumerar, marcaDeAgua: faseMarcaDeAgua, organizar: faseOrganizar, unir: faseUnir, dividir: faseDividir, rotar: faseRotar, cifrado: faseCifrado, herramientasBase: faseHerramientasBase, basica: faseBasica, bucle: faseBucle, inexistente: faseInexistente, presentacionAnimada: fasePresentacionAnimada, cierre: faseCierre, corrupto: faseCorrupto, ajustes: faseAjustes, nocturno: faseNocturno, instantanea: faseInstantanea, guardar: faseGuardar, transiciones: faseTransiciones, punteros: fasePunteros, cuadricula: faseCuadricula, medicion: faseMedicion, presentador: fasePresentador, notasDerecha: faseNotasDerecha };
+const FASES = { comprimir: faseComprimir, ocr: faseOcr, proteger: faseProteger, desbloquear: faseDesbloquear, reparar: faseReparar, htmlAPdf: faseHtmlAPdf, aImagenes: faseAImagenes, deImagenes: faseDeImagenes, recortar: faseRecortar, metadatos: faseMetadatos, aplanar: faseAplanar, numerar: faseNumerar, marcaDeAgua: faseMarcaDeAgua, organizar: faseOrganizar, unir: faseUnir, dividir: faseDividir, rotar: faseRotar, cifrado: faseCifrado, herramientasBase: faseHerramientasBase, basica: faseBasica, bucle: faseBucle, inexistente: faseInexistente, presentacionAnimada: fasePresentacionAnimada, cierre: faseCierre, corrupto: faseCorrupto, ajustes: faseAjustes, nocturno: faseNocturno, instantanea: faseInstantanea, guardar: faseGuardar, transiciones: faseTransiciones, punteros: fasePunteros, cuadricula: faseCuadricula, medicion: faseMedicion, presentador: fasePresentador, notasDerecha: faseNotasDerecha };
 
 export async function ejecutarHumo({ ruta, salida, fase, preload }) {
   mkdirSync(salida, { recursive: true });

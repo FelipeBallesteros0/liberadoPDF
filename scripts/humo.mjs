@@ -68,6 +68,7 @@ const FASES = [
   { nombre: 'rotar', env: { LIBERADOPDF_HUMO_GUARDAR: path.join(carpetaHumo, 'rotar', 'rotado.pdf') } },
   { nombre: 'cifrado', env: {} },
   { nombre: 'organizar', env: {} },
+  { nombre: 'comprimir', env: { LIBERADOPDF_PDF: path.join(raiz, 'recursos', 'ejemplo_fotos.pdf'), LIBERADOPDF_HUMO_GUARDAR: path.join(carpetaHumo, 'comprimir', 'comprimido.pdf') } },
   { nombre: 'ocr', env: { LIBERADOPDF_PDF: path.join(raiz, 'recursos', 'ejemplo_escaneado.pdf'), LIBERADOPDF_HUMO_ANIMADO: path.join(raiz, 'recursos', 'ejemplo_animado.pdf'), LIBERADOPDF_HUMO_GUARDAR: path.join(carpetaHumo, 'ocr', 'ocr.pdf') } },
   { nombre: 'proteger', env: { LIBERADOPDF_HUMO_GUARDAR: path.join(carpetaHumo, 'proteger', 'protegido.pdf') } },
   { nombre: 'desbloquear', env: { LIBERADOPDF_PDF: cifradoPrueba, LIBERADOPDF_HUMO_GUARDAR: path.join(carpetaHumo, 'desbloquear', 'desbloqueado.pdf') } },

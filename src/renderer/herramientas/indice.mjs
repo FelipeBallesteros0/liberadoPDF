@@ -15,6 +15,7 @@ import { instalarProteger } from './proteger.mjs';
 import { instalarDesbloquear } from './desbloquear.mjs';
 import { instalarReparar } from './reparar.mjs';
 import { instalarOcr } from './ocr.mjs';
+import { instalarComprimir } from './comprimir.mjs';
 
 export function instalarHerramientas(H) {
   instalarUnir(H);
@@ -33,4 +34,5 @@ export function instalarHerramientas(H) {
   instalarDesbloquear(H);
   instalarReparar(H);
   instalarOcr(H);
+  instalarComprimir(H);
 }
