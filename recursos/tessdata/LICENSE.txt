@@ -1,0 +1,2 @@
+Datos de idioma de Tesseract OCR (tessdata_fast: spa, eng), Apache License 2.0.
+https://github.com/tesseract-ocr/tessdata_fast
