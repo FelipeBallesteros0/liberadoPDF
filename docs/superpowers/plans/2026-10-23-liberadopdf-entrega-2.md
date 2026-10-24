@@ -199,8 +199,8 @@ test('nombreSeguro', () => {
   assert.equal(nombreSeguro(''), 'documento.pdf');
 });
 test('rutaDeGuardadoComo añade (copia) en la misma carpeta', () => {
-  assert.equal(rutaDeGuardadoComo('C:\\\\Charlas\\\\inmoov.pdf'), 'C:\\\\Charlas\\\\inmoov (copia).pdf');
-  assert.equal(rutaDeGuardadoComo('/d/inmoov.PDF'), '/d/inmoov (copia).pdf');
+  assert.equal(rutaDeGuardadoComo('C:\\\\Charlas\\\\charla.pdf'), 'C:\\\\Charlas\\\\charla (copia).pdf');
+  assert.equal(rutaDeGuardadoComo('/d/charla.PDF'), '/d/charla (copia).pdf');
 });
 ```
 ```js
@@ -509,13 +509,13 @@ test('dos pantallas: presentación en la secundaria, presentador en la principal
 
 **Files:**
 - Modify: `README.md`, `scripts/construir.sh`, `scripts/humo_windows.sh`, `src/renderer/ayuda.mjs`
-- Test: `scripts/humo_windows.sh` en las fases `basica`, `cierre`, `guardar`, `cuadricula`, `presentador`, y `presentacionAnimada` con el PDF del congreso.
+- Test: `scripts/humo_windows.sh` en las fases `basica`, `cierre`, `guardar`, `cuadricula`, `presentador`, y `presentacionAnimada` con el PDF de la presentación real.
 
 **Interfaces:**
 - Produces: README con las funciones nuevas (teclas `N`, `G`/`Tab`, `L`/`S`/`D`/`C`, `Ctrl+,`, `Ctrl+S`, `Ctrl+Mayús+G`, `Ctrl+Mayús+S`, `Ctrl+Mayús+P`), el archivo de notas, la calibración de medidas, los monitores y la sección «Pendiente» reducida a 14, 23, 24, 28, 30 y macOS/Linux; `ayuda.mjs` con la tabla completa; `construir.sh` sin cambios de fondo (comprueba que `node_modules/pdf-lib` entra en el paquete: `npx asar list dist/…/resources/app.asar | grep pdf-lib.esm.min.js`).
 
 - [ ] **Step 1:** `scripts/humo_windows.sh` acepta las fases nuevas (ya es genérico); ejecutar `npm run construir`.
-- [ ] **Step 2:** En Windows: `scripts/humo_windows.sh basica`, `cierre`, `guardar`, `cuadricula`, `presentador`, y `presentacionAnimada "<PDF del congreso>" 11` → todos `ok: true` (la primera ejecución tras construir puede tardar por el antivirus; repetir).
+- [ ] **Step 2:** En Windows: `scripts/humo_windows.sh basica`, `cierre`, `guardar`, `cuadricula`, `presentador`, y `presentacionAnimada "<PDF de la presentación real>" 11` → todos `ok: true` (la primera ejecución tras construir puede tardar por el antivirus; repetir).
 - [ ] **Step 3:** README y ayuda; commit → `git commit -m "Entrega 2: README, ayuda de teclas y verificación en Windows"`.
 
 ---

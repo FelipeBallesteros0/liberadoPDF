@@ -4,7 +4,7 @@
 
 Visor y presentador de PDF para Windows, portable, que reproduce las animaciones del paquete LaTeX `animate` igual que Adobe Acrobat Reader y los videos incrustados o enlazados en el PDF (sin audio). Por dentro lleva el visor de pdf.js, cuyo sandbox de JavaScript ejecuta las animaciones; liberadoPDF le añade la experiencia de presentación: pantalla completa, teclas y clicker, láminas con pasos, pantalla en negro, reloj, avance automático y recientes.
 
-Nació para presentar un paper en IEEE ICA-ACCA 2026 cuya lámina 11 lleva un video incrustado con `animate`, que ningún visor instalado reproducía. Desde la entrega 3 trae además un menú «Herramientas» con 17 operaciones de archivo (unir, dividir, OCR, comprimir…) que funcionan sin conexión y sin instalar nada.
+Nació para dar una charla con una presentación de Beamer que lleva un video incrustado con `animate`, que ningún visor instalado reproducía. Desde la entrega 3 trae además un menú «Herramientas» con 17 operaciones de archivo (unir, dividir, OCR, comprimir…) que funcionan sin conexión y sin instalar nada.
 
 ## Uso
 
@@ -122,7 +122,7 @@ Con `ffmpeg -i original.mp4 -an -c:v libx264 -profile:v baseline -pix_fmt yuv420
   "barra": { "presentationMode": true },
   "idioma": "en",
   "video": { "autoarranque": true, "bucle": true },
-  "porDocumento": { "C:\\Charlas\\inmoov.pdf": { "notasDerecha": true, "calibracion": 1 } }
+  "porDocumento": { "C:\\Charlas\\charla.pdf": { "notasDerecha": true, "calibracion": 1 } }
 }
 ```
 

@@ -67,4 +67,4 @@
 
 ### Task 5: README, ayuda, empaquetado y Windows
 
-- [ ] `README.md` (idioma, video, cómo meter un video con Beamer: `\movie` o `media9`), `README.en.md`, ayuda F1 (fila de video), `construir.sh` (ignorar `video.mp4` no: es fixture de 50 KB, se queda), construir, `humo_windows.sh` en `idioma` y `video`, basica, presentacionAnimada con el PDF del congreso. Commit `"Entrega 4: documentación y verificación en Windows"`.
+- [ ] `README.md` (idioma, video, cómo meter un video con Beamer: `\movie` o `media9`), `README.en.md`, ayuda F1 (fila de video), `construir.sh` (ignorar `video.mp4` no: es fixture de 50 KB, se queda), construir, `humo_windows.sh` en `idioma` y `video`, basica, presentacionAnimada con el PDF de la presentación real. Commit `"Entrega 4: documentación y verificación en Windows"`.

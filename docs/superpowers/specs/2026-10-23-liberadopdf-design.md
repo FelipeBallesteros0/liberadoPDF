@@ -4,11 +4,11 @@ Fecha: 2026-10-23. Autor: Felipe Ballesteros con Claude. Estado: revisado por un
 
 ## 1. Intención
 
-liberadoPDF es un visor y presentador de PDF para Windows, portable (una carpeta con `liberadoPDF.exe` que corre desde un pendrive sin instalar nada), que reproduce las animaciones del paquete LaTeX `animate` igual que Adobe Acrobat Reader. Nace porque la presentación del paper InMoov para IEEE ICA-ACCA 2026 (Concepción, 9–11 de diciembre de 2026) lleva un video incrustado con `animate`, y ninguno de los visores instalados en el PC de Felipe (Chrome, SumatraPDF) ni, previsiblemente, el del congreso, lo reproduce.
+liberadoPDF es un visor y presentador de PDF para Windows, portable (una carpeta con `liberadoPDF.exe` que corre desde un pendrive sin instalar nada), que reproduce las animaciones del paquete LaTeX `animate` igual que Adobe Acrobat Reader. Nace porque una presentación de Beamer para una charla lleva un video incrustado con `animate`, y ninguno de los visores instalados en el PC de Felipe (Chrome, SumatraPDF) ni, previsiblemente, el del lugar de la charla, lo reproduce.
 
-**Por qué no basta con instalar Acrobat**: en el PC del congreso no se puede instalar nada, y Felipe quiere una herramienta propia, libre y reutilizable para sus charlas (Beamer) y las de su equipo.
+**Por qué no basta con instalar Acrobat**: en el PC donde se da la charla no se puede instalar nada, y Felipe quiere una herramienta propia, libre y reutilizable para sus charlas (Beamer) y las de su equipo.
 
-**Datos del PDF del congreso** (`Desktop\inmoov\presentacion_icaacca2026.pdf`, 5 MB, 14 páginas, Beamer Metropolis 16:9): la animación va en la página 11 (`\animategraphics[autoplay,loop,poster=96]{8}{...}{0}{171}`, 172 widgets ocultos más el widget `anm0` con acciones `/PO /PC /PV /PI /D /U`); todas las páginas traen `/Trans << /S /R >>`; `/PageMode /UseOutlines`; `/PageLabels` «0»…«12» (las dos últimas páginas comparten «12»); sin OCG. El repositorio público llevará un PDF de ejemplo pequeño generado con `animate`, no la presentación del congreso.
+**Datos del PDF de la presentación real** (`la presentación real`, 5 MB, 14 páginas, Beamer Metropolis 16:9): la animación va en la página 11 (`\animategraphics[autoplay,loop,poster=96]{8}{...}{0}{171}`, 172 widgets ocultos más el widget `anm0` con acciones `/PO /PC /PV /PI /D /U`); todas las páginas traen `/Trans << /S /R >>`; `/PageMode /UseOutlines`; `/PageLabels` «0»…«12» (las dos últimas páginas comparten «12»); sin OCG. El repositorio público llevará un PDF de ejemplo pequeño generado con `animate`, no la presentación de la charla.
 
 **Hecho verificado el 2026-10-23**: el visor genérico de pdf.js 6.4.299 cargado dentro de Electron 45 reproduce las animaciones de `animate` sin ningún código extra (su sandbox de JavaScript implementa `app.setInterval`, `getField`, `display`, y dispara las acciones de apertura y cierre de página). Por tanto, liberadoPDF no implementa un motor de animaciones ni de JavaScript: envuelve ese visor y le añade la experiencia de presentación y las funciones listadas abajo.
 
@@ -16,7 +16,7 @@ liberadoPDF es un visor y presentador de PDF para Windows, portable (una carpeta
 
 **Metas (éxito)**
 
-1. La presentación `presentacion_icaacca2026.pdf` corre a pantalla completa, en bucle, en un PC Windows 10/11 cualquiera, desde el pendrive, sin instalar nada, y se navega con flechas, PgUp/PgDn y clicker.
+1. La presentación la presentación real corre a pantalla completa, en bucle, en un PC Windows 10/11 cualquiera, desde el pendrive, sin instalar nada, y se navega con flechas, PgUp/PgDn y clicker.
 2. Abre un PDF en menos de 3 s en un portátil normal, medidos desde el doble clic en el ejecutable (en disco o en un pendrive USB 3) hasta que se ve la primera página. Desde un pendrive USB 2.0 el primer arranque de Electron (~200 MB) puede tardar más: el README lo advierte y recomienda copiar la carpeta al disco. La prueba de humo cronometra desde el lanzamiento hasta el primer `pagerendered`.
 3. Ofrece lo que trae Acrobat Reader gratuito para ver, navegar, presentar, rellenar y anotar (lista en §4), más herramientas de presentador que Acrobat no tiene.
 4. Código libre (MIT), en español, mantenible por Felipe sin Claude.
@@ -202,7 +202,7 @@ liberadoPDF/
 
 - Estructura exacta de `config.json`, nombres de canales IPC, estilo visual de los overlays (discretos, tipografía del sistema, acento azul `#0077B6`).
 - Cómo detectar si pdf.js necesita `sandbox: false` en el renderer y la forma concreta del protocolo `liberadopdf://`.
-- Orden de construcción, siempre que la primera entrega funcional sea: abrir PDF + presentación + animación + teclas + recientes + empaquetado Windows (eso es lo que Felipe necesita para el congreso); el resto se añade después, función por función, cada una con su prueba.
+- Orden de construcción, siempre que la primera entrega funcional sea: abrir PDF + presentación + animación + teclas + recientes + empaquetado Windows (eso es lo que Felipe necesita para la charla); el resto se añade después, función por función, cada una con su prueba.
 - Elegir cómo pintar cada transición exótica mientras respete la duración.
 - Decidir si la vista de presentador usa una segunda instancia del visor genérico o la API de pdfjs-dist (la API es la sugerida).
 

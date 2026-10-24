@@ -578,7 +578,7 @@ test('errores: inexistente y no PDF', () => {
 - [ ] **Step 1: Escribir `scripts/humo_windows.sh`** (la prueba) y ejecutarlo → FAIL (no existe `dist/`).
 - [ ] **Step 2: Implementar** `scripts/icono.py`, generar los iconos, escribir `scripts/construir.sh`, ejecutarlo.
 - [ ] **Step 3: Ejecutar `scripts/humo_windows.sh`** → `resultado.json` con `ok: true`, `msPrimeraPagina < 3000` (ejecutable en disco), `animacion: true`, `presentacion: true`. Abrir `t1.png`/`t2.png` generados en Windows y confirmar el cuadrado en dos ángulos.
-- [ ] **Step 4: Probar a mano en Windows** (Felipe o Claude por interop): doble clic en `liberadoPDF.exe` → inicio; «Abrir con…» sobre `presentacion_icaacca2026.pdf` → se abre; `F5` → pantalla completa; ir a la lámina 11 → el video se mueve en bucle; `PgDn`/`PgUp` cambian de lámina; `Esc` sale; `data/config.json` aparece junto al ejecutable con el reciente.
+- [ ] **Step 4: Probar a mano en Windows** (Felipe o Claude por interop): doble clic en `liberadoPDF.exe` → inicio; «Abrir con…» sobre la presentación real → se abre; `F5` → pantalla completa; ir a la lámina 11 → el video se mueve en bucle; `PgDn`/`PgUp` cambian de lámina; `Esc` sale; `data/config.json` aparece junto al ejecutable con el reciente.
 - [ ] **Step 5: Escribir `README.md`** y commit → `git add -A && git commit -m "Empaquetado portable para Windows, icono, prueba de humo en Windows y README"`.
 
 ---

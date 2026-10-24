@@ -82,7 +82,7 @@ import assert from 'node:assert/strict';
 import { nombreResultado, nombreParte, nombreImagen } from '../src/comun/herramientas/nombres.mjs';
 
 test('nombres de resultado', () => {
-  assert.equal(nombreResultado('C:\\Charlas\\inmoov.PDF', 'unido'), 'inmoov - unido.pdf');
+  assert.equal(nombreResultado('C:\Charlas\charla.PDF', 'unido'), 'charla - unido.pdf');
   assert.equal(nombreResultado('/d/charla.pdf', 'OCR'), 'charla - OCR.pdf');
   assert.equal(nombreParte('/d/charla.pdf', 2, 12), 'charla - parte 02.pdf');
   assert.equal(nombreParte('/d/charla.pdf', 3, 120), 'charla - parte 003.pdf');
@@ -252,7 +252,7 @@ test('nombres de resultado', () => {
 
 **Files:**
 - Modify: `README.md`, `src/renderer/ayuda.mjs`, `scripts/construir.sh`, `scripts/humo_windows.sh`
-- Test: `scripts/humo_windows.sh` en `basica`, `unir`, `proteger`, `ocr`, `comprimir` y `presentacionAnimada` con el PDF del congreso.
+- Test: `scripts/humo_windows.sh` en `basica`, `unir`, `proteger`, `ocr`, `comprimir` y `presentacionAnimada` con el PDF de la presentación real.
 
 - [ ] **Step 1:** `construir.sh` comprueba en el asar `qpdf.wasm`, `worker.min.js`, `tesseract-core-simd-lstm.wasm` y `spa.traineddata`; ignora `*.map` de node_modules. Construir.
 - [ ] **Step 2:** Windows: las fases indicadas `ok: true` (repetir tras el primer arranque).

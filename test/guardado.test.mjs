@@ -8,6 +8,6 @@ test('nombreSeguro', () => {
   assert.equal(nombreSeguro(''), 'documento.pdf');
 });
 test('rutaDeGuardadoComo añade (copia) en la misma carpeta', () => {
-  assert.equal(rutaDeGuardadoComo('C:\\Charlas\\inmoov.pdf'), 'C:\\Charlas\\inmoov (copia).pdf');
-  assert.equal(rutaDeGuardadoComo('/d/inmoov.PDF'), '/d/inmoov (copia).pdf');
+  assert.equal(rutaDeGuardadoComo('C:\\Charlas\\charla.pdf'), 'C:\\Charlas\\charla (copia).pdf');
+  assert.equal(rutaDeGuardadoComo('/d/charla.PDF'), '/d/charla (copia).pdf');
 });
