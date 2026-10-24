@@ -5,7 +5,8 @@ import { raizDeCapas } from './capas.mjs';
 
 const CURSOR_MS = 2000;
 
-export function instalarPresentacion({ app, config, acciones }) {
+export function instalarPresentacion({ app, obtenerConfig, acciones }) {
+  let config = obtenerConfig();
   const contenedor = document.getElementById('viewerContainer');
   const raiz = raizDeCapas();
   let pantalla = null;     // capa negra o blanca
@@ -102,8 +103,16 @@ export function instalarPresentacion({ app, config, acciones }) {
   // Doble clic en modo ventana: entrar en presentación.
   contenedor.addEventListener('dblclick', () => { if (modoActual() === 'ventana') acciones.presentacion(); });
 
+  const actualizarConfig = (nueva) => {
+    config = nueva;
+    contenedor.style.setProperty('--liberadopdf-fondo', config.presentacion.fondo);
+    contenedor.classList.toggle('liberadopdf-cursor-visible', !config.presentacion.ocultarCursor);
+    if (modoActual() === 'presentacion') { mostrarCursor(); reiniciarAvance(); }
+  };
+
   return {
     modoActual,
+    actualizarConfig,
     interceptor,
     negro: () => ponerPantalla('#000'),
     blanco: () => ponerPantalla('#fff'),

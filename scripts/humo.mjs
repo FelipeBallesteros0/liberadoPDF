@@ -21,6 +21,7 @@ const FASES = [
   { nombre: 'presentacionAnimada', env: { LIBERADOPDF_HUMO_PAGINA: '2' } },
   { nombre: 'cierre', env: {} },
   { nombre: 'corrupto', env: { LIBERADOPDF_PDF: path.join(salida, 'corrupto.pdf') } },
+  { nombre: 'ajustes', env: {} },
 ];
 writeFileSync(path.join(salida, 'corrupto.pdf'), 'esto no es un PDF\n');
 

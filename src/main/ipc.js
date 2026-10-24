@@ -1,5 +1,5 @@
 // Canales IPC entre el renderer (preload) y el proceso principal.
-import { ipcMain, dialog, shell, BrowserWindow } from 'electron';
+import { ipcMain, dialog, shell, BrowserWindow, screen } from 'electron';
 import { EventEmitter } from 'node:events';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
@@ -35,6 +35,14 @@ export function instalarIpc({ obtenerConfig, obtenerConfigBase = obtenerConfig, 
   ipcMain.handle('abrir-inicio', (evento, mensaje) => { abrirInicioEnVentana(ventanaDe(evento), String(mensaje ?? '').slice(0, 300)); });
   ipcMain.handle('recientes', () => obtenerConfig().recientes.filter(r => existsSync(r.ruta)));
   ipcMain.handle('config', () => obtenerConfig());
+  ipcMain.handle('pantallas', () => screen.getAllDisplays().map((d, i) => ({
+    id: d.id, etiqueta: d.label || `Pantalla ${i + 1}`, ancho: d.size.width, alto: d.size.height, principal: d.id === screen.getPrimaryDisplay().id,
+  })));
+  // El preload lo pide de forma síncrona antes de que arranque pdf.js (viewerCssTheme: 0 sistema, 1 claro, 2 oscuro).
+  ipcMain.on('tema-inicial', (evento) => {
+    const tema = obtenerConfig().tema;
+    evento.returnValue = tema === 'claro' ? 1 : tema === 'oscuro' ? 2 : 0;
+  });
   ipcMain.handle('guardar-config', (evento, parcial) => {
     const config = obtenerConfigBase();
     guardar({ ...config, ...parcial, presentacion: { ...config.presentacion, ...(parcial?.presentacion ?? {}) } });

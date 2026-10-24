@@ -12,6 +12,7 @@ export function accionDeTecla(ev, { modo, enEntrada, digitos = '' }) {
   if (ctrlKey && !altKey && !metaKey && !shiftKey) {
     if (minuscula === 'o') return { accion: 'abrir' };
     if (minuscula === 'n') return { accion: 'abrirNueva' };
+    if (key === ',') return { accion: 'ajustes' };
     return null;
   }
   if (altKey || metaKey || ctrlKey) return null;

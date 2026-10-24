@@ -5,8 +5,11 @@ const { contextBridge, ipcRenderer, webUtils } = require('electron');
 // Preferencias de pdf.js que deben estar fijadas antes de que el visor arranque.
 try {
   const actuales = JSON.parse(localStorage.getItem('pdfjs.preferences') || '{}');
+  let viewerCssTheme = 0;
+  try { viewerCssTheme = ipcRenderer.sendSync('tema-inicial'); } catch { viewerCssTheme = 0; }
   localStorage.setItem('pdfjs.preferences', JSON.stringify({
     ...actuales,
+    viewerCssTheme,
     enableScripting: true,
     enableXfa: true,
     enableComment: true,
@@ -23,6 +26,7 @@ contextBridge.exposeInMainWorld('liberadopdf', {
   abrirInicio: mensaje => ipcRenderer.invoke('abrir-inicio', mensaje),
   recientes: () => ipcRenderer.invoke('recientes'),
   config: () => ipcRenderer.invoke('config'),
+  pantallas: () => ipcRenderer.invoke('pantallas'),
   guardarConfig: parcial => ipcRenderer.invoke('guardar-config', parcial),
   abrirExterno: url => ipcRenderer.invoke('abrir-externo', url),
   rutaDeArchivo: archivo => webUtils.getPathForFile(archivo),

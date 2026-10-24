@@ -7,6 +7,7 @@ import { instalarContador } from '/contador.mjs';
 import { instalarPresentacion } from '/presentacion.mjs';
 import { instalarCierre } from '/cierre.mjs';
 import { instalarBarra } from '/barra.mjs';
+import { instalarAjustes } from '/ajustes.mjs';
 
 const app = window.PDFViewerApplication;
 const parametros = new URLSearchParams(location.search);
@@ -14,7 +15,8 @@ const ruta = parametros.get('ruta') ?? '';
 const nombre = ruta ? ruta.split(/[\\/]/).pop() : '';
 window.liberadopdfEstado = { ruta, nombre };
 
-const config = await window.liberadopdf.config();
+let config = await window.liberadopdf.config();
+const obtenerConfig = () => config;
 await app.initializedPromise;
 
 // Primera página pintada (para medir el arranque en la prueba de humo).
@@ -47,15 +49,26 @@ const acciones = {
   reloj() { presentacion.reloj(); },
   negro() { presentacion.negro(); },
   blanco() { presentacion.blanco(); },
-  nocturno() {}, // entrega 2
+  nocturno() {}, // Tarea 3
+  ajustes() { ajustes.abrir(); },
   async abrir() { const r = await window.liberadopdf.abrirDialogo(); if (r) window.liberadopdf.abrirEnEstaVentana(r); },
   async abrirNueva() { const r = await window.liberadopdf.abrirDialogo(); if (r) window.liberadopdf.abrirEnVentanaNueva(r); },
 };
-const presentacion = instalarPresentacion({ app, config, acciones });
+const presentacion = instalarPresentacion({ app, obtenerConfig, acciones });
 const { modoActual } = presentacion;
 const contador = instalarContador({ app, obtenerGrupos: () => grupos, modoActual });
 instalarCierre({ app });
 const barra = instalarBarra({ config, app, guardar: parcial => window.liberadopdf.guardarConfig(parcial) });
+// Aplicación en vivo de la configuración (ajustes, nocturno…)
+const aplicarTema = (tema) => { document.documentElement.style.colorScheme = tema === 'claro' ? 'light' : tema === 'oscuro' ? 'dark' : ''; };
+const aplicarConfig = (nueva) => {
+  config = nueva;
+  presentacion.actualizarConfig(nueva);
+  aplicarTema(nueva.tema);
+  window.liberadopdfAplicarExtra?.(nueva); // ganchos de módulos posteriores (nocturno)
+};
+const ajustes = instalarAjustes({ obtenerConfig, guardar: nueva => window.liberadopdf.guardarConfig(nueva), aplicar: aplicarConfig, pantallas: () => window.liberadopdf.pantallas() });
+aplicarTema(config.tema);
 instalarTeclas({ acciones, modoActual, interceptor: presentacion.interceptor });
 
 // Arrastrar un PDF sobre la ventana lo abre aquí (pdf.js no llega a ver el drop).
@@ -68,7 +81,7 @@ window.addEventListener('drop', (ev) => {
   const rutaSoltada = window.liberadopdf.rutaDeArchivo(archivo);
   if (/\.pdf$/i.test(rutaSoltada)) window.liberadopdf.abrirEnEstaVentana(rutaSoltada);
 }, { capture: true });
-window.liberadopdfAcciones = { presentacion: acciones.presentacion, ayuda: acciones.ayuda, personalizarBarra: () => barra.abrirDialogo() };
+window.liberadopdfAcciones = { presentacion: acciones.presentacion, ayuda: acciones.ayuda, personalizarBarra: () => barra.abrirDialogo(), ajustes: acciones.ajustes };
 
 const ponerTitulo = () => { document.title = nombre ? `${nombre} · liberadoPDF` : 'liberadoPDF'; };
 const alCargar = async () => {

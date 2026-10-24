@@ -2,7 +2,7 @@
 // Fases: basica (primera página, animación, teclas, presentación, contador, pantalla negra),
 //        bucle (avance automático con bucle, con LIBERADOPDF_CONFIG_PRUEBA).
 import { app, BrowserWindow } from 'electron';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { crearVentana } from './ventanas.js';
 import { eventosHumo } from './ipc.js';
@@ -216,7 +216,24 @@ async function faseCorrupto({ ruta, preload, salida }) {
   return r;
 }
 
-const FASES = { basica: faseBasica, bucle: faseBucle, inexistente: faseInexistente, presentacionAnimada: fasePresentacionAnimada, cierre: faseCierre, corrupto: faseCorrupto };
+// Ajustes: cambiar el color de fondo en el diálogo lo guarda en config.json y lo aplica en vivo.
+async function faseAjustes({ ruta, preload, salida }) {
+  const r = { dialogo: false, guardado: false, aplicado: false };
+  const { js } = abrirVentanaDePrueba({ ruta, preload, salida });
+  await esperarEvento('primera-pagina', 10_000);
+  await js('window.liberadopdfAcciones.ajustes()');
+  await espera(500);
+  r.dialogo = Boolean(await js('document.querySelector(".liberadopdf-ajustes")'));
+  await js(`(() => { const e = document.querySelector('.liberadopdf-ajustes input[type=color]'); e.value = '#102030'; e.dispatchEvent(new Event('change', { bubbles: true })); })()`);
+  await espera(600);
+  const config = JSON.parse(readFileSync(path.join(salida, 'datos', 'config.json'), 'utf8'));
+  r.guardado = config.presentacion?.fondo === '#102030';
+  r.aplicado = (await js('getComputedStyle(document.getElementById("viewerContainer")).getPropertyValue("--liberadopdf-fondo").trim()')) === '#102030';
+  r.ok = r.dialogo && r.guardado && r.aplicado;
+  return r;
+}
+
+const FASES = { basica: faseBasica, bucle: faseBucle, inexistente: faseInexistente, presentacionAnimada: fasePresentacionAnimada, cierre: faseCierre, corrupto: faseCorrupto, ajustes: faseAjustes };
 
 export async function ejecutarHumo({ ruta, salida, fase, preload }) {
   mkdirSync(salida, { recursive: true });
