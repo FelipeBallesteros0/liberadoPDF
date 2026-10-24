@@ -312,7 +312,31 @@ async function faseGuardar({ ruta, preload, salida }) {
   return r;
 }
 
-const FASES = { basica: faseBasica, bucle: faseBucle, inexistente: faseInexistente, presentacionAnimada: fasePresentacionAnimada, cierre: faseCierre, corrupto: faseCorrupto, ajustes: faseAjustes, nocturno: faseNocturno, instantanea: faseInstantanea, guardar: faseGuardar };
+// Transiciones (ejemplo_transiciones.pdf): la página 2 (Fade) muestra la capa un segundo; la 5 (/S /R) no.
+async function faseTransiciones({ ruta, preload, salida }) {
+  const r = { leidas: null, capaFundido: false, capaRetirada: false, capaBarrido: false, instantanea: false };
+  const { js, tecla, presentar } = abrirVentanaDePrueba({ ruta, preload, salida });
+  await esperarEvento('primera-pagina', 10_000);
+  await espera(800);
+  r.leidas = JSON.parse(await js('JSON.stringify((window.liberadopdfEstado.transiciones || []).map(t => t && t.S))'));
+  r.presentacion = await presentar();
+  tecla('Right');
+  await espera(300);
+  r.capaFundido = Boolean(await js('document.querySelector(".liberadopdf-transicion.liberadopdf-trans-fade")'));
+  await espera(1100);
+  r.capaRetirada = !(await js('document.querySelector(".liberadopdf-transicion")'));
+  tecla('Right');
+  await espera(300);
+  r.capaBarrido = Boolean(await js('document.querySelector(".liberadopdf-transicion.liberadopdf-trans-wipe.liberadopdf-dir-90")'));
+  await espera(1100);
+  await js('PDFViewerApplication.page = 5');
+  await espera(150);
+  r.instantanea = !(await js('document.querySelector(".liberadopdf-transicion")')) && (await js('PDFViewerApplication.page')) === 5;
+  r.ok = r.presentacion && r.capaFundido && r.capaRetirada && r.capaBarrido && r.instantanea && JSON.stringify(r.leidas) === JSON.stringify(['R', 'Fade', 'Wipe', 'Split', 'R']);
+  return r;
+}
+
+const FASES = { basica: faseBasica, bucle: faseBucle, inexistente: faseInexistente, presentacionAnimada: fasePresentacionAnimada, cierre: faseCierre, corrupto: faseCorrupto, ajustes: faseAjustes, nocturno: faseNocturno, instantanea: faseInstantanea, guardar: faseGuardar, transiciones: faseTransiciones };
 
 export async function ejecutarHumo({ ruta, salida, fase, preload }) {
   mkdirSync(salida, { recursive: true });

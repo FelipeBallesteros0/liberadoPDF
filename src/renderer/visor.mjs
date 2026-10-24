@@ -10,6 +10,7 @@ import { instalarBarra } from '/barra.mjs';
 import { instalarAjustes } from '/ajustes.mjs';
 import { instalarNocturno } from '/nocturno.mjs';
 import { instalarInstantanea, mostrarToast } from '/instantanea.mjs';
+import { instalarTransiciones } from '/transiciones.mjs';
 
 const app = window.PDFViewerApplication;
 const parametros = new URLSearchParams(location.search);
@@ -76,6 +77,7 @@ const ajustes = instalarAjustes({ obtenerConfig, guardar: nueva => window.libera
 aplicarTema(config.tema);
 const nocturno = instalarNocturno({ obtenerConfig, guardar: nueva => { config = nueva; window.liberadopdf.guardarConfig(nueva); } });
 const instantanea = instalarInstantanea();
+const transiciones = instalarTransiciones({ app, obtenerConfig, modoActual });
 window.liberadopdfAplicarExtra = (nueva) => nocturno.aplicar(nueva.nocturno);
 // pdf.js: save() incorpora formularios y anotaciones; download() baja el original si no hay cambios.
 const guardarConPdfjs = async () => {
@@ -111,6 +113,10 @@ const alCargar = async () => {
   // El PDF pide abrirse a pantalla completa (/PageMode /FullScreen)
   const modoPagina = await app.pdfDocument.getPageMode().catch(() => null);
   if (modoPagina === 'FullScreen') window.liberadopdf.pedirPresentacion();
+  // /Trans de cada página (pdf-lib), para las transiciones en presentación
+  const urlPdf = parametros.get('file');
+  if (urlPdf) await transiciones.cargar(urlPdf);
+  window.liberadopdfEstado.transiciones = transiciones.obtener();
 };
 if (app.pdfDocument) alCargar(); else app.eventBus.on('documentloaded', alCargar);
 // PDF corrupto, cifrado sin contraseña válida o ilegible: pdf.js solo lo registra en consola; aquí se vuelve

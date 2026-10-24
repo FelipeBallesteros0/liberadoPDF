@@ -1,0 +1,14 @@
+% PDF de ejemplo con transiciones /Trans (Beamer): fundido, barrido, división y una página sin orden (/S /R).
+\pdfminorversion=4
+\pdfobjcompresslevel=0
+\documentclass[aspectratio=169]{beamer}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\setbeamertemplate{navigation symbols}{}
+\begin{document}
+\begin{frame}{Portada}\centering Página 1: sin transición.\end{frame}
+\begin{frame}{Fundido}\transfade\centering Página 2: \texttt{/S /Fade}.\end{frame}
+\begin{frame}{Barrido}\transwipe[direction=90]\centering Página 3: \texttt{/S /Wipe /Di 90}.\end{frame}
+\begin{frame}{División}\transsplitverticalin\centering Página 4: \texttt{/S /Split /Dm /V /M /I}.\end{frame}
+\begin{frame}{Final}\centering Página 5: Beamer escribe \texttt{/S /R} (instantánea).\end{frame}
+\end{document}

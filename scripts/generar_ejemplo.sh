@@ -4,10 +4,12 @@ set -euo pipefail
 export PATH="$HOME/.local/bin:$PATH"
 RAIZ="$(cd "$(dirname "$0")/.." && pwd)"
 SALIDA="$(mktemp -d)"
-for i in 1 2; do
-  pdflatex -interaction=nonstopmode -halt-on-error -output-directory="$SALIDA" "$RAIZ/recursos/ejemplo_animado.tex" > "$SALIDA/log.txt" 2>&1 \
-    || { tail -30 "$SALIDA/log.txt"; exit 1; }
+for NOMBRE in ejemplo_animado ejemplo_transiciones; do
+  for i in 1 2; do
+    pdflatex -interaction=nonstopmode -halt-on-error -output-directory="$SALIDA" "$RAIZ/recursos/$NOMBRE.tex" > "$SALIDA/log.txt" 2>&1 \
+      || { tail -30 "$SALIDA/log.txt"; exit 1; }
+  done
+  cp "$SALIDA/$NOMBRE.pdf" "$RAIZ/recursos/$NOMBRE.pdf"
+  ls -la "$RAIZ/recursos/$NOMBRE.pdf"
 done
-cp "$SALIDA/ejemplo_animado.pdf" "$RAIZ/recursos/ejemplo_animado.pdf"
 rm -rf "$SALIDA"
-ls -la "$RAIZ/recursos/ejemplo_animado.pdf"

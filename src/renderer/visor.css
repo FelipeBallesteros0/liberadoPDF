@@ -112,3 +112,36 @@
 #viewerContainer.liberadopdf-recortando, #viewerContainer.liberadopdf-recortando * { cursor: crosshair !important; }
 .liberadopdf-recorte { position: fixed; z-index: 10004; border: 2px dashed #0077b6; background: rgba(0, 119, 182, 0.12); pointer-events: none; }
 .liberadopdf-toast { position: fixed; left: 50%; bottom: 40px; transform: translateX(-50%); z-index: 10005; padding: 8px 16px; border-radius: 8px; background: rgba(0, 0, 0, 0.8); color: #fff; font: 14px system-ui, sans-serif; pointer-events: none; }
+
+/* Transiciones: la página saliente se anima por encima de la entrante */
+.liberadopdf-transicion { position: fixed; inset: 0; z-index: 9999; pointer-events: none; animation-duration: var(--liberadopdf-trans-dur, 1s); animation-timing-function: linear; animation-fill-mode: forwards; }
+.liberadopdf-transicion canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.liberadopdf-trans-fade, .liberadopdf-trans-dissolve, .liberadopdf-trans-glitter, .liberadopdf-trans-blinds, .liberadopdf-trans-cover,
+.liberadopdf-trans-split.liberadopdf-mov-O, .liberadopdf-trans-box.liberadopdf-mov-O { animation-name: liberadopdf-fundido; }
+@keyframes liberadopdf-fundido { from { opacity: 1; } to { opacity: 0; } }
+/* Barrido: la saliente desaparece desde el borde por el que entra la nueva */
+.liberadopdf-trans-wipe.liberadopdf-dir-0 { animation-name: liberadopdf-barrido-0; }
+.liberadopdf-trans-wipe.liberadopdf-dir-90 { animation-name: liberadopdf-barrido-90; }
+.liberadopdf-trans-wipe.liberadopdf-dir-180 { animation-name: liberadopdf-barrido-180; }
+.liberadopdf-trans-wipe.liberadopdf-dir-270 { animation-name: liberadopdf-barrido-270; }
+@keyframes liberadopdf-barrido-0 { from { clip-path: inset(0 0 0 0); } to { clip-path: inset(0 0 0 100%); } }
+@keyframes liberadopdf-barrido-90 { from { clip-path: inset(0 0 0 0); } to { clip-path: inset(0 0 100% 0); } }
+@keyframes liberadopdf-barrido-180 { from { clip-path: inset(0 0 0 0); } to { clip-path: inset(0 100% 0 0); } }
+@keyframes liberadopdf-barrido-270 { from { clip-path: inset(0 0 0 0); } to { clip-path: inset(100% 0 0 0); } }
+/* División hacia dentro: la saliente queda como una banda central que se estrecha */
+.liberadopdf-trans-split.liberadopdf-mov-I.liberadopdf-dim-H { animation-name: liberadopdf-division-h; }
+.liberadopdf-trans-split.liberadopdf-mov-I.liberadopdf-dim-V { animation-name: liberadopdf-division-v; }
+@keyframes liberadopdf-division-h { from { clip-path: inset(0 0 0 0); } to { clip-path: inset(50% 0 50% 0); } }
+@keyframes liberadopdf-division-v { from { clip-path: inset(0 0 0 0); } to { clip-path: inset(0 50% 0 50%); } }
+/* Caja hacia dentro: la saliente se encoge hacia el centro */
+.liberadopdf-trans-box.liberadopdf-mov-I { animation-name: liberadopdf-caja; }
+@keyframes liberadopdf-caja { from { clip-path: inset(0 0 0 0); } to { clip-path: inset(50% 50% 50% 50%); } }
+/* Empujar, descubrir y volar: la saliente se desplaza fuera de pantalla */
+.liberadopdf-trans-push.liberadopdf-dir-0, .liberadopdf-trans-uncover.liberadopdf-dir-0, .liberadopdf-trans-fly.liberadopdf-dir-0 { animation-name: liberadopdf-salir-0; }
+.liberadopdf-trans-push.liberadopdf-dir-90, .liberadopdf-trans-uncover.liberadopdf-dir-90, .liberadopdf-trans-fly.liberadopdf-dir-90 { animation-name: liberadopdf-salir-90; }
+.liberadopdf-trans-push.liberadopdf-dir-180, .liberadopdf-trans-uncover.liberadopdf-dir-180, .liberadopdf-trans-fly.liberadopdf-dir-180 { animation-name: liberadopdf-salir-180; }
+.liberadopdf-trans-push.liberadopdf-dir-270, .liberadopdf-trans-uncover.liberadopdf-dir-270, .liberadopdf-trans-fly.liberadopdf-dir-270 { animation-name: liberadopdf-salir-270; }
+@keyframes liberadopdf-salir-0 { to { transform: translateX(100%); } }
+@keyframes liberadopdf-salir-90 { to { transform: translateY(-100%); } }
+@keyframes liberadopdf-salir-180 { to { transform: translateX(-100%); } }
+@keyframes liberadopdf-salir-270 { to { transform: translateY(100%); } }
