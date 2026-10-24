@@ -1,5 +1,6 @@
 // Web Worker de las herramientas: pdf-lib y qpdf corren aquí para no bloquear el visor.
 import { ajustarEnPagina, tamanoDePagina } from '../comun/herramientas/imagenes.mjs';
+import { reconstruirXref } from '../comun/herramientas/reparacion.mjs';
 import { textoDeNumero, posicionDeTexto, mosaicoDeMarca, colorHex, origenCentrado, aCoordenadasSinRotar, tamanoVisual } from '../comun/herramientas/estampar.mjs';
 // Protocolo: { id, operacion, argumentos } → mensajes { id, progreso } y al final { id, resultado } | { id, error } | { id, cancelado }.
 let pdfLib = null;
@@ -220,6 +221,47 @@ const operaciones = {
     }
     if (doc.getPageCount() === 0) throw new Error('Ninguna imagen se pudo incrustar');
     return await doc.save();
+  },
+  // --- qpdf ---
+  async proteger({ bytes, usuario, propietario, imprimir, copiar, modificar }, { progreso }) {
+    progreso(0, 1, 'Cifrando…');
+    const r = await qpdf(['--encrypt', usuario ?? '', propietario, '256', `--print=${imprimir ? 'full' : 'none'}`, `--extract=${copiar ? 'y' : 'n'}`, `--modify=${modificar ? 'all' : 'none'}`, '--', 'entrada.pdf', 'salida.pdf'], { entradas: { 'entrada.pdf': bytes } });
+    if (r.codigo !== 0 || !r.bytes) throw new Error(`qpdf no pudo cifrar: ${r.avisos.join(' ') || `código ${r.codigo}`}`);
+    return { bytes: r.bytes, avisos: r.avisos };
+  },
+  async desbloquear({ bytes, contrasena }, { progreso }) {
+    progreso(0, 1, 'Descifrando…');
+    const r = await qpdf([`--password=${contrasena ?? ''}`, '--decrypt', 'entrada.pdf', 'salida.pdf'], { entradas: { 'entrada.pdf': bytes } });
+    if (r.codigo !== 0 || !r.bytes) {
+      if (r.avisos.some(a => /invalid password/i.test(a))) throw new Error('Contraseña incorrecta');
+      throw new Error(`qpdf no pudo descifrar: ${r.avisos.join(' ') || `código ${r.codigo}`}`);
+    }
+    return { bytes: r.bytes, avisos: r.avisos };
+  },
+  // 1) qpdf reescribe el archivo; 2) si falla (qpdf-wasm no reconstruye la xref por sí mismo), se reconstruye la
+  // xref en JS y se vuelve a pasar por qpdf; 3) si aún falla, pdf-lib con tolerancia (lee también object streams).
+  async reparar({ bytes }, { progreso }) {
+    progreso(0, 3, 'Reescribiendo con qpdf…');
+    const avisos = [];
+    const r1 = await qpdf(['--warning-exit-0', 'entrada.pdf', 'salida.pdf'], { entradas: { 'entrada.pdf': bytes } });
+    if (r1.codigo === 0 && r1.bytes?.length) return { bytes: r1.bytes, avisos: r1.avisos, motor: 'qpdf' };
+    avisos.push(...r1.avisos);
+    progreso(1, 3, 'Reconstruyendo la tabla de objetos…');
+    const reconstruido = reconstruirXref(bytes);
+    if (reconstruido) {
+      const r2 = await qpdf(['--warning-exit-0', 'entrada.pdf', 'salida.pdf'], { entradas: { 'entrada.pdf': reconstruido } });
+      if (r2.codigo === 0 && r2.bytes?.length) return { bytes: r2.bytes, avisos: [...avisos, ...r2.avisos], motor: 'xref reconstruida + qpdf' };
+      avisos.push(...r2.avisos);
+    }
+    progreso(2, 3, 'Intentando con pdf-lib…');
+    const { PDFDocument } = await cargarPdfLib();
+    for (const candidato of [reconstruido, bytes].filter(Boolean)) {
+      try {
+        const doc = await PDFDocument.load(candidato, { ignoreEncryption: true, throwOnInvalidObject: false, updateMetadata: false });
+        if (doc.getPageCount() > 0) return { bytes: await doc.save(), avisos, motor: 'pdf-lib' };
+      } catch { /* siguiente candidato */ }
+    }
+    throw new Error(`No se pudo reparar: ${avisos.join(' ') || 'el archivo no tiene objetos reconocibles'}`);
   },
   async rotar({ bytes, paginas, grados }, { progreso }) {
     const { degrees } = await cargarPdfLib();

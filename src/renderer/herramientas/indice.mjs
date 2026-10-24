@@ -11,6 +11,9 @@ import { instalarAplanar } from './aplanar.mjs';
 import { instalarAImagenes } from './aImagenes.mjs';
 import { instalarDeImagenes } from './deImagenes.mjs';
 import { instalarHtmlAPdf } from './htmlAPdf.mjs';
+import { instalarProteger } from './proteger.mjs';
+import { instalarDesbloquear } from './desbloquear.mjs';
+import { instalarReparar } from './reparar.mjs';
 
 export function instalarHerramientas(H) {
   instalarUnir(H);
@@ -25,4 +28,7 @@ export function instalarHerramientas(H) {
   instalarAImagenes(H);
   instalarDeImagenes(H);
   instalarHtmlAPdf(H);
+  instalarProteger(H);
+  instalarDesbloquear(H);
+  instalarReparar(H);
 }

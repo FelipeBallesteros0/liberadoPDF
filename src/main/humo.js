@@ -811,13 +811,67 @@ async function faseHtmlAPdf({ ruta, preload, salida }) {
   return r;
 }
 
+// Proteger: usuario «clave», propietario «dueño» → /Encrypt; pdf.js lo abre con la contraseña y lo rechaza sin ella.
+async function faseProteger({ ruta, preload, salida }) {
+  const r = { dialogo: false, archivo: false, cifrado: null, conClave: null, sinClave: null };
+  const { js } = abrirVentanaDePrueba({ ruta, preload, salida });
+  await esperarEvento('primera-pagina', 10_000);
+  r.dialogo = await abrirYEjecutarHerramienta(js, 'proteger', { usuario: 'clave', propietario: 'dueño' });
+  const destino = process.env.LIBERADOPDF_HUMO_GUARDAR;
+  r.archivo = await esperarArchivo(destino);
+  if (r.archivo) {
+    r.cifrado = (await paginasDe(destino)).cifrado;
+    const url = urlDeToken(registrarPdf(destino));
+    r.conClave = await js(`pdfjsLib.getDocument({ url: ${JSON.stringify(url)}, password: 'clave' }).promise.then(d => d.numPages)`);
+    r.sinClave = await js(`pdfjsLib.getDocument({ url: ${JSON.stringify(url)} }).promise.then(() => 'abrió', e => e.name)`);
+  }
+  r.ok = r.dialogo && r.archivo && r.cifrado === true && r.conClave === 4 && r.sinClave === 'PasswordException';
+  return r;
+}
+
+// Desbloquear: se abre el PDF cifrado (pdf.js pide la contraseña), «rotar» avisa de que está cifrado, y desbloquear
+// con la contraseña da un PDF sin /Encrypt; con una contraseña mala el worker responde «Contraseña incorrecta».
+async function faseDesbloquear({ ruta, preload, salida }) {
+  const r = { contrasenaPedida: false, avisoCifrado: null, dialogo: false, archivo: false, cifrado: null, paginas: 0, mala: null };
+  const { js } = abrirVentanaDePrueba({ ruta, preload, salida });
+  for (let i = 0; i < 40 && !r.contrasenaPedida; i++) { await espera(250); r.contrasenaPedida = Boolean(await js(`document.getElementById('passwordDialog')?.open`)); }
+  await js(`document.getElementById('password').value = 'clave'; document.getElementById('passwordSubmit').click();`, true);
+  await esperarEvento('primera-pagina', 10_000);
+  await abrirYEjecutarHerramienta(js, 'rotar', {});
+  await espera(1500);
+  r.avisoCifrado = await js(`document.querySelector('.liberadopdf-herramienta .mensaje')?.textContent ?? null`);
+  await js(`document.querySelector('.liberadopdf-herramienta .pie button').click()`, true); // Cancelar
+  r.mala = await js(`window.liberadopdfHerramientas.bytesDelDocumento().then(b => window.liberadopdfHerramientas.ejecutar('desbloquear', { bytes: b, contrasena: 'mala' })).then(() => 'descifró', e => e.message)`);
+  r.dialogo = await abrirYEjecutarHerramienta(js, 'desbloquear', { contrasena: 'clave' });
+  const destino = process.env.LIBERADOPDF_HUMO_GUARDAR;
+  r.archivo = await esperarArchivo(destino);
+  if (r.archivo) { const p = await paginasDe(destino); r.cifrado = p.cifrado; r.paginas = p.paginas; }
+  r.ok = r.contrasenaPedida && /cifrado/.test(r.avisoCifrado ?? '') && r.mala === 'Contraseña incorrecta' && r.dialogo && r.archivo && r.cifrado === false && r.paginas === 4;
+  return r;
+}
+
+// Reparar: pdf.js no abre el ejemplo truncado (sin los últimos 300 bytes), así que se abre el ejemplo sano y se elige
+// el truncado en el diálogo → el resultado carga con pdf-lib y tiene 4 páginas.
+async function faseReparar({ ruta, preload, salida }) {
+  const r = { dialogo: false, archivo: false, paginas: 0, resumen: null };
+  const { js } = abrirVentanaDePrueba({ ruta, preload, salida });
+  await esperarEvento('primera-pagina', 15_000);
+  r.dialogo = await abrirYEjecutarHerramienta(js, 'reparar', {}, ['.liberadopdf-herramienta [data-accion="anadir"]']);
+  const destino = process.env.LIBERADOPDF_HUMO_GUARDAR;
+  r.archivo = await esperarArchivo(destino);
+  if (r.archivo) { r.paginas = (await paginasDe(destino)).paginas; r.nombre = path.basename(destino); }
+  else r.mensaje = await js(`document.querySelector('.liberadopdf-herramienta .mensaje')?.textContent ?? null`);
+  r.ok = r.dialogo && r.archivo && r.paginas === 4;
+  return r;
+}
+
 // Cifrado: las herramientas rechazan un PDF cifrado con el mensaje acordado. Hasta que exista la operación
 // «proteger» (Tarea 8) no hay con qué generar el PDF cifrado: la fase queda pendiente y no cuenta.
 async function faseCifrado({ ruta, preload, salida }) {
   const r = { pendiente: false, mensaje: null };
   const { js } = abrirVentanaDePrueba({ ruta, preload, salida });
   await esperarEvento('primera-pagina', 10_000);
-  const cifrado = await js(`window.liberadopdfHerramientas.bytesDelDocumento().then(bytes => window.liberadopdfHerramientas.ejecutar('proteger', { bytes, contrasena: 'clave', propietario: 'clave' })).then(b => Array.from(b)).catch(e => e.message)`);
+  const cifrado = await js(`window.liberadopdfHerramientas.bytesDelDocumento().then(bytes => window.liberadopdfHerramientas.ejecutar('proteger', { bytes, usuario: 'clave', propietario: 'clave' })).then(r => r.bytes).then(b => Array.from(b)).catch(e => e.message)`);
   if (typeof cifrado === 'string') { r.pendiente = true; r.ok = true; r.motivo = cifrado; return r; }
   const rutaCifrado = path.join(salida, 'cifrado.pdf');
   writeFileSync(rutaCifrado, Buffer.from(cifrado));
@@ -828,7 +882,7 @@ async function faseCifrado({ ruta, preload, salida }) {
   return r;
 }
 
-const FASES = { htmlAPdf: faseHtmlAPdf, aImagenes: faseAImagenes, deImagenes: faseDeImagenes, recortar: faseRecortar, metadatos: faseMetadatos, aplanar: faseAplanar, numerar: faseNumerar, marcaDeAgua: faseMarcaDeAgua, organizar: faseOrganizar, unir: faseUnir, dividir: faseDividir, rotar: faseRotar, cifrado: faseCifrado, herramientasBase: faseHerramientasBase, basica: faseBasica, bucle: faseBucle, inexistente: faseInexistente, presentacionAnimada: fasePresentacionAnimada, cierre: faseCierre, corrupto: faseCorrupto, ajustes: faseAjustes, nocturno: faseNocturno, instantanea: faseInstantanea, guardar: faseGuardar, transiciones: faseTransiciones, punteros: fasePunteros, cuadricula: faseCuadricula, medicion: faseMedicion, presentador: fasePresentador, notasDerecha: faseNotasDerecha };
+const FASES = { proteger: faseProteger, desbloquear: faseDesbloquear, reparar: faseReparar, htmlAPdf: faseHtmlAPdf, aImagenes: faseAImagenes, deImagenes: faseDeImagenes, recortar: faseRecortar, metadatos: faseMetadatos, aplanar: faseAplanar, numerar: faseNumerar, marcaDeAgua: faseMarcaDeAgua, organizar: faseOrganizar, unir: faseUnir, dividir: faseDividir, rotar: faseRotar, cifrado: faseCifrado, herramientasBase: faseHerramientasBase, basica: faseBasica, bucle: faseBucle, inexistente: faseInexistente, presentacionAnimada: fasePresentacionAnimada, cierre: faseCierre, corrupto: faseCorrupto, ajustes: faseAjustes, nocturno: faseNocturno, instantanea: faseInstantanea, guardar: faseGuardar, transiciones: faseTransiciones, punteros: fasePunteros, cuadricula: faseCuadricula, medicion: faseMedicion, presentador: fasePresentador, notasDerecha: faseNotasDerecha };
 
 export async function ejecutarHumo({ ruta, salida, fase, preload }) {
   mkdirSync(salida, { recursive: true });

@@ -4,6 +4,7 @@ import { spawn } from 'node:child_process';
 import { copyFileSync, mkdirSync, readFileSync, rmSync, existsSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import zlib from 'node:zlib';
+import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 
 const raiz = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -27,6 +28,20 @@ const imagenA = path.join(salida, 'imagen_a.png'), imagenB = path.join(salida, '
 writeFileSync(imagenA, png(80, 60, () => [220, 30, 30, 255]));
 writeFileSync(imagenB, png(60, 90, (x, y) => [30, 30, 220, x < 30 ? 255 : 90])); // mitad transparente
 writeFileSync(imagenFalsa, 'esto no es una imagen\n');
+// PDF cifrado (qpdf-wasm en Node: usuario «clave», propietario «dueño») y PDF truncado para «reparar».
+const cifradoPrueba = path.join(salida, 'cifrado.pdf');
+const truncadoPrueba = path.join(salida, 'truncado.pdf');
+{
+  const crearQpdf = createRequire(import.meta.url)('@neslinesli93/qpdf-wasm');
+  const avisos = [];
+  const qpdf = await crearQpdf({ preRun: [(M) => M.FS.init(null, c => c === 10 && avisos.push('salida'), c => c === 10 && avisos.push('aviso'))] });
+  const ejemplo = readFileSync(path.join(raiz, 'recursos', 'ejemplo_animado.pdf'));
+  qpdf.FS.writeFile('in.pdf', ejemplo);
+  const codigo = qpdf.callMain(['--encrypt', 'clave', 'dueño', '256', '--', 'in.pdf', 'out.pdf']);
+  if (codigo !== 0) throw new Error(`qpdf no pudo cifrar el ejemplo (código ${codigo})`);
+  writeFileSync(cifradoPrueba, Buffer.from(qpdf.FS.readFile('out.pdf')));
+  writeFileSync(truncadoPrueba, ejemplo.subarray(0, ejemplo.length - 300));
+}
 const htmlPrueba = path.join(salida, 'prueba.html');
 writeFileSync(htmlPrueba, '<!doctype html><meta charset="utf-8"><title>Prueba</title><h1>Hola liberadoPDF</h1><p>Página de prueba del humo.</p>\n');
 
@@ -53,6 +68,9 @@ const FASES = [
   { nombre: 'rotar', env: { LIBERADOPDF_HUMO_GUARDAR: path.join(carpetaHumo, 'rotar', 'rotado.pdf') } },
   { nombre: 'cifrado', env: {} },
   { nombre: 'organizar', env: {} },
+  { nombre: 'proteger', env: { LIBERADOPDF_HUMO_GUARDAR: path.join(carpetaHumo, 'proteger', 'protegido.pdf') } },
+  { nombre: 'desbloquear', env: { LIBERADOPDF_PDF: cifradoPrueba, LIBERADOPDF_HUMO_GUARDAR: path.join(carpetaHumo, 'desbloquear', 'desbloqueado.pdf') } },
+  { nombre: 'reparar', env: { LIBERADOPDF_HUMO_ELEGIR: truncadoPrueba, LIBERADOPDF_HUMO_GUARDAR: path.join(carpetaHumo, 'reparar', 'reparado.pdf') } },
   { nombre: 'htmlAPdf', env: { LIBERADOPDF_HUMO_GUARDAR: path.join(carpetaHumo, 'htmlAPdf', 'pagina.pdf'), LIBERADOPDF_HUMO_ELEGIR: htmlPrueba } },
   { nombre: 'aImagenes', env: { LIBERADOPDF_HUMO_CARPETA: path.join(carpetaHumo, 'aImagenes', 'imagenes') } },
   { nombre: 'deImagenes', env: { LIBERADOPDF_HUMO_GUARDAR: path.join(carpetaHumo, 'deImagenes', 'imagenes.pdf'), LIBERADOPDF_HUMO_ELEGIR: [imagenA, imagenB, imagenFalsa].join(path.delimiter) } },
