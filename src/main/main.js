@@ -80,5 +80,6 @@ if (!app.requestSingleInstanceLock()) {
     ventanas[0]?.focus();
   });
 
-  app.on('window-all-closed', () => app.quit());
+  // En modo humo la prueba cierra ventanas a propósito y termina ella misma con app.exit().
+  app.on('window-all-closed', () => { if (!process.env.LIBERADOPDF_HUMO) app.quit(); });
 }
