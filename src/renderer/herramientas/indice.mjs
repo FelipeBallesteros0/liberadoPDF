@@ -8,6 +8,8 @@ import { instalarMarcaDeAgua } from './marcaDeAgua.mjs';
 import { instalarRecortar } from './recortar.mjs';
 import { instalarMetadatos } from './metadatos.mjs';
 import { instalarAplanar } from './aplanar.mjs';
+import { instalarAImagenes } from './aImagenes.mjs';
+import { instalarDeImagenes } from './deImagenes.mjs';
 
 export function instalarHerramientas(H) {
   instalarUnir(H);
@@ -19,4 +21,6 @@ export function instalarHerramientas(H) {
   instalarRecortar(H);
   instalarMetadatos(H);
   instalarAplanar(H);
+  instalarAImagenes(H);
+  instalarDeImagenes(H);
 }

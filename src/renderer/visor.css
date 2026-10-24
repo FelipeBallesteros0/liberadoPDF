@@ -202,3 +202,4 @@
 .liberadopdf-herramienta .rejilla-organizar .pie-celda { display: flex; align-items: center; gap: 2px; margin-top: 6px; font-size: 12px; }
 .liberadopdf-herramienta .rejilla-organizar .pie-celda span { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .liberadopdf-herramienta .rejilla-organizar .pie-celda button { padding: 0 5px; border: 1px solid #bbb; border-radius: 4px; background: #f6f6f6; font: inherit; cursor: pointer; }
+.liberadopdf-herramienta .lista .elemento.omitida { color: #7b1e12; background: #fdecea; }

@@ -1,4 +1,5 @@
 // Web Worker de las herramientas: pdf-lib y qpdf corren aquí para no bloquear el visor.
+import { ajustarEnPagina, tamanoDePagina } from '../comun/herramientas/imagenes.mjs';
 import { textoDeNumero, posicionDeTexto, mosaicoDeMarca, colorHex, origenCentrado, aCoordenadasSinRotar, tamanoVisual } from '../comun/herramientas/estampar.mjs';
 // Protocolo: { id, operacion, argumentos } → mensajes { id, progreso } y al final { id, resultado } | { id, error } | { id, cancelado }.
 let pdfLib = null;
@@ -200,6 +201,25 @@ const operaciones = {
       if (annots) { anotacionesQuitadas += annots.size(); pagina.node.delete(PDFName.of('Annots')); }
     }
     return { bytes: await doc.save(), camposAplanados, anotacionesQuitadas };
+  },
+  // imagenes: [{ bytes, tipo: 'image/png' | 'image/jpeg' }]; una página por imagen, encajada con margen.
+  async deImagenes({ imagenes, tamano, orientacion, margen }, { progreso, cancelado }) {
+    const { PDFDocument } = await cargarPdfLib();
+    const doc = await PDFDocument.create();
+    let omitidas = 0;
+    for (const [i, img] of imagenes.entries()) {
+      if (cancelado()) return null;
+      progreso(i, imagenes.length, `Imagen ${i + 1} de ${imagenes.length}…`);
+      let incrustada;
+      try { incrustada = img.tipo === 'image/jpeg' ? await doc.embedJpg(img.bytes) : await doc.embedPng(img.bytes); } catch { omitidas++; continue; }
+      const medidas = { ancho: incrustada.width, alto: incrustada.height };
+      const [anchoPagina, altoPagina] = tamanoDePagina(tamano, orientacion, medidas);
+      const pagina = doc.addPage([anchoPagina, altoPagina]);
+      const caja = ajustarEnPagina({ anchoImagen: medidas.ancho, altoImagen: medidas.alto, anchoPagina, altoPagina, margen: tamano === 'imagen' ? 0 : margen });
+      pagina.drawImage(incrustada, { x: caja.x, y: caja.y, width: caja.ancho, height: caja.alto });
+    }
+    if (doc.getPageCount() === 0) throw new Error('Ninguna imagen se pudo incrustar');
+    return await doc.save();
   },
   async rotar({ bytes, paginas, grados }, { progreso }) {
     const { degrees } = await cargarPdfLib();

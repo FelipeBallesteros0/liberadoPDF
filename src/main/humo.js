@@ -746,6 +746,55 @@ async function faseAplanar({ ruta, preload, salida }) {
   return r;
 }
 
+function tamanoPng(ruta) {
+  const b = readFileSync(ruta);
+  return b.length > 24 && b.toString('latin1', 1, 4) === 'PNG' ? { ancho: b.readUInt32BE(16), alto: b.readUInt32BE(20) } : null;
+}
+
+// PDF a imágenes: 4 PNG a 100 ppp en la carpeta, de ≈ 454×255 pt × 100/72.
+async function faseAImagenes({ ruta, preload, salida }) {
+  const r = { dialogo: false, archivos: [], tamanos: [], esperado: null };
+  const { js } = abrirVentanaDePrueba({ ruta, preload, salida });
+  await esperarEvento('primera-pagina', 10_000);
+  r.dialogo = await abrirYEjecutarHerramienta(js, 'aImagenes', { formato: 'png', ppp: 100 });
+  const carpeta = process.env.LIBERADOPDF_HUMO_CARPETA;
+  const base = path.basename(ruta, '.pdf');
+  const esperados = [1, 2, 3, 4].map(i => path.join(carpeta, `${base} - página 0${i}.png`));
+  for (const e of esperados) if (await esperarArchivo(e)) r.archivos.push(path.basename(e));
+  r.tamanos = esperados.filter(existsSync).map(tamanoPng);
+  const { PDFDocument } = await pdfLibMain();
+  const { width, height } = (await PDFDocument.load(readFileSync(ruta), { updateMetadata: false })).getPage(0).getSize();
+  r.esperado = { ancho: Math.round(width * 100 / 72), alto: Math.round(height * 100 / 72) };
+  r.ok = r.dialogo && r.archivos.length === 4 && r.tamanos.every(t => t && Math.abs(t.ancho - r.esperado.ancho) <= 1 && Math.abs(t.alto - r.esperado.alto) <= 1);
+  return r;
+}
+
+// Imágenes a PDF: dos PNG (uno con transparencia) y un «.jpg» que es texto (se omite) → PDF de 2 páginas A4.
+async function faseDeImagenes({ ruta, preload, salida }) {
+  const r = { dialogo: false, filas: 0, omitidas: 0, archivo: false, paginas: 0, tamanos: [] };
+  const { js } = abrirVentanaDePrueba({ ruta, preload, salida });
+  await esperarEvento('primera-pagina', 10_000);
+  await js(`window.liberadopdfAcciones.herramienta('deImagenes')`, true);
+  await espera(400);
+  r.dialogo = Boolean(await js(`document.querySelector('.liberadopdf-herramienta[data-herramienta="deImagenes"]')`));
+  await js(`document.querySelector('.liberadopdf-herramienta [data-accion="anadir"]').click()`, true);
+  await espera(1500);
+  r.filas = Number(await js(`document.querySelectorAll('.liberadopdf-herramienta .lista .elemento').length`));
+  r.omitidas = Number(await js(`document.querySelectorAll('.liberadopdf-herramienta .lista .elemento.omitida').length`));
+  await js(`document.querySelector('.liberadopdf-herramienta [data-accion="ejecutar"]').click()`, true);
+  const destino = process.env.LIBERADOPDF_HUMO_GUARDAR;
+  r.archivo = await esperarArchivo(destino);
+  if (r.archivo) {
+    const { PDFDocument } = await pdfLibMain();
+    const doc = await PDFDocument.load(readFileSync(destino), { updateMetadata: false });
+    r.paginas = doc.getPageCount();
+    r.tamanos = doc.getPages().map(p => { const s = p.getSize(); return [Math.round(s.width), Math.round(s.height)]; });
+  }
+  // Orientación «según la imagen»: la A (80×60) va en A4 apaisado y la B (60×90) en A4 vertical.
+  r.ok = r.dialogo && r.filas === 3 && r.omitidas === 1 && r.archivo && r.paginas === 2 && JSON.stringify(r.tamanos) === JSON.stringify([[842, 595], [595, 842]]);
+  return r;
+}
+
 // Cifrado: las herramientas rechazan un PDF cifrado con el mensaje acordado. Hasta que exista la operación
 // «proteger» (Tarea 8) no hay con qué generar el PDF cifrado: la fase queda pendiente y no cuenta.
 async function faseCifrado({ ruta, preload, salida }) {
@@ -763,7 +812,7 @@ async function faseCifrado({ ruta, preload, salida }) {
   return r;
 }
 
-const FASES = { recortar: faseRecortar, metadatos: faseMetadatos, aplanar: faseAplanar, numerar: faseNumerar, marcaDeAgua: faseMarcaDeAgua, organizar: faseOrganizar, unir: faseUnir, dividir: faseDividir, rotar: faseRotar, cifrado: faseCifrado, herramientasBase: faseHerramientasBase, basica: faseBasica, bucle: faseBucle, inexistente: faseInexistente, presentacionAnimada: fasePresentacionAnimada, cierre: faseCierre, corrupto: faseCorrupto, ajustes: faseAjustes, nocturno: faseNocturno, instantanea: faseInstantanea, guardar: faseGuardar, transiciones: faseTransiciones, punteros: fasePunteros, cuadricula: faseCuadricula, medicion: faseMedicion, presentador: fasePresentador, notasDerecha: faseNotasDerecha };
+const FASES = { aImagenes: faseAImagenes, deImagenes: faseDeImagenes, recortar: faseRecortar, metadatos: faseMetadatos, aplanar: faseAplanar, numerar: faseNumerar, marcaDeAgua: faseMarcaDeAgua, organizar: faseOrganizar, unir: faseUnir, dividir: faseDividir, rotar: faseRotar, cifrado: faseCifrado, herramientasBase: faseHerramientasBase, basica: faseBasica, bucle: faseBucle, inexistente: faseInexistente, presentacionAnimada: fasePresentacionAnimada, cierre: faseCierre, corrupto: faseCorrupto, ajustes: faseAjustes, nocturno: faseNocturno, instantanea: faseInstantanea, guardar: faseGuardar, transiciones: faseTransiciones, punteros: fasePunteros, cuadricula: faseCuadricula, medicion: faseMedicion, presentador: fasePresentador, notasDerecha: faseNotasDerecha };
 
 export async function ejecutarHumo({ ruta, salida, fase, preload }) {
   mkdirSync(salida, { recursive: true });
