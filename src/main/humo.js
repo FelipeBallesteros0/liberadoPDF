@@ -421,7 +421,36 @@ async function faseMedicion({ ruta, preload, salida }) {
   return r;
 }
 
-const FASES = { basica: faseBasica, bucle: faseBucle, inexistente: faseInexistente, presentacionAnimada: fasePresentacionAnimada, cierre: faseCierre, corrupto: faseCorrupto, ajustes: faseAjustes, nocturno: faseNocturno, instantanea: faseInstantanea, guardar: faseGuardar, transiciones: faseTransiciones, punteros: fasePunteros, cuadricula: faseCuadricula, medicion: faseMedicion };
+// Vista de presentador: segunda ventana con la lámina actual, la siguiente, y la nota de la lámina 2 tras avanzar.
+const NO_EN_BLANCO = `(sel) => { const c = document.querySelector(sel); if (!c || !c.width) return false; const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let n = 0; for (let i = 0; i < d.length; i += 4 * 97) { if (d[i] < 235 || d[i + 1] < 235 || d[i + 2] < 235) n++; } return n > 20; }`;
+async function fasePresentador({ ruta, preload, salida }) {
+  const r = { ventana: false, actual: false, notaVacia: false, nota2: null, siguiente: false, navegacion: false };
+  const { win, js } = abrirVentanaDePrueba({ ruta, preload, salida });
+  await esperarEvento('primera-pagina', 10_000);
+  await js('window.liberadopdfAcciones.presentador()');
+  await espera(2500);
+  const presentador = BrowserWindow.getAllWindows().find(w => w !== win && w.webContents.getURL().includes('presentador.html'));
+  r.ventana = Boolean(presentador);
+  if (!presentador) { r.ok = false; return r; }
+  const jsP = (codigo) => presentador.webContents.executeJavaScript(codigo);
+  r.actual = await jsP(`(${NO_EN_BLANCO})('.actual canvas')`);
+  r.notaVacia = (await jsP('document.getElementById("nota").textContent')) === '';
+  await js('PDFViewerApplication.page = 2');
+  await espera(900);
+  r.nota2 = await jsP('document.getElementById("nota").textContent');
+  r.diag = await jsP(`(async () => { const ruta = new URLSearchParams(location.search).get('ruta'); const texto = await window.liberadopdf.leerNotas(ruta); return JSON.stringify({ ruta, texto, pie: document.getElementById('pie-actual').textContent, error: window.liberadopdfError ?? null }); })()`);
+  r.siguiente = await jsP(`(${NO_EN_BLANCO})('.siguiente canvas')`);
+  // Navegación desde el presentador: → en su ventana avanza el visor
+  presentador.focus();
+  presentador.webContents.sendInputEvent({ type: 'keyDown', keyCode: 'Right' });
+  presentador.webContents.sendInputEvent({ type: 'keyUp', keyCode: 'Right' });
+  await espera(500);
+  r.navegacion = (await js('PDFViewerApplication.page')) === 3;
+  r.ok = r.ventana && r.actual && r.notaVacia && r.nota2 === 'Nota de la dos' && r.siguiente && r.navegacion;
+  return r;
+}
+
+const FASES = { basica: faseBasica, bucle: faseBucle, inexistente: faseInexistente, presentacionAnimada: fasePresentacionAnimada, cierre: faseCierre, corrupto: faseCorrupto, ajustes: faseAjustes, nocturno: faseNocturno, instantanea: faseInstantanea, guardar: faseGuardar, transiciones: faseTransiciones, punteros: fasePunteros, cuadricula: faseCuadricula, medicion: faseMedicion, presentador: fasePresentador };
 
 export async function ejecutarHumo({ ruta, salida, fase, preload }) {
   mkdirSync(salida, { recursive: true });

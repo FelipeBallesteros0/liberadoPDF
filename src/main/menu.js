@@ -29,6 +29,7 @@ export function construirMenu({ recientes, alAbrir, alAbrirNueva, alReciente, al
       submenu: [
         { label: 'Presentación', accelerator: 'F5', registerAccelerator: false, click: (item, win) => alAccion(win, 'presentacion') },
         { label: 'Pantalla completa', role: 'togglefullscreen' },
+        { label: 'Vista de presentador', accelerator: 'CmdOrCtrl+Shift+P', registerAccelerator: false, click: (item, win) => alAccion(win, 'presentador') },
         { type: 'separator' },
         { label: 'Personalizar barra…', click: (item, win) => alAccion(win, 'personalizarBarra') },
         { label: 'Cuadrícula de láminas', accelerator: 'G', registerAccelerator: false, click: (item, win) => alAccion(win, 'cuadricula') },

@@ -78,7 +78,7 @@ if (!process.env.LIBERADOPDF_HUMO && !app.requestSingleInstanceLock()) {
   app.whenReady().then(() => {
     instalarProtocolo({ raices });
     instalarGuardado();
-    instalarIpc({ obtenerConfig, obtenerConfigBase, guardar, abrirEnNueva: abrirNueva, alCambiarRecientes: menu });
+    instalarIpc({ obtenerConfig, obtenerConfigBase, guardar, abrirEnNueva: abrirNueva, alCambiarRecientes: menu, preload });
     menu();
     if (process.env.LIBERADOPDF_HUMO) {
       ejecutarHumo({ ruta: process.env.LIBERADOPDF_PDF, salida: process.env.LIBERADOPDF_HUMO, fase: process.env.LIBERADOPDF_HUMO_FASE || 'basica', preload });

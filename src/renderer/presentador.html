@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>Vista de presentador · liberadoPDF</title>
+  <link rel="stylesheet" href="/presentador.css">
+</head>
+<body>
+  <main class="presentador">
+    <section class="actual"><canvas></canvas><div class="pie" id="pie-actual"></div></section>
+    <aside class="lateral">
+      <div class="reloj"><span id="hora">--:--</span><span id="cronometro">00:00</span></div>
+      <section class="siguiente"><h2>Siguiente</h2><canvas></canvas><div class="pie" id="pie-siguiente"></div></section>
+      <section class="notas"><h2>Notas</h2><div class="nota" id="nota"></div></section>
+      <footer>← → PgUp PgDn: navegar · R: reiniciar cronómetro</footer>
+    </aside>
+  </main>
+  <script type="module" src="/presentador.mjs"></script>
+</body>
+</html>

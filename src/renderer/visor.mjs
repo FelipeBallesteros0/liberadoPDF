@@ -60,6 +60,7 @@ const acciones = {
   instantanea() { if (modoActual() === 'ventana') instantanea.iniciar(); },
   ajustes() { ajustes.abrir(); },
   cuadricula() { cuadricula.alternar(); },
+  presentador() { window.liberadopdf.presentadorAbrir(); },
   medirDistancia() { if (modoActual() === 'ventana') medicion.distancia(); },
   medirArea() { if (modoActual() === 'ventana') medicion.area(); },
   calibrar() { if (modoActual() === 'ventana') medicion.calibrar(); },
@@ -94,6 +95,10 @@ const nocturno = instalarNocturno({ obtenerConfig, guardar: nueva => { config = 
 const instantanea = instalarInstantanea();
 const transiciones = instalarTransiciones({ app, obtenerConfig, modoActual });
 const punteros = instalarPunteros({ app, modoActual });
+// Estado para la vista de presentador
+let etiquetasDocumento = null;
+const enviarEstado = () => window.liberadopdf.presentadorEstado({ pagina: app.page, totalPaginas: app.pagesCount, etiquetas: etiquetasDocumento });
+app.eventBus.on('pagechanging', enviarEstado);
 const medicion = instalarMedicion({
   app, obtenerConfig, ruta,
   guardarPorDocumento: (parcial) => {
@@ -127,18 +132,20 @@ window.addEventListener('drop', (ev) => {
   const rutaSoltada = window.liberadopdf.rutaDeArchivo(archivo);
   if (/\.pdf$/i.test(rutaSoltada)) window.liberadopdf.abrirEnEstaVentana(rutaSoltada);
 }, { capture: true });
-window.liberadopdfAcciones = { presentacion: acciones.presentacion, ayuda: acciones.ayuda, personalizarBarra: () => barra.abrirDialogo(), ajustes: acciones.ajustes, instantanea: acciones.instantanea, guardar: acciones.guardar, guardarComo: acciones.guardarComo, cuadricula: acciones.cuadricula, medirDistancia: acciones.medirDistancia, medirArea: acciones.medirArea, calibrar: acciones.calibrar };
+window.liberadopdfAcciones = { presentacion: acciones.presentacion, ayuda: acciones.ayuda, personalizarBarra: () => barra.abrirDialogo(), ajustes: acciones.ajustes, instantanea: acciones.instantanea, guardar: acciones.guardar, guardarComo: acciones.guardarComo, cuadricula: acciones.cuadricula, medirDistancia: acciones.medirDistancia, medirArea: acciones.medirArea, calibrar: acciones.calibrar, presentador: acciones.presentador, siguiente: acciones.siguiente, anterior: acciones.anterior, enviarEstado };
 
 const ponerTitulo = () => { document.title = nombre ? `${nombre} · liberadoPDF` : 'liberadoPDF'; };
 const alCargar = async () => {
   ponerTitulo();
   window.liberadopdf.documentoAbierto({ ruta, nombre });
   const etiquetas = await app.pdfDocument.getPageLabels();
+  etiquetasDocumento = etiquetas;
   grupos = agruparEtiquetas(etiquetas, app.pagesCount);
   contador.actualizar();
   // El PDF pide abrirse a pantalla completa (/PageMode /FullScreen)
   const modoPagina = await app.pdfDocument.getPageMode().catch(() => null);
   if (modoPagina === 'FullScreen') window.liberadopdf.pedirPresentacion();
+  enviarEstado();
   // /Trans de cada página (pdf-lib), para las transiciones en presentación
   const urlPdf = parametros.get('file');
   if (urlPdf) await transiciones.cargar(urlPdf);

@@ -97,6 +97,34 @@ export function abrirEnVentana(win, ruta) {
   win.loadURL(urlVisor(ruta));
 }
 
+// Vista de presentador: segunda ventana ligada a la del visor; sigue su página por IPC.
+export function crearVentanaPresentador({ win, preload, pantalla }) {
+  if (win.liberadopdfPresentador && !win.liberadopdfPresentador.isDestroyed()) {
+    win.liberadopdfPresentador.focus();
+    return win.liberadopdfPresentador;
+  }
+  const opciones = {
+    width: 1100, height: 700, title: 'Vista de presentador · liberadoPDF', autoHideMenuBar: true, backgroundColor: '#141414',
+    webPreferences: { preload, contextIsolation: true, nodeIntegration: false, sandbox: true, backgroundThrottling: false },
+  };
+  if (pantalla) {
+    const { x, y, width, height } = pantalla.workArea;
+    Object.assign(opciones, { x: x + 40, y: y + 40, width: Math.min(1100, width - 80), height: Math.min(700, height - 80) });
+  }
+  const presentador = new BrowserWindow(opciones);
+  presentador.setMenuBarVisibility(false);
+  presentador.liberadopdfVisor = win;
+  win.liberadopdfPresentador = presentador;
+  const url = win.webContents.getURL();
+  const parametros = new URL(url).searchParams;
+  const archivo = parametros.get('file');
+  const ruta = parametros.get('ruta') ?? '';
+  presentador.loadURL(`${ESQUEMA}://app/presentador.html?file=${encodeURIComponent(archivo ?? '')}&ruta=${encodeURIComponent(ruta)}`);
+  presentador.on('closed', () => { if (!win.isDestroyed()) win.liberadopdfPresentador = null; });
+  win.on('closed', () => { if (!presentador.isDestroyed()) presentador.close(); });
+  return presentador;
+}
+
 export function abrirInicioEnVentana(win, mensaje) {
   win.liberadopdfEdiciones = false;
   win.loadURL(urlInicio(mensaje));

@@ -29,7 +29,9 @@ const FASES = [
   { nombre: 'punteros', env: {} },
   { nombre: 'cuadricula', env: {} },
   { nombre: 'medicion', env: {} },
+  { nombre: 'presentador', env: {} },
 ];
+writeFileSync(pdfPrueba + '.notas.txt', '## 2\nNota de la dos\n');
 writeFileSync(path.join(salida, 'corrupto.pdf'), 'esto no es un PDF\n');
 
 const electron = path.join(raiz, 'node_modules', '.bin', process.platform === 'win32' ? 'electron.cmd' : 'electron');

@@ -71,3 +71,8 @@ test('G y Tab abren la cuadrícula en ambos modos', () => {
   assert.equal(accionDeTecla(ev('g'), ventana).accion, 'cuadricula');
   assert.equal(accionDeTecla(ev('Tab'), presentacion).accion, 'cuadricula');
 });
+
+test('Ctrl+Mayús+P abre la vista de presentador', () => {
+  assert.equal(accionDeTecla(ev('P', { ctrlKey: true, shiftKey: true }), ventana).accion, 'presentador');
+  assert.equal(accionDeTecla(ev('P', { ctrlKey: true, shiftKey: true }), presentacion).accion, 'presentador');
+});

@@ -12,6 +12,7 @@ export function accionDeTecla(ev, { modo, enEntrada, digitos = '' }) {
   if (ctrlKey && shiftKey && !altKey && !metaKey) {
     if (minuscula === 's') return modo === 'ventana' ? { accion: 'instantanea' } : null;
     if (minuscula === 'g') return modo === 'ventana' ? { accion: 'guardarComo' } : null;
+    if (minuscula === 'p') return { accion: 'presentador' };
     return null;
   }
   if (ctrlKey && !altKey && !metaKey && !shiftKey) {

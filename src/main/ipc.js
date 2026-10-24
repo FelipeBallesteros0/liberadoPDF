@@ -4,13 +4,14 @@ import { EventEmitter } from 'node:events';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { agregarReciente } from '../comun/config.mjs';
-import { abrirEnVentana, abrirInicioEnVentana } from './ventanas.js';
+import { abrirEnVentana, abrirInicioEnVentana, crearVentanaPresentador } from './ventanas.js';
+import { readFileSync } from 'node:fs';
 import { errorDeRutaPdf } from '../comun/argumentos.mjs';
 
 export const eventosHumo = new EventEmitter();
 const ENLACE_EXTERNO = /^(https?:|mailto:)/i;
 
-export function instalarIpc({ obtenerConfig, obtenerConfigBase = obtenerConfig, guardar, abrirEnNueva, alCambiarRecientes = () => {} }) {
+export function instalarIpc({ obtenerConfig, obtenerConfigBase = obtenerConfig, guardar, abrirEnNueva, alCambiarRecientes = () => {}, preload, elegirPantallaPresentador = () => undefined }) {
   const ventanaDe = evento => BrowserWindow.fromWebContents(evento.sender);
 
   ipcMain.handle('abrir-dialogo', async (evento) => {
@@ -35,6 +36,32 @@ export function instalarIpc({ obtenerConfig, obtenerConfigBase = obtenerConfig, 
   ipcMain.handle('modo-guardado', (evento, modo) => {
     const win = ventanaDe(evento);
     if (win) win.liberadopdfGuardado = modo === 'sobrescribir' ? 'sobrescribir' : 'como';
+  });
+  // Vista de presentador
+  ipcMain.handle('presentador-abrir', (evento) => {
+    const win = ventanaDe(evento);
+    if (!win) return false;
+    crearVentanaPresentador({ win, preload, pantalla: elegirPantallaPresentador(win) });
+    return true;
+  });
+  ipcMain.handle('presentador-cerrar', (evento) => { const p = ventanaDe(evento)?.liberadopdfPresentador; if (p && !p.isDestroyed()) p.close(); });
+  ipcMain.on('presentador-estado', (evento, estado) => {
+    const p = ventanaDe(evento)?.liberadopdfPresentador;
+    if (p && !p.isDestroyed()) p.webContents.send('estado', estado);
+  });
+  // El presentador avisa que está listo: el visor reenvía su estado actual
+  ipcMain.on('presentador-listo', (evento) => {
+    const visor = ventanaDe(evento)?.liberadopdfVisor;
+    if (visor && !visor.isDestroyed()) visor.webContents.executeJavaScript('window.liberadopdfAcciones?.enviarEstado?.()').catch(() => {});
+  });
+  ipcMain.on('presentador-navegar', (evento, delta) => {
+    const visor = ventanaDe(evento)?.liberadopdfVisor;
+    if (visor && !visor.isDestroyed()) visor.webContents.executeJavaScript(`window.liberadopdfAcciones?.${delta > 0 ? 'siguiente' : 'anterior'}?.()`).catch(() => {});
+  });
+  // Notas: solo el archivo <ruta del pdf>.notas.txt
+  ipcMain.handle('leer-notas', (evento, rutaPdf) => {
+    if (typeof rutaPdf !== 'string' || !/\.pdf$/i.test(rutaPdf)) return '';
+    try { return readFileSync(rutaPdf + '.notas.txt', 'utf8'); } catch { return ''; }
   });
   // La pantalla de inicio con un mensaje (p. ej. PDF corrupto detectado por pdf.js en el renderer).
   ipcMain.handle('abrir-inicio', (evento, mensaje) => { abrirInicioEnVentana(ventanaDe(evento), String(mensaje ?? '').slice(0, 300)); });
