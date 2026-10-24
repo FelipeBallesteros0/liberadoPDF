@@ -96,6 +96,9 @@ export function instalarPresentacion({ app, config, acciones }) {
     }
   }, 0));
 
+  // Cualquier cambio de página (tecla, clic, rueda) reinicia la cuenta del avance automático.
+  app.eventBus.on('pagechanging', () => { if (temporizadorAvance) reiniciarAvance(); });
+
   // Doble clic en modo ventana: entrar en presentación.
   contenedor.addEventListener('dblclick', () => { if (modoActual() === 'ventana') acciones.presentacion(); });
 

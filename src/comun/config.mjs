@@ -62,6 +62,8 @@ export function normalizarConfig(entrada) {
   config.porDocumento = Object.fromEntries(
     Object.entries(config.porDocumento).filter(([, v]) => esObjetoPlano(v)),
   );
+  // fondo: solo colores #rrggbb
+  if (!/^#[0-9a-f]{6}$/i.test(config.presentacion.fondo)) config.presentacion.fondo = valoresPorDefecto().presentacion.fondo;
   // barra: mapa libre id → booleano (fusionar solo conserva las claves por defecto)
   const barraEntrada = esObjetoPlano(entrada) && esObjetoPlano(entrada.barra) ? entrada.barra : null;
   config.barra = barraEntrada

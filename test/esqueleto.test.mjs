@@ -14,5 +14,7 @@ test('package.json fija versiones y módulos ES', () => {
   assert.equal(p.type, 'module');
   assert.equal(p.main, 'src/main/main.js');
   assert.equal(p.devDependencies.electron, '45.0.0');
-  assert.equal(p.dependencies['pdfjs-dist'], '6.4.299');
+  assert.equal(p.dependencies['pdf-lib'], '1.17.1');
+  assert.equal('pdfjs-dist' in (p.dependencies ?? {}), false);
+  assert.ok(existsSync('node_modules/pdf-lib/dist/pdf-lib.esm.min.js'));
 });

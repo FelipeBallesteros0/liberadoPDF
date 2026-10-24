@@ -23,7 +23,7 @@ npx @electron/packager . "$NOMBRE" \
   --platform=win32 --arch=x64 --out=dist --overwrite --asar \
   --app-version="$VERSION" --app-copyright="MIT · liberadoPDF" \
   --ignore='^/(dist|test|docs|scripts|data|\.git|\.superpowers|\.gitignore)(/|$)' \
-  --ignore='^/node_modules/(pdfjs-dist|@napi-rs)(/|$)' \
+  --ignore='^/node_modules/@napi-rs(/|$)' \
   "${OPCIONES_ICONO[@]}"
 
 if ! command -v wine >/dev/null 2>&1; then

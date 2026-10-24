@@ -30,3 +30,8 @@ test('agregarReciente: primero, sin duplicados, máximo 10', () => {
   assert.equal(otra.filter(r => r.ruta === 'C:\\x\\5.pdf').length, 1);
   assert.equal(lista[0].ruta, 'C:\\x\\12.pdf', 'no muta la entrada');
 });
+
+test('fondo: solo colores #rrggbb', () => {
+  assert.equal(normalizarConfig({ presentacion: { fondo: 'rojo' } }).presentacion.fondo, '#000000');
+  assert.equal(normalizarConfig({ presentacion: { fondo: '#1A2b3C' } }).presentacion.fondo, '#1A2b3C');
+});

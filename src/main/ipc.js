@@ -50,9 +50,11 @@ export function instalarIpc({ obtenerConfig, obtenerConfigBase = obtenerConfig, 
   });
   // El renderer avisa una vez cuando el usuario anota o rellena campos: la ventana lo recuerda para el cierre.
   ipcMain.on('ediciones-usuario', (evento) => { const win = ventanaDe(evento); if (win) win.liberadopdfEdiciones = true; });
-  ipcMain.on('humo-evento', (evento, { nombre, t }) => { eventosHumo.emit(nombre, t); });
-}
-
-export function enviarAccion(win, nombre) {
-  win?.webContents.send('accion', nombre);
+  if (process.env.LIBERADOPDF_HUMO) {
+    ipcMain.on('humo-evento', (evento, { nombre, t }) => { if (nombre === 'primera-pagina') eventosHumo.emit(nombre, t); });
+  }
+  // /PageMode /FullScreen: el renderer no puede pedir pantalla completa sin gesto; el main aporta el gesto.
+  ipcMain.handle('pedir-presentacion', (evento) => {
+    ventanaDe(evento)?.webContents.executeJavaScript('window.liberadopdfAcciones?.presentacion?.()', true);
+  });
 }

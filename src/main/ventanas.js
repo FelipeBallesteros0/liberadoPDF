@@ -41,6 +41,11 @@ export function crearVentana({ ruta, preload, mensaje }) {
     });
     if (respuesta === 0) evento.preventDefault();
   });
+  // Si el renderer cae en plena charla, se recarga la ventana en vez de dejarla vacía.
+  win.webContents.on('render-process-gone', (evento, detalles) => {
+    console.warn('El renderer terminó:', detalles.reason);
+    if (detalles.reason !== 'clean-exit' && !win.isDestroyed()) win.reload();
+  });
   win.on('enter-html-full-screen', () => win.setMenuBarVisibility(false));
   win.on('leave-html-full-screen', () => win.setMenuBarVisibility(true));
   win.loadURL(ruta ? urlVisor(ruta) : urlInicio(mensaje));

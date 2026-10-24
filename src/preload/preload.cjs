@@ -29,7 +29,7 @@ contextBridge.exposeInMainWorld('liberadopdf', {
   documentoAbierto: info => ipcRenderer.invoke('documento-abierto', info),
   edicionesUsuario: () => ipcRenderer.send('ediciones-usuario'),
   humoEvento: nombre => ipcRenderer.send('humo-evento', { nombre, t: Date.now() }),
-  alAccion: cb => { ipcRenderer.on('accion', (evento, nombre) => cb(nombre)); },
+  pedirPresentacion: () => ipcRenderer.invoke('pedir-presentacion'),
 });
 
 // Sobre viewer.html de pdf.js se añaden la hoja de estilo y el módulo de liberadoPDF.

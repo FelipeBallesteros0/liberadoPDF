@@ -53,16 +53,10 @@ const acciones = {
 };
 const presentacion = instalarPresentacion({ app, config, acciones });
 const { modoActual } = presentacion;
-// Cualquier navegación reinicia la cuenta del avance automático.
-for (const nombre of ['siguiente', 'anterior', 'siguienteLamina', 'anteriorLamina', 'primera', 'ultima', 'irALamina']) {
-  const original = acciones[nombre];
-  acciones[nombre] = (...args) => { original(...args); presentacion.reiniciarAvance(); };
-}
 const contador = instalarContador({ app, obtenerGrupos: () => grupos, modoActual });
 instalarCierre({ app });
 const barra = instalarBarra({ config, app, guardar: parcial => window.liberadopdf.guardarConfig(parcial) });
 instalarTeclas({ acciones, modoActual, interceptor: presentacion.interceptor });
-window.liberadopdf.alAccion(nombre => acciones[nombre]?.());
 
 // Arrastrar un PDF sobre la ventana lo abre aquí (pdf.js no llega a ver el drop).
 window.addEventListener('dragover', (ev) => { ev.preventDefault(); ev.stopPropagation(); }, { capture: true });
@@ -83,6 +77,9 @@ const alCargar = async () => {
   const etiquetas = await app.pdfDocument.getPageLabels();
   grupos = agruparEtiquetas(etiquetas, app.pagesCount);
   contador.actualizar();
+  // El PDF pide abrirse a pantalla completa (/PageMode /FullScreen)
+  const modoPagina = await app.pdfDocument.getPageMode().catch(() => null);
+  if (modoPagina === 'FullScreen') window.liberadopdf.pedirPresentacion();
 };
 if (app.pdfDocument) alCargar(); else app.eventBus.on('documentloaded', alCargar);
 // PDF corrupto, cifrado sin contraseña válida o ilegible: pdf.js solo lo registra en consola; aquí se vuelve

@@ -16,6 +16,7 @@ const preload = path.join(raiz, 'src', 'preload', 'preload.cjs');
 const raices = [
   { prefijo: '/vendor/pdfjs/', carpeta: path.join(raiz, 'vendor', 'pdfjs') },
   { prefijo: '/comun/', carpeta: path.join(raiz, 'src', 'comun') }, // lógica pura compartida con el renderer
+  { prefijo: '/lib/pdf-lib/', carpeta: path.join(raiz, 'node_modules', 'pdf-lib', 'dist') }, // lectura de /Trans
   { prefijo: '/', carpeta: path.join(raiz, 'src', 'renderer') },
 ];
 
@@ -24,7 +25,8 @@ app.commandLine.appendSwitch('lang', 'es-ES'); // interfaz de pdf.js (y de Elect
 if (process.platform === 'linux') app.commandLine.appendSwitch('no-sandbox'); // WSLg sin chrome-sandbox setuid
 registrarEsquemaPrivilegiado();
 
-if (!app.requestSingleInstanceLock()) {
+// En modo humo no se pide el lock: la prueba debe poder correr aunque haya un liberadoPDF abierto.
+if (!process.env.LIBERADOPDF_HUMO && !app.requestSingleInstanceLock()) {
   app.quit();
 } else {
   // En modo humo los datos van a la carpeta de salida de la prueba: nunca se toca el config.json real.
@@ -49,7 +51,15 @@ if (!app.requestSingleInstanceLock()) {
   const obtenerConfig = () => (configPrueba // lo que ve el renderer
     ? normalizarConfig({ ...config, ...configPrueba, presentacion: { ...config.presentacion, ...(configPrueba.presentacion ?? {}) } })
     : config);
-  const guardar = (nueva) => { guardarConfig(archivo, nueva); config = cargarConfig(archivo); };
+  const guardar = (nueva) => {
+    try {
+      guardarConfig(archivo, nueva);
+      config = cargarConfig(archivo);
+    } catch (e) {
+      console.warn('No se pudo guardar config.json:', e.message); // p. ej. pendrive retirado
+      config = normalizarConfig(nueva);
+    }
+  };
 
   const abrirNueva = ruta => crearVentana({ ruta, preload });
   const dialogoAbrir = async (win) => {

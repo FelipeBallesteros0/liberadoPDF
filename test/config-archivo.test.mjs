@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, writeFileSync, existsSync } from 'node:fs';
+import { mkdtempSync, writeFileSync, existsSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { carpetaDatos, cargarConfig, guardarConfig } from '../src/main/config.js';
@@ -24,4 +24,5 @@ test('cargar: ausente, vacío o corrupto → valores por defecto; guardar: atóm
   assert.equal(cargarConfig(archivo).presentacion.bucle, false);
   writeFileSync(archivo, '');
   assert.deepEqual(cargarConfig(archivo).recientes, []);
+  rmSync(dir, { recursive: true, force: true });
 });
