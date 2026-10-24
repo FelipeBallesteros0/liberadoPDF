@@ -6,6 +6,7 @@ import { agruparEtiquetas } from '/comun/etiquetas.mjs';
 import { instalarContador } from '/contador.mjs';
 import { instalarPresentacion } from '/presentacion.mjs';
 import { instalarCierre } from '/cierre.mjs';
+import { instalarBarra } from '/barra.mjs';
 
 const app = window.PDFViewerApplication;
 const parametros = new URLSearchParams(location.search);
@@ -26,6 +27,8 @@ if (app.pdfViewer?.getPageView?.(0)?.renderingState === RENDER_TERMINADO) {
     window.liberadopdf.humoEvento('primera-pagina');
   });
 }
+
+let grupos = null; // láminas y pasos según /PageLabels (se rellena al cargar el documento)
 
 // Acciones de liberadoPDF: las invocan las teclas (teclas.mjs) y el proceso principal (menú).
 const acciones = {
@@ -57,6 +60,7 @@ for (const nombre of ['siguiente', 'anterior', 'siguienteLamina', 'anteriorLamin
 }
 const contador = instalarContador({ app, obtenerGrupos: () => grupos, modoActual });
 instalarCierre({ app });
+const barra = instalarBarra({ config, app, guardar: parcial => window.liberadopdf.guardarConfig(parcial) });
 instalarTeclas({ acciones, modoActual, interceptor: presentacion.interceptor });
 window.liberadopdf.alAccion(nombre => acciones[nombre]?.());
 
@@ -70,10 +74,9 @@ window.addEventListener('drop', (ev) => {
   const rutaSoltada = window.liberadopdf.rutaDeArchivo(archivo);
   if (/\.pdf$/i.test(rutaSoltada)) window.liberadopdf.abrirEnEstaVentana(rutaSoltada);
 }, { capture: true });
-window.liberadopdfAcciones = { presentacion: acciones.presentacion, ayuda: acciones.ayuda };
+window.liberadopdfAcciones = { presentacion: acciones.presentacion, ayuda: acciones.ayuda, personalizarBarra: () => barra.abrirDialogo() };
 
 const ponerTitulo = () => { document.title = nombre ? `${nombre} · liberadoPDF` : 'liberadoPDF'; };
-let grupos = null; // láminas y pasos según /PageLabels
 const alCargar = async () => {
   ponerTitulo();
   window.liberadopdf.documentoAbierto({ ruta, nombre });
@@ -82,5 +85,10 @@ const alCargar = async () => {
   contador.actualizar();
 };
 if (app.pdfDocument) alCargar(); else app.eventBus.on('documentloaded', alCargar);
+// PDF corrupto, cifrado sin contraseña válida o ilegible: pdf.js solo lo registra en consola; aquí se vuelve
+// a la pantalla de inicio con el motivo en vez de dejar un visor vacío.
+app.eventBus.on('documenterror', ({ message }) => {
+  window.liberadopdf.abrirInicio(`No se pudo abrir ${nombre || 'el PDF'}: ${message || 'archivo dañado o no es un PDF'}`);
+});
 app.eventBus.on('metadataloaded', ponerTitulo); // pdf.js pone su propio título al leer los metadatos
 

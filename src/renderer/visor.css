@@ -72,3 +72,30 @@
   font-variant-numeric: tabular-nums;
   pointer-events: none;
 }
+
+/* Barra personalizable */
+.liberadopdf-oculto { display: none !important; }
+#liberadopdfBotones { display: flex; align-items: center; gap: 2px; }
+#liberadopdfBotones .liberadopdf-movido::before { mask-image: var(--liberadopdf-icono) !important; -webkit-mask-image: var(--liberadopdf-icono) !important; }
+#liberadopdfBotones .liberadopdf-movido > span { display: none; }
+
+.liberadopdf-barra-dialogo {
+  position: fixed;
+  inset: 0;
+  z-index: 10003;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.45);
+  font: 14px system-ui, sans-serif;
+  color: #222;
+}
+.liberadopdf-barra-dialogo .caja { width: min(640px, 92vw); max-height: 86vh; overflow: auto; padding: 18px 22px; border-radius: 10px; background: #fff; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35); }
+.liberadopdf-barra-dialogo h2 { margin: 0 0 6px; font-size: 18px; color: #0077b6; }
+.liberadopdf-barra-dialogo h3 { margin: 14px 0 6px; font-size: 14px; color: #555; }
+.liberadopdf-barra-dialogo p { margin: 0 0 6px; color: #555; }
+.liberadopdf-barra-dialogo .lista { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 4px 16px; }
+.liberadopdf-barra-dialogo label { display: flex; align-items: center; gap: 6px; padding: 3px 0; cursor: pointer; }
+.liberadopdf-barra-dialogo .pie { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+.liberadopdf-barra-dialogo .pie button { padding: 6px 14px; border: 1px solid #bbb; border-radius: 6px; background: #f6f6f6; font: inherit; cursor: pointer; }
+.liberadopdf-barra-dialogo .pie button:last-child { background: #0077b6; border-color: #0077b6; color: #fff; }

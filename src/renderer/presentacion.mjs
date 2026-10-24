@@ -38,7 +38,10 @@ export function instalarPresentacion({ app, config, acciones }) {
     pantalla = document.createElement('div');
     pantalla.className = 'liberadopdf-pantalla';
     pantalla.style.background = color;
-    pantalla.addEventListener('click', (ev) => { ev.stopPropagation(); quitarPantalla(); });
+    // pdf.js pasa de página en mousedown sobre window en presentación: se corta aquí, además del click.
+    for (const tipo of ['mousedown', 'mouseup', 'click']) {
+      pantalla.addEventListener(tipo, (ev) => { ev.preventDefault(); ev.stopPropagation(); if (tipo === 'click') quitarPantalla(); });
+    }
     raiz.append(pantalla);
   };
   // Cualquier tecla quita la pantalla y no hace nada más (lo consulta teclas.mjs antes de actuar).

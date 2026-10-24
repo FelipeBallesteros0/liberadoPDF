@@ -52,6 +52,11 @@ export function abrirEnVentana(win, ruta) {
   win.loadURL(urlVisor(ruta));
 }
 
+export function abrirInicioEnVentana(win, mensaje) {
+  win.liberadopdfEdiciones = false;
+  win.loadURL(urlInicio(mensaje));
+}
+
 export function ventanaActiva() {
   return BrowserWindow.getFocusedWindow() ?? BrowserWindow.getAllWindows()[0] ?? null;
 }

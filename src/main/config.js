@@ -1,6 +1,6 @@
 // Carpeta de datos (modo portable o userData) y lectura/escritura de config.json.
 // Solo usa node:fs y node:path para poder probarse sin Electron.
-import { existsSync, mkdirSync, readFileSync, writeFileSync, renameSync, accessSync, constants } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync, renameSync, unlinkSync, accessSync, constants } from 'node:fs';
 import path from 'node:path';
 import { normalizarConfig } from '../comun/config.mjs';
 
@@ -23,7 +23,7 @@ export function puedeEscribirCarpeta(dir) {
     accessSync(dir, constants.W_OK);
     const prueba = path.join(dir, '.escritura');
     writeFileSync(prueba, '');
-    renameSync(prueba, prueba); // en NTFS confirma que también se puede renombrar
+    unlinkSync(prueba);
     return true;
   } catch {
     return false;

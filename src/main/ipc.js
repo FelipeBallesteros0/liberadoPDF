@@ -4,7 +4,8 @@ import { EventEmitter } from 'node:events';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { agregarReciente } from '../comun/config.mjs';
-import { abrirEnVentana } from './ventanas.js';
+import { abrirEnVentana, abrirInicioEnVentana } from './ventanas.js';
+import { errorDeRutaPdf } from '../comun/argumentos.mjs';
 
 export const eventosHumo = new EventEmitter();
 const ENLACE_EXTERNO = /^(https?:|mailto:)/i;
@@ -20,8 +21,18 @@ export function instalarIpc({ obtenerConfig, obtenerConfigBase = obtenerConfig, 
     });
     return canceled || filePaths.length === 0 ? null : filePaths[0];
   });
-  ipcMain.handle('abrir-en-esta', (evento, ruta) => { abrirEnVentana(ventanaDe(evento), ruta); });
-  ipcMain.handle('abrir-en-nueva', (evento, ruta) => { abrirEnNueva(ruta); });
+  // Toda ruta que llega del renderer (arrastre, recientes, diálogo) se valida en el main: un PDF existente o
+  // la pantalla de inicio con el motivo. Así un renderer comprometido tampoco puede pedir archivos arbitrarios.
+  ipcMain.handle('abrir-en-esta', (evento, ruta) => {
+    const error = errorDeRutaPdf(ruta, existsSync);
+    if (error) abrirInicioEnVentana(ventanaDe(evento), error); else abrirEnVentana(ventanaDe(evento), ruta);
+  });
+  ipcMain.handle('abrir-en-nueva', (evento, ruta) => {
+    const error = errorDeRutaPdf(ruta, existsSync);
+    if (error) abrirInicioEnVentana(ventanaDe(evento), error); else abrirEnNueva(ruta);
+  });
+  // La pantalla de inicio con un mensaje (p. ej. PDF corrupto detectado por pdf.js en el renderer).
+  ipcMain.handle('abrir-inicio', (evento, mensaje) => { abrirInicioEnVentana(ventanaDe(evento), String(mensaje ?? '').slice(0, 300)); });
   ipcMain.handle('recientes', () => obtenerConfig().recientes.filter(r => existsSync(r.ruta)));
   ipcMain.handle('config', () => obtenerConfig());
   ipcMain.handle('guardar-config', (evento, parcial) => {

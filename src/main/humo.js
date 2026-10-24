@@ -89,6 +89,8 @@ async function faseBasica({ ruta, preload, salida }) {
   await espera(300);
   r.flechaEnEntrada = sigueEn3 && (await pagina()) === 4;
 
+  // «Modo presentación» está en la barra principal por defecto (movido desde el menú «»»).
+  r.presentacionEnBarra = await js('Boolean(document.getElementById("presentationMode")?.closest("#toolbarViewerRight"))');
   r.paginaAntesDePresentar = await pagina();
   r.presentacion = await presentar();
   r.paginaTrasPresentar = await pagina();
@@ -107,8 +109,16 @@ async function faseBasica({ ruta, preload, salida }) {
   await espera(300);
   const sinPantalla = !(await js('document.querySelector(".liberadopdf-pantalla")'));
   r.pantallaNegra = conPantalla && sinPantalla && (await pagina()) === 2;
+  // Con la pantalla en negro, un clic del ratón la quita y tampoco avanza (pdf.js navega en mousedown).
+  tecla('W');
+  await espera(200);
+  const { width, height } = win.getContentBounds();
+  const raton = (type) => win.webContents.sendInputEvent({ type, x: Math.round(width / 2), y: Math.round(height / 2), button: 'left', clickCount: 1 });
+  raton('mouseDown'); raton('mouseUp');
+  await espera(300);
+  r.clicEnPantalla = !(await js('document.querySelector(".liberadopdf-pantalla")')) && (await pagina()) === 2;
 
-  r.ok = r.msPrimeraPagina < 3000 && r.animacion && r.pagina3 && r.flechaEnEntrada && r.presentacion && r.contadorYSaltos && r.pantallaNegra;
+  r.ok = r.msPrimeraPagina < 3000 && r.animacion && r.pagina3 && r.flechaEnEntrada && r.presentacionEnBarra && r.presentacion && r.contadorYSaltos && r.pantallaNegra && r.clicEnPantalla;
   return r;
 }
 
@@ -186,7 +196,27 @@ async function faseCierre({ ruta, preload, salida }) {
   return r;
 }
 
-const FASES = { basica: faseBasica, bucle: faseBucle, inexistente: faseInexistente, presentacionAnimada: fasePresentacionAnimada, cierre: faseCierre };
+// Un archivo .pdf que no es un PDF: pdf.js falla al abrirlo y liberadoPDF vuelve al inicio con el motivo.
+async function faseCorrupto({ ruta, preload, salida }) {
+  const r = { inicioConMensaje: false };
+  const { win } = abrirVentanaDePrueba({ ruta, preload, salida });
+  const inicio = new Promise((resolver) => {
+    const comprobar = async () => {
+      const url = win.webContents.getURL();
+      if (url.includes('/inicio.html')) { await espera(300); resolver(true); }
+    };
+    win.webContents.on('did-finish-load', comprobar);
+  });
+  const llego = await Promise.race([inicio, espera(8000).then(() => false)]);
+  if (llego) {
+    r.mensaje = await win.webContents.executeJavaScript(`document.querySelector('.liberadopdf-mensaje')?.textContent ?? ''`);
+    r.inicioConMensaje = r.mensaje.startsWith('No se pudo abrir');
+  }
+  r.ok = r.inicioConMensaje;
+  return r;
+}
+
+const FASES = { basica: faseBasica, bucle: faseBucle, inexistente: faseInexistente, presentacionAnimada: fasePresentacionAnimada, cierre: faseCierre, corrupto: faseCorrupto };
 
 export async function ejecutarHumo({ ruta, salida, fase, preload }) {
   mkdirSync(salida, { recursive: true });

@@ -20,6 +20,7 @@ contextBridge.exposeInMainWorld('liberadopdf', {
   abrirDialogo: () => ipcRenderer.invoke('abrir-dialogo'),
   abrirEnEstaVentana: ruta => ipcRenderer.invoke('abrir-en-esta', ruta),
   abrirEnVentanaNueva: ruta => ipcRenderer.invoke('abrir-en-nueva', ruta),
+  abrirInicio: mensaje => ipcRenderer.invoke('abrir-inicio', mensaje),
   recientes: () => ipcRenderer.invoke('recientes'),
   config: () => ipcRenderer.invoke('config'),
   guardarConfig: parcial => ipcRenderer.invoke('guardar-config', parcial),

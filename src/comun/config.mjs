@@ -20,6 +20,7 @@ export function valoresPorDefecto() {
     monitorPresentacion: 'auto',
     monitorPresentador: 'auto',
     porDocumento: {},
+    barra: { presentationMode: true }, // id de botón de pdf.js → ¿en la barra principal?
   };
 }
 
@@ -61,6 +62,11 @@ export function normalizarConfig(entrada) {
   config.porDocumento = Object.fromEntries(
     Object.entries(config.porDocumento).filter(([, v]) => esObjetoPlano(v)),
   );
+  // barra: mapa libre id → booleano (fusionar solo conserva las claves por defecto)
+  const barraEntrada = esObjetoPlano(entrada) && esObjetoPlano(entrada.barra) ? entrada.barra : null;
+  config.barra = barraEntrada
+    ? Object.fromEntries(Object.entries(barraEntrada).filter(([, v]) => typeof v === 'boolean'))
+    : valoresPorDefecto().barra;
   return config;
 }
 

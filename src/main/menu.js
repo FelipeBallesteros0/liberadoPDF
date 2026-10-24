@@ -26,6 +26,8 @@ export function construirMenu({ recientes, alAbrir, alAbrirNueva, alReciente, al
       submenu: [
         { label: 'Presentación', accelerator: 'F5', registerAccelerator: false, click: (item, win) => alAccion(win, 'presentacion') },
         { label: 'Pantalla completa', role: 'togglefullscreen' },
+        { type: 'separator' },
+        { label: 'Personalizar barra…', click: (item, win) => alAccion(win, 'personalizarBarra') },
       ],
     },
     {

@@ -27,7 +27,13 @@ export function instalarProtocolo({ raices }) {
       if (!ruta) return noEncontrado();
       try {
         const bytes = await readFile(ruta);
-        return new Response(bytes, { headers: { 'Content-Type': 'application/pdf', 'Content-Length': String(bytes.length), 'Accept-Ranges': 'none' } });
+        const nombre = encodeURIComponent(ruta.split(/[\\/]/).pop());
+        return new Response(bytes, { headers: {
+          'Content-Type': 'application/pdf',
+          'Content-Length': String(bytes.length),
+          'Accept-Ranges': 'none',
+          'Content-Disposition': `inline; filename*=UTF-8''${nombre}`, // pdf.js propone este nombre al guardar
+        } });
       } catch (e) {
         return new Response(`No se pudo leer el PDF: ${e.message}`, { status: 500, headers: { 'Content-Type': 'text/plain' } });
       }

@@ -20,10 +20,12 @@ export function agruparEtiquetas(etiquetas, totalPaginas) {
       const l = laminas[i];
       return { lamina: i + 1, totalLaminas: laminas.length, paso: pagina - l.primeraPagina + 1, pasos: l.paginas, etiqueta: l.etiqueta };
     },
+    // Lo que el usuario teclea es lo que Beamer imprime al pie: primero la etiqueta, luego el índice.
     paginaDeLamina(n) {
-      if (Number.isInteger(n) && n >= 1 && n <= laminas.length) return laminas[n - 1].primeraPagina;
       const porEtiqueta = laminas.find(l => l.etiqueta === String(n));
-      return porEtiqueta ? porEtiqueta.primeraPagina : null;
+      if (porEtiqueta) return porEtiqueta.primeraPagina;
+      if (Number.isInteger(n) && n >= 1 && n <= laminas.length) return laminas[n - 1].primeraPagina;
+      return null;
     },
     siguienteLamina(pagina) {
       const i = indiceDe(pagina);
@@ -34,4 +36,15 @@ export function agruparEtiquetas(etiquetas, totalPaginas) {
       return i > 0 ? laminas[i - 1].primeraPagina : null;
     },
   };
+}
+
+// Texto del contador. Con etiquetas numéricas (Beamer) se muestra la etiqueta sobre la mayor, que es lo
+// que el propio PDF rotula al pie; si no, el índice de la lámina sobre el total.
+export function textoContador(posicion, grupos) {
+  if (!posicion) return '';
+  const numericas = grupos.laminas.every(l => /^\d+$/.test(l.etiqueta));
+  const base = numericas
+    ? `lámina ${posicion.etiqueta} / ${Math.max(...grupos.laminas.map(l => Number(l.etiqueta)))}`
+    : `lámina ${posicion.lamina} / ${posicion.totalLaminas}`;
+  return posicion.pasos > 1 ? `${base} · paso ${posicion.paso} / ${posicion.pasos}` : base;
 }

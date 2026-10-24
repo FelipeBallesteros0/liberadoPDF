@@ -1,6 +1,7 @@
 // Proceso principal de liberadoPDF.
 import { app, BrowserWindow, dialog } from 'electron';
 import path from 'node:path';
+import { existsSync } from 'node:fs';
 import { registrarEsquemaPrivilegiado, instalarProtocolo } from './protocolo.js';
 import { crearVentana, ventanaActiva, abrirEnVentana } from './ventanas.js';
 import { abrirDesdeArgumentos } from './apertura.js';
@@ -56,7 +57,7 @@ if (!app.requestSingleInstanceLock()) {
     return canceled || filePaths.length === 0 ? null : filePaths[0];
   };
   const menu = () => construirMenu({
-    recientes: obtenerConfig().recientes,
+    recientes: obtenerConfig().recientes.filter(r => existsSync(r.ruta)),
     alAbrir: async (win) => { const r = await dialogoAbrir(win); if (r) { const destino = win ?? ventanaActiva(); destino ? abrirEnVentana(destino, r) : abrirNueva(r); } },
     alAbrirNueva: async () => { const r = await dialogoAbrir(ventanaActiva()); if (r) abrirNueva(r); },
     alReciente: ruta => { const destino = ventanaActiva(); destino ? abrirEnVentana(destino, ruta) : abrirNueva(ruta); },

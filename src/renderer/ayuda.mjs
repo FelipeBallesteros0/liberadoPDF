@@ -10,7 +10,7 @@ const FILAS = [
   ['Esc', 'Salir de presentación, cerrar esta ayuda'],
   ['T', 'Reloj y cronómetro (en presentación)'],
   ['B / W', 'Pantalla en negro / en blanco (en presentación)'],
-  ['N', 'Modo nocturno'],
+  ['N', 'Modo nocturno (próxima entrega)'],
   ['Ctrl + O / Ctrl + N', 'Abrir / abrir en una ventana nueva'],
   ['Ctrl + F', 'Buscar (pdf.js)'],
   ['Ctrl + P', 'Imprimir'],

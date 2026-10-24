@@ -1,7 +1,7 @@
 // Prueba de humo: lanza liberadoPDF (Electron) por fases con el PDF de ejemplo y agrega los resultados.
 // Uso: npm run humo   (necesita pantalla: WSLg o escritorio Linux)
 import { spawn } from 'node:child_process';
-import { copyFileSync, mkdirSync, readFileSync, rmSync, existsSync } from 'node:fs';
+import { copyFileSync, mkdirSync, readFileSync, rmSync, existsSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -20,7 +20,9 @@ const FASES = [
   { nombre: 'inexistente', env: { LIBERADOPDF_PDF: path.join(salida, 'no-existe.pdf') } },
   { nombre: 'presentacionAnimada', env: { LIBERADOPDF_HUMO_PAGINA: '2' } },
   { nombre: 'cierre', env: {} },
+  { nombre: 'corrupto', env: { LIBERADOPDF_PDF: path.join(salida, 'corrupto.pdf') } },
 ];
+writeFileSync(path.join(salida, 'corrupto.pdf'), 'esto no es un PDF\n');
 
 const electron = path.join(raiz, 'node_modules', '.bin', process.platform === 'win32' ? 'electron.cmd' : 'electron');
 

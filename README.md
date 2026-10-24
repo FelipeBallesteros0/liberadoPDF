@@ -10,7 +10,8 @@ Nació para presentar un paper en IEEE ICA-ACCA 2026 cuya lámina 11 lleva un vi
 2. Doble clic en `liberadoPDF.exe` abre la pantalla de inicio: «Abrir PDF», los últimos archivos abiertos y una zona para arrastrar un PDF.
 3. También puedes usar «Abrir con…» sobre un PDF, arrastrar un PDF sobre el ejecutable o sobre la ventana, o pasarlo por línea de comandos.
 4. `F5` o doble clic entran en presentación; `Esc` sale.
-5. La X cierra la ventana sin preguntar, salvo que hayas anotado o rellenado campos sin guardar: entonces pregunta. (Las animaciones también modifican el PDF por dentro; eso no cuenta.)
+5. **Modo presentación** está en la barra principal (icono de pantalla junto a «»»). Con Ver ▸ «Personalizar barra…» o la última entrada del menú «»» eliges qué botones van en la barra y cuáles no; se recuerda en `config.json` (`barra`).
+6. La X cierra la ventana sin preguntar, salvo que hayas anotado o rellenado campos sin guardar: entonces pregunta. (Las animaciones también modifican el PDF por dentro; eso no cuenta.)
 
 **Primer arranque en un PC nuevo**: Windows y el antivirus analizan el ejecutable la primera vez y puede tardar 10–20 s; después abre en menos de 2 s. Ábrelo una vez antes de la charla. Desde un pendrive USB 2.0 el primer arranque también es lento: conviene copiar la carpeta al disco.
 
@@ -32,11 +33,11 @@ Nació para presentar un paper en IEEE ICA-ACCA 2026 cuya lámina 11 lleva un vi
 | `Ctrl+F`, `Ctrl+P`, `+`, `-`, `r` | buscar, imprimir, zoom, rotar (pdf.js) | `r` anulada |
 | `F1` | ayuda de teclas | ayuda de teclas |
 
-Los clickers habituales envían `PgUp`/`PgDn`: funcionan sin configurar nada. En presentación, el contador «lámina X / Y · paso a / b» usa las etiquetas de página del PDF (Beamer repite la etiqueta en los pasos de una misma lámina).
+Los clickers habituales envían `PgUp`/`PgDn`: funcionan sin configurar nada. En presentación, el contador «lámina X / Y · paso a / b» usa las etiquetas de página del PDF: con Beamer muestra el mismo número que el pie de la lámina (la portada es la 0) y «número + Enter» salta a esa etiqueta; en los pasos de una misma lámina la etiqueta se repite.
 
 ## Ajustes
 
-Se guardan en `data\config.json` junto al ejecutable (modo portable). Si esa carpeta no se puede escribir, en `%APPDATA%\liberadoPDF\config.json`.
+Se guardan en `data\config.json` junto al ejecutable (modo portable; en `data\` queda también la caché de Chromium). Si esa carpeta no se puede escribir, en `%APPDATA%\liberadoPDF\config.json`.
 
 ```json
 {
@@ -58,7 +59,7 @@ El diálogo de ajustes (`Ctrl+,`) llega en la próxima entrega; por ahora se edi
 
 ## Construir desde WSL o Linux
 
-Requisitos: Node 24, una pantalla (WSLg) para la prueba de humo, y para el PDF de ejemplo un TeX Live con `beamer`, `tikz` y `animate`.
+Requisitos: Node 24, una pantalla (WSLg) para la prueba de humo, Python 3 con Pillow para el icono, y para el PDF de ejemplo un TeX Live con `beamer`, `tikz` y `animate`.
 
 ```bash
 npm install
