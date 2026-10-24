@@ -16,7 +16,10 @@ export function instalarAImagenes(H) {
       ],
       totalPaginas,
       alEjecutar: async (v, { senal, progreso }) => {
-        const archivos = [];
+        // La carpeta se elige antes y cada imagen se guarda al salir: así no se acumulan cientos de MB en memoria.
+        const carpeta = await window.liberadopdf.elegirCarpeta();
+        if (!carpeta) return { mensaje: 'Elige una carpeta para las imágenes.' };
+        let guardadas = 0;
         const extension = v.formato === 'jpeg' ? 'jpg' : 'png';
         for (const [i, n] of v.paginas.entries()) {
           if (senal.aborted) throw Object.assign(new Error('Cancelado'), { cancelado: true });
@@ -30,10 +33,13 @@ export function instalarAImagenes(H) {
           if (v.formato === 'jpeg') { ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, canvas.width, canvas.height); }
           await page.render({ canvasContext: ctx, viewport }).promise;
           const blob = await new Promise(res => canvas.toBlob(res, `image/${v.formato}`, v.calidad));
-          archivos.push({ nombre: nombreImagen(ruta, n, totalPaginas, extension), bytes: new Uint8Array(await blob.arrayBuffer()) });
           canvas.width = canvas.height = 0;
+          if (senal.aborted) throw Object.assign(new Error('Cancelado'), { cancelado: true });
+          const destino = await window.liberadopdf.guardarResultados({ archivos: [{ nombre: nombreImagen(ruta, n, totalPaginas, extension), bytes: new Uint8Array(await blob.arrayBuffer()) }], carpeta });
+          if (!destino) throw new Error('No se pudo guardar en la carpeta');
+          guardadas++;
         }
-        return { archivos, resumen: `${archivos.length} imágenes` };
+        return { guardadoEn: carpeta, resumen: `${guardadas} imágenes` };
       },
     });
   });

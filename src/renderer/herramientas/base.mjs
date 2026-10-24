@@ -3,6 +3,9 @@ import { raizDeCapas } from '../capas.mjs';
 import { mostrarToast } from '../instantanea.mjs';
 import { analizarRangos } from '../comun/herramientas/rangos.mjs';
 
+// Última ejecución de cada herramienta (para la prueba de humo: demuestra que una cancelación asienta la promesa).
+const anotarEjecucion = (clave, estado) => { if (window.liberadopdfHerramientas) window.liberadopdfHerramientas.ultimaEjecucion = { clave, estado, cuando: Date.now() }; };
+
 export const MENSAJE_CIFRADO = 'Este PDF está cifrado: primero desbloquéalo (Herramientas ▸ Desbloquear).';
 
 export async function bytesDelDocumento() {
@@ -116,13 +119,22 @@ export function dialogoHerramienta({ clave, titulo, descripcion, campos = [], to
         senal: controlador.signal,
         progreso: ({ hecho, total, texto }) => { barra.style.width = total ? `${Math.round(100 * hecho / total)}%` : '0%'; textoProgreso.textContent = texto ?? `${hecho} / ${total}`; },
       });
-      if (resultado?.mensaje && !resultado.bytes && !resultado.archivos) { avisar(resultado.mensaje); resultado = null; ejecutar.disabled = false; progreso.hidden = true; return; }
+      if (controlador.signal.aborted) throw Object.assign(new Error('Cancelado'), { cancelado: true }); // terminó, pero el usuario ya canceló: no se guarda nada
+      if (resultado?.guardadoEn) { // la herramienta fue guardando sobre la marcha (p. ej. una imagen por página)
+        anotarEjecucion(clave, 'ok');
+        mostrarToast(`Guardado en ${resultado.guardadoEn}`);
+        cerrar();
+        return;
+      }
+      if (resultado?.mensaje && !resultado.bytes && !resultado.archivos) { anotarEjecucion(clave, 'mensaje'); avisar(resultado.mensaje); resultado = null; ejecutar.disabled = false; progreso.hidden = true; return; }
+      anotarEjecucion(clave, 'ok');
       barra.style.width = '100%';
       textoProgreso.textContent = resultado.resumen ?? 'Listo';
       ejecutar.textContent = 'Guardar…';
       ejecutar.disabled = false;
       await guardar();
     } catch (e) {
+      anotarEjecucion(clave, e?.cancelado ? 'cancelada' : 'error');
       if (e?.cancelado) avisar('Cancelado');
       else if (e?.message === 'cifrado') avisar(MENSAJE_CIFRADO, true);
       else avisar(`Error: ${e.message}`, true);
@@ -133,7 +145,7 @@ export function dialogoHerramienta({ clave, titulo, descripcion, campos = [], to
   });
 
   async function guardar() {
-    if (!resultado) return;
+    if (!resultado || controlador?.signal.aborted) return;
     let destino = null;
     if (resultado.archivos) destino = await window.liberadopdf.guardarResultados({ archivos: resultado.archivos });
     else destino = await window.liberadopdf.guardarResultado({ nombre: resultado.nombre, bytes: resultado.bytes });

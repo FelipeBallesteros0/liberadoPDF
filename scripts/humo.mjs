@@ -4,46 +4,13 @@ import { spawn } from 'node:child_process';
 import { copyFileSync, mkdirSync, readFileSync, rmSync, existsSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import zlib from 'node:zlib';
-import { createRequire } from 'node:module';
+import { generarFixtures } from './fixtures.mjs';
 import { fileURLToPath } from 'node:url';
 
 const raiz = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const salida = path.join(raiz, 'test', 'salida');
 const carpetaHumo = path.join(salida, 'humo');
-// Review Focus 1: ruta con espacios, ñ, # y %
-const pdfPrueba = path.join(salida, 'ñandú #2 100%.pdf');
-mkdirSync(salida, { recursive: true });
-rmSync(carpetaHumo, { recursive: true, force: true });
-copyFileSync(path.join(raiz, 'recursos', 'ejemplo_animado.pdf'), pdfPrueba);
-
-// Imágenes para «Imágenes a PDF»: PNG RGBA sin dependencias (filtro 0 por fila, zlib) y un .jpg falso.
-function png(ancho, alto, pixel) {
-  const filas = Buffer.alloc((ancho * 4 + 1) * alto);
-  for (let y = 0; y < alto; y++) for (let x = 0; x < ancho; x++) Buffer.from(pixel(x, y)).copy(filas, y * (ancho * 4 + 1) + 1 + x * 4);
-  const trozo = (tipo, datos) => { const len = Buffer.alloc(4); len.writeUInt32BE(datos.length); const td = Buffer.concat([Buffer.from(tipo), datos]); const crc = Buffer.alloc(4); crc.writeUInt32BE(zlib.crc32(td)); return Buffer.concat([len, td, crc]); };
-  const ihdr = Buffer.alloc(13); ihdr.writeUInt32BE(ancho, 0); ihdr.writeUInt32BE(alto, 4); ihdr[8] = 8; ihdr[9] = 6;
-  return Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), trozo('IHDR', ihdr), trozo('IDAT', zlib.deflateSync(filas)), trozo('IEND', Buffer.alloc(0))]);
-}
-const imagenA = path.join(salida, 'imagen_a.png'), imagenB = path.join(salida, 'imagen_b.png'), imagenFalsa = path.join(salida, 'falsa.jpg');
-writeFileSync(imagenA, png(80, 60, () => [220, 30, 30, 255]));
-writeFileSync(imagenB, png(60, 90, (x, y) => [30, 30, 220, x < 30 ? 255 : 90])); // mitad transparente
-writeFileSync(imagenFalsa, 'esto no es una imagen\n');
-// PDF cifrado (qpdf-wasm en Node: usuario «clave», propietario «dueño») y PDF truncado para «reparar».
-const cifradoPrueba = path.join(salida, 'cifrado.pdf');
-const truncadoPrueba = path.join(salida, 'truncado.pdf');
-{
-  const crearQpdf = createRequire(import.meta.url)('@neslinesli93/qpdf-wasm');
-  const avisos = [];
-  const qpdf = await crearQpdf({ preRun: [(M) => M.FS.init(null, c => c === 10 && avisos.push('salida'), c => c === 10 && avisos.push('aviso'))] });
-  const ejemplo = readFileSync(path.join(raiz, 'recursos', 'ejemplo_animado.pdf'));
-  qpdf.FS.writeFile('in.pdf', ejemplo);
-  const codigo = qpdf.callMain(['--encrypt', 'clave', 'dueño', '256', '--', 'in.pdf', 'out.pdf']);
-  if (codigo !== 0) throw new Error(`qpdf no pudo cifrar el ejemplo (código ${codigo})`);
-  writeFileSync(cifradoPrueba, Buffer.from(qpdf.FS.readFile('out.pdf')));
-  writeFileSync(truncadoPrueba, ejemplo.subarray(0, ejemplo.length - 300));
-}
-const htmlPrueba = path.join(salida, 'prueba.html');
-writeFileSync(htmlPrueba, '<!doctype html><meta charset="utf-8"><title>Prueba</title><h1>Hola liberadoPDF</h1><p>Página de prueba del humo.</p>\n');
+const { pdfPrueba, imagenA, imagenB, imagenFalsa, pngComoJpg, fotoExif, htmlPrueba, cifradoPrueba, truncadoPrueba, truncadoObjstm, optimizadoPrueba, recortadoPrueba, escaneadoGirado } = await generarFixtures({ raiz, salida });
 
 const FASES = [
   { nombre: 'basica', env: {} },
@@ -68,18 +35,18 @@ const FASES = [
   { nombre: 'rotar', env: { LIBERADOPDF_HUMO_GUARDAR: path.join(carpetaHumo, 'rotar', 'rotado.pdf') } },
   { nombre: 'cifrado', env: {} },
   { nombre: 'organizar', env: {} },
-  { nombre: 'comprimir', env: { LIBERADOPDF_PDF: path.join(raiz, 'recursos', 'ejemplo_fotos.pdf'), LIBERADOPDF_HUMO_GUARDAR: path.join(carpetaHumo, 'comprimir', 'comprimido.pdf') } },
-  { nombre: 'ocr', env: { LIBERADOPDF_PDF: path.join(raiz, 'recursos', 'ejemplo_escaneado.pdf'), LIBERADOPDF_HUMO_ANIMADO: path.join(raiz, 'recursos', 'ejemplo_animado.pdf'), LIBERADOPDF_HUMO_GUARDAR: path.join(carpetaHumo, 'ocr', 'ocr.pdf') } },
+  { nombre: 'comprimir', env: { LIBERADOPDF_PDF: path.join(raiz, 'recursos', 'ejemplo_fotos.pdf'), LIBERADOPDF_HUMO_OPTIMIZADO: optimizadoPrueba, LIBERADOPDF_HUMO_GUARDAR: path.join(carpetaHumo, 'comprimir', 'comprimido.pdf') } },
+  { nombre: 'ocr', env: { LIBERADOPDF_PDF: path.join(raiz, 'recursos', 'ejemplo_escaneado.pdf'), LIBERADOPDF_HUMO_ANIMADO: path.join(raiz, 'recursos', 'ejemplo_animado.pdf'), LIBERADOPDF_HUMO_GIRADO: escaneadoGirado, LIBERADOPDF_HUMO_GUARDAR: path.join(carpetaHumo, 'ocr', 'ocr.pdf') } },
   { nombre: 'proteger', env: { LIBERADOPDF_HUMO_GUARDAR: path.join(carpetaHumo, 'proteger', 'protegido.pdf') } },
   { nombre: 'desbloquear', env: { LIBERADOPDF_PDF: cifradoPrueba, LIBERADOPDF_HUMO_GUARDAR: path.join(carpetaHumo, 'desbloquear', 'desbloqueado.pdf') } },
-  { nombre: 'reparar', env: { LIBERADOPDF_HUMO_ELEGIR: truncadoPrueba, LIBERADOPDF_HUMO_GUARDAR: path.join(carpetaHumo, 'reparar', 'reparado.pdf') } },
+  { nombre: 'reparar', env: { LIBERADOPDF_HUMO_ELEGIR: truncadoPrueba, LIBERADOPDF_HUMO_OBJSTM: truncadoObjstm, LIBERADOPDF_HUMO_GUARDAR: path.join(carpetaHumo, 'reparar', 'reparado.pdf') } },
   { nombre: 'htmlAPdf', env: { LIBERADOPDF_HUMO_GUARDAR: path.join(carpetaHumo, 'htmlAPdf', 'pagina.pdf'), LIBERADOPDF_HUMO_ELEGIR: htmlPrueba } },
   { nombre: 'aImagenes', env: { LIBERADOPDF_HUMO_CARPETA: path.join(carpetaHumo, 'aImagenes', 'imagenes') } },
-  { nombre: 'deImagenes', env: { LIBERADOPDF_HUMO_GUARDAR: path.join(carpetaHumo, 'deImagenes', 'imagenes.pdf'), LIBERADOPDF_HUMO_ELEGIR: [imagenA, imagenB, imagenFalsa].join(path.delimiter) } },
+  { nombre: 'deImagenes', env: { LIBERADOPDF_HUMO_GUARDAR: path.join(carpetaHumo, 'deImagenes', 'imagenes.pdf'), LIBERADOPDF_HUMO_ELEGIR: [imagenA, imagenB, pngComoJpg, fotoExif, imagenFalsa].join(path.delimiter) } },
   { nombre: 'recortar', env: { LIBERADOPDF_HUMO_GUARDAR: path.join(carpetaHumo, 'recortar', 'recortado.pdf') } },
   { nombre: 'metadatos', env: { LIBERADOPDF_HUMO_GUARDAR: path.join(carpetaHumo, 'metadatos', 'metadatos.pdf') } },
   { nombre: 'aplanar', env: { LIBERADOPDF_HUMO_GUARDAR: path.join(carpetaHumo, 'aplanar', 'aplanado.pdf') } },
-  { nombre: 'numerar', env: { LIBERADOPDF_HUMO_GUARDAR: path.join(carpetaHumo, 'numerar', 'numerado.pdf') } },
+  { nombre: 'numerar', env: { LIBERADOPDF_PDF: recortadoPrueba, LIBERADOPDF_HUMO_GUARDAR: path.join(carpetaHumo, 'numerar', 'numerado.pdf') } },
   { nombre: 'marcaDeAgua', env: { LIBERADOPDF_HUMO_GUARDAR: path.join(carpetaHumo, 'marcaDeAgua', 'marca.pdf') } },
   { nombre: 'notasDerecha43', fase: 'notasDerecha', env: { LIBERADOPDF_PDF: path.join(raiz, 'recursos', 'ejemplo_notas_43.pdf'), LIBERADOPDF_CONFIG_PRUEBA: JSON.stringify({ porDocumento: { [path.join(raiz, 'recursos', 'ejemplo_notas_43.pdf')]: { notasDerecha: true } } }) } },
 ];

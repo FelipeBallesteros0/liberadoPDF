@@ -11,7 +11,7 @@ async function mapaDeBits(img) {
   const n = img.ancho * img.alto;
   const rgba = new Uint8ClampedArray(n * 4);
   const canales = img.espacioColor === 'DeviceGray' ? 1 : 3;
-  if (img.bytes.length < n * canales) throw new Error('datos de imagen incompletos');
+  if (img.bytes.length !== n * canales) throw new Error('datos de imagen que no cuadran con sus medidas'); // p. ej. un predictor sin deshacer
   for (let i = 0; i < n; i++) {
     const o = i * canales;
     rgba[i * 4] = img.bytes[o]; rgba[i * 4 + 1] = img.bytes[canales === 1 ? o : o + 1]; rgba[i * 4 + 2] = img.bytes[canales === 1 ? o : o + 2]; rgba[i * 4 + 3] = 255;
@@ -19,14 +19,17 @@ async function mapaDeBits(img) {
   return createImageBitmap(new ImageData(rgba, img.ancho, img.alto));
 }
 
-export async function recodificarImagenes(imagenes, calidad, { senal, progreso }) {
+// `obtener(info) → Promise<Uint8Array>` trae los bytes de una imagen cada vez (no todas a la vez).
+export async function recodificarImagenes(imagenes, calidad, { senal, progreso, obtener }) {
   const reemplazos = [];
-  for (const [i, img] of imagenes.entries()) {
+  for (const [i, info] of imagenes.entries()) {
     if (senal?.aborted) throw cancelacion();
-    progreso({ hecho: i, total: imagenes.length, texto: `Imagen ${i + 1} de ${imagenes.length} (${img.ancho}×${img.alto})…` });
-    const decision = decidirImagen(img, calidad);
+    progreso({ hecho: i, total: imagenes.length, texto: `Imagen ${i + 1} de ${imagenes.length} (${info.ancho}×${info.alto})…` });
+    const decision = decidirImagen(info, calidad);
     if (!decision.recodificar) continue;
-    let mapa;
+    let mapa, img;
+    try { img = { ...info, bytes: await obtener(info) }; } catch (e) { if (e?.cancelado) throw e; continue; } // no se pudo decodificar: se deja como está
+    if (senal?.aborted) throw cancelacion();
     try { mapa = await mapaDeBits(img); } catch { continue; } // una imagen rara se deja como está
     const lienzo = new OffscreenCanvas(decision.anchoNuevo, decision.altoNuevo);
     const ctx = lienzo.getContext('2d');
@@ -36,7 +39,7 @@ export async function recodificarImagenes(imagenes, calidad, { senal, progreso }
     mapa.close();
     const jpeg = new Uint8Array(await (await lienzo.convertToBlob({ type: 'image/jpeg', quality: decision.jpeg })).arrayBuffer());
     if (senal?.aborted) throw cancelacion();
-    if (jpeg.length < img.bytes.length) reemplazos.push({ objeto: img.objeto, generacion: img.generacion, jpeg, ancho: lienzo.width, alto: lienzo.height });
+    if (jpeg.length < img.longitudComprimida) reemplazos.push({ objeto: img.objeto, generacion: img.generacion, jpeg, ancho: lienzo.width, alto: lienzo.height }); // contra lo que pesa en el archivo, no contra las muestras
   }
   return reemplazos;
 }
@@ -54,8 +57,9 @@ export function instalarComprimir(H) {
       alEjecutar: async (v, { senal, progreso }) => {
         const bytes = await H.bytesDelDocumento();
         progreso({ hecho: 0, total: 1, texto: 'Buscando imágenes…' });
-        const imagenes = await H.ejecutar('listarImagenes', { bytes }, { senal });
-        const reemplazos = await recodificarImagenes(imagenes, v.calidad, { senal, progreso });
+        const { sesion, imagenes } = await H.ejecutar('listarImagenes', { bytes }, { senal });
+        const obtener = info => H.ejecutar('obtenerImagen', { sesion, objeto: info.objeto, generacion: info.generacion }, { senal }).then(r => r.bytes);
+        const reemplazos = await recodificarImagenes(imagenes, v.calidad, { senal, progreso, obtener });
         progreso({ hecho: imagenes.length, total: imagenes.length + 1, texto: 'Reescribiendo el PDF…' });
         const r = await H.ejecutar('reemplazarImagenes', { bytes, reemplazos }, { senal });
         if (r.bytes.length >= bytes.length * 0.98) return { mensaje: `No se pudo reducir (${informe(bytes.length, r.bytes.length)}).` };

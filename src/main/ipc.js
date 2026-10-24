@@ -96,9 +96,19 @@ export function instalarIpc({ obtenerConfig, obtenerConfigBase = obtenerConfig, 
     if (canceled) return [];
     return filePaths.map(ruta => ({ ruta, nombre: path.basename(ruta), url: urlDeToken(registrarArchivo(ruta)) }));
   });
+  // Carpetas que el usuario eligió con un diálogo en esta ventana: solo a esas se puede guardar sin volver a preguntar.
+  const carpetasElegidas = win => (win.liberadopdfCarpetas ??= new Set());
   ipcMain.handle('elegir-carpeta', async (evento) => {
-    const { canceled, filePaths } = await dialog.showOpenDialog(ventanaDe(evento), { title: 'Elegir carpeta', properties: ['openDirectory', 'createDirectory'] });
-    return canceled || !filePaths.length ? null : filePaths[0];
+    const win = ventanaDe(evento);
+    let carpeta = process.env.LIBERADOPDF_HUMO ? process.env.LIBERADOPDF_HUMO_CARPETA : null;
+    if (!carpeta) {
+      const { canceled, filePaths } = await dialog.showOpenDialog(win, { title: 'Elegir carpeta', defaultPath: carpetaDelDocumento(win), properties: ['openDirectory', 'createDirectory'] });
+      if (canceled || !filePaths.length) return null;
+      carpeta = filePaths[0];
+    }
+    mkdirSync(carpeta, { recursive: true });
+    if (win) carpetasElegidas(win).add(carpeta);
+    return carpeta;
   });
   const carpetaDelDocumento = win => (win?.liberadopdfRuta ? path.dirname(win.liberadopdfRuta) : undefined);
   const nombreSeguro = nombre => path.basename(String(nombre)).replace(/[<>:"/\\|?*\x00-\x1f]/g, '_') || 'resultado';
@@ -121,14 +131,17 @@ export function instalarIpc({ obtenerConfig, obtenerConfigBase = obtenerConfig, 
     writeFileSync(destino, Buffer.from(bytes));
     return destino;
   });
-  ipcMain.handle('guardar-resultados', async (evento, { archivos }) => {
+  // `carpeta` solo se acepta si salió de elegir-carpeta en esta misma ventana (así se guarda página a página sin preguntar).
+  ipcMain.handle('guardar-resultados', async (evento, { archivos, carpeta: carpetaPrevia }) => {
     const win = ventanaDe(evento);
     if (!Array.isArray(archivos)) return null;
-    let carpeta = process.env.LIBERADOPDF_HUMO ? process.env.LIBERADOPDF_HUMO_CARPETA : null;
+    let carpeta = typeof carpetaPrevia === 'string' && win && carpetasElegidas(win).has(carpetaPrevia) ? carpetaPrevia : null;
+    if (!carpeta) carpeta = process.env.LIBERADOPDF_HUMO ? process.env.LIBERADOPDF_HUMO_CARPETA : null;
     if (!carpeta) {
       const { canceled, filePaths } = await dialog.showOpenDialog(win, { title: 'Carpeta para los resultados', defaultPath: carpetaDelDocumento(win), properties: ['openDirectory', 'createDirectory'] });
       if (canceled || !filePaths.length) return null;
       carpeta = filePaths[0];
+      if (win) carpetasElegidas(win).add(carpeta);
     }
     mkdirSync(carpeta, { recursive: true });
     for (const { nombre, bytes } of archivos) {
@@ -151,17 +164,21 @@ export function instalarIpc({ obtenerConfig, obtenerConfigBase = obtenerConfig, 
       if (!ruta || !/\.html?$/i.test(ruta) || !existsSync(ruta)) return { error: 'Archivo HTML no válido' };
       destino = ruta;
     }
-    const oculta = new BrowserWindow({ show: false, width: 1024, height: 768, webPreferences: { sandbox: true, contextIsolation: true, nodeIntegration: false, images: true } });
+    // Sesión propia (partition en memoria): el bloqueo de permisos de esta ventana no debe tocar la sesión del visor,
+    // que necesita el permiso «fullscreen» para la presentación.
+    const oculta = new BrowserWindow({ show: false, width: 1024, height: 768, webPreferences: { partition: 'htmlapdf', sandbox: true, contextIsolation: true, nodeIntegration: false, images: true } });
     oculta.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
     oculta.webContents.session.setPermissionRequestHandler((wc, permiso, cb) => cb(false));
     oculta.webContents.on('will-navigate', (ev, url) => { if (!/^https?:/.test(url)) ev.preventDefault(); });
     const cerrar = () => { if (!oculta.isDestroyed()) oculta.destroy(); };
+    let temporizador = null;
     try {
       const cargada = new Promise((resolver, rechazar) => {
         oculta.webContents.once('did-finish-load', resolver);
-        oculta.webContents.once('did-fail-load', (ev, codigo, descripcion) => rechazar(new Error(`No se pudo cargar (${descripcion || codigo})`)));
+        // Solo el marco principal cuenta; un iframe roto o una carga abortada (-3) no invalidan la página.
+        oculta.webContents.on('did-fail-load', (ev, codigo, descripcion, url, esMarcoPrincipal) => { if (esMarcoPrincipal && codigo !== -3) rechazar(new Error(`No se pudo cargar (${descripcion || codigo})`)); });
       });
-      const tiempo = new Promise((_, rechazar) => setTimeout(() => rechazar(new Error('Tiempo agotado (30 s)')), 30_000));
+      const tiempo = new Promise((_, rechazar) => { temporizador = setTimeout(() => rechazar(new Error('Tiempo agotado (30 s)')), 30_000); });
       if (origen === 'url') oculta.loadURL(destino).catch(() => {}); else oculta.loadFile(destino).catch(() => {});
       await Promise.race([cargada, tiempo]);
       await new Promise(r => setTimeout(r, 500));
@@ -170,6 +187,7 @@ export function instalarIpc({ obtenerConfig, obtenerConfigBase = obtenerConfig, 
     } catch (e) {
       return { error: e.message };
     } finally {
+      clearTimeout(temporizador);
       cerrar();
     }
   });

@@ -18,3 +18,8 @@ test('dividirCada y formatearRangos', () => {
   assert.deepEqual(dividirCada(7, 3), [[1, 2, 3], [4, 5, 6], [7]]);
   assert.equal(formatearRangos([1, 2, 3, 5, 8, 9]), '1-3,5,8-9');
 });
+
+test('dos números sin guion («1 3») es un error, no una página suelta', () => {
+  assert.match(analizarRangos('1 3', 10).error, /No entiendo/);
+  assert.match(analizarRangos('1 3 5', 10).error, /No entiendo/);
+});

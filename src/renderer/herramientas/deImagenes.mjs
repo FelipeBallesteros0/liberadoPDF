@@ -1,18 +1,23 @@
 // Imágenes a PDF: una página por imagen; PNG y JPEG se incrustan tal cual, el resto se vuelve a codificar como PNG.
 import { nombreResultado } from '../comun/herramientas/nombres.mjs';
+import { tipoPorBytes, orientacionExif } from '../comun/herramientas/imagenes.mjs';
 
-// Decodifica la imagen para validarla y medirla; devuelve null si no es una imagen legible.
+// Decodifica la imagen para validarla y medirla; devuelve null si no es una imagen legible. El formato se decide por
+// los bytes (una PNG llamada .jpg es PNG); un JPEG con orientación EXIF distinta de 1 se pasa por canvas ya girado.
 export async function prepararImagen(url, nombre) {
   try {
-    const blob = await (await fetch(url)).blob();
-    const mapa = await createImageBitmap(blob);
+    const bytes = new Uint8Array(await (await fetch(url)).arrayBuffer());
+    const tipo = tipoPorBytes(bytes);
+    const blob = new Blob([bytes], { type: tipo ?? 'application/octet-stream' });
+    const mapa = await createImageBitmap(blob, { imageOrientation: 'from-image' });
     const medidas = { ancho: mapa.width, alto: mapa.height };
-    if (blob.type === 'image/png' || blob.type === 'image/jpeg') { mapa.close(); return { nombre, tipo: blob.type, bytes: new Uint8Array(await blob.arrayBuffer()), ...medidas }; }
+    const talCual = tipo === 'image/png' || (tipo === 'image/jpeg' && orientacionExif(bytes) === 1);
+    if (talCual) { mapa.close(); return { nombre, tipo, bytes, ...medidas }; }
     const lienzo = new OffscreenCanvas(mapa.width, mapa.height);
     lienzo.getContext('2d').drawImage(mapa, 0, 0);
     mapa.close();
-    const png = await lienzo.convertToBlob({ type: 'image/png' });
-    return { nombre, tipo: 'image/png', bytes: new Uint8Array(await png.arrayBuffer()), ...medidas };
+    const salida = tipo === 'image/jpeg' ? await lienzo.convertToBlob({ type: 'image/jpeg', quality: 0.92 }) : await lienzo.convertToBlob({ type: 'image/png' });
+    return { nombre, tipo: salida.type, bytes: new Uint8Array(await salida.arrayBuffer()), ...medidas };
   } catch {
     return null;
   }
@@ -65,9 +70,9 @@ export function instalarDeImagenes(H) {
       alEjecutar: async (v, { senal, progreso }) => {
         const validas = imagenes.filter(i => !i.error);
         if (!validas.length) return { mensaje: 'Añade al menos una imagen legible.' };
-        const bytes = await H.ejecutar('deImagenes', { imagenes: validas.map(i => ({ bytes: i.bytes, tipo: i.tipo })), tamano: v.tamano, orientacion: v.orientacion, margen: v.margen }, { senal, alProgreso: progreso });
-        const omitidas = imagenes.length - validas.length;
-        return { nombre: nombreResultado(ruta || validas[0].nombre, 'imágenes'), bytes, resumen: `${validas.length} páginas${omitidas ? `, ${omitidas} archivos omitidos` : ''}` };
+        const r = await H.ejecutar('deImagenes', { imagenes: validas.map(i => ({ bytes: i.bytes, tipo: i.tipo })), tamano: v.tamano, orientacion: v.orientacion, margen: v.margen }, { senal, alProgreso: progreso });
+        const omitidas = imagenes.length - validas.length + r.omitidas;
+        return { nombre: nombreResultado(ruta || validas[0].nombre, 'imágenes'), bytes: r.bytes, resumen: `${r.paginas} páginas${omitidas ? `, ${omitidas} archivos omitidos` : ''}` };
       },
     });
   });

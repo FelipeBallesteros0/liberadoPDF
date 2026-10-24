@@ -31,3 +31,10 @@ test('palabrasDeBloques aplana la jerarquía blocks → paragraphs → lines →
   assert.deepEqual(palabrasDeBloques(bloques).map(p => p.text), ['a', 'b', 'c']);
   assert.deepEqual(palabrasDeBloques(null), []);
 });
+
+test('palabrasAPdf acepta un conversor del visor (aPdf) que resuelve rotación y origen del CropBox', () => {
+  // Simula una página girada 90°: el punto visual (x, y) va a (y/2, 100 - x/2) en el PDF.
+  const aPdf = (x, y) => [y / 2, 100 - x / 2];
+  const r = palabrasAPdf([{ text: 'Hola', bbox: { x0: 20, y0: 40, x1: 120, y1: 80 } }], { escala: 2, altoPagina: 400, aPdf });
+  assert.deepEqual(r, [{ texto: 'Hola', x: 40, y: 90, ancho: 50, alto: 20 }]);
+});

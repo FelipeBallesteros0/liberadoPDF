@@ -633,6 +633,22 @@ async function textoDePagina(js, ruta, pagina) {
   const url = urlDeToken(registrarPdf(ruta));
   return js(`pdfjsLib.getDocument({ url: ${JSON.stringify(url)} }).promise.then(d => d.getPage(${pagina})).then(p => p.getTextContent()).then(t => t.items.map(i => i.str).join(' '))`);
 }
+// Ítems de texto de una página de un PDF en disco con su posición (transform de pdf.js: [a b c d x y] en unidades PDF).
+async function itemsDePagina(js, ruta, pagina) {
+  const url = urlDeToken(registrarPdf(ruta));
+  return JSON.parse(await js(`pdfjsLib.getDocument({ url: ${JSON.stringify(url)} }).promise.then(d => d.getPage(${pagina})).then(p => p.getTextContent()).then(t => JSON.stringify(t.items.filter(i => i.str && i.str.trim()).map(i => ({ str: i.str, a: i.transform[0], b: i.transform[1], x: i.transform[4], y: i.transform[5] }))))`));
+}
+// Fracción de píxeles (0–1) que difieren más de `umbral` entre la página N del documento abierto y la del PDF en disco.
+async function fraccionDistinta(js, ruta, pagina, umbral) {
+  const url = urlDeToken(registrarPdf(ruta));
+  return Number(await js(`(async () => {
+    const pintar = async (doc) => { const p = await doc.getPage(${pagina}); const vp = p.getViewport({ scale: 1 }); const c = document.createElement('canvas'); c.width = Math.round(vp.width); c.height = Math.round(vp.height); await p.render({ canvasContext: c.getContext('2d'), viewport: vp }).promise; return c.getContext('2d').getImageData(0, 0, c.width, c.height).data; };
+    const a = await pintar(PDFViewerApplication.pdfDocument);
+    const b = await pintar(await pdfjsLib.getDocument({ url: ${JSON.stringify(url)} }).promise);
+    let n = 0; for (let i = 0; i < a.length; i += 4) if (Math.abs(a[i] - b[i]) > ${umbral} || Math.abs(a[i + 1] - b[i + 1]) > ${umbral} || Math.abs(a[i + 2] - b[i + 2]) > ${umbral}) n++;
+    return n / (a.length / 4);
+  })()`));
+}
 // Píxeles distintos entre la página 1 del documento abierto y la del PDF en disco, ambos renderizados por pdf.js a escala 1.
 async function pixelesDistintos(js, ruta) {
   const url = urlDeToken(registrarPdf(ruta));
@@ -653,8 +669,15 @@ async function faseNumerar({ ruta, preload, salida }) {
   r.dialogo = await abrirYEjecutarHerramienta(js, 'numerar', {});
   const destino = process.env.LIBERADOPDF_HUMO_GUARDAR;
   r.archivo = await esperarArchivo(destino);
-  if (r.archivo) r.texto = await textoDePagina(js, destino, 2);
-  r.ok = r.dialogo && r.archivo && /Página 2 \/ 4/.test(r.texto ?? '');
+  if (r.archivo) {
+    r.texto = await textoDePagina(js, destino, 2);
+    // El PDF de prueba lleva CropBox (60, 40, 300×150): el número debe caer dentro de la zona visible, no del MediaBox.
+    const items = await itemsDePagina(js, destino, 2);
+    const numero = items.find(i => /Página|2 \/ 4/.test(i.str));
+    r.posicion = numero ? { x: Math.round(numero.x), y: Math.round(numero.y) } : null;
+    r.dentroDelCropBox = Boolean(numero) && numero.x >= 60 && numero.x <= 360 && numero.y >= 40 && numero.y <= 190;
+  }
+  r.ok = r.dialogo && r.archivo && /Página 2 \/ 4/.test(r.texto ?? '') && r.dentroDelCropBox;
   return r;
 }
 
@@ -790,24 +813,28 @@ async function faseDeImagenes({ ruta, preload, salida }) {
     r.paginas = doc.getPageCount();
     r.tamanos = doc.getPages().map(p => { const s = p.getSize(); return [Math.round(s.width), Math.round(s.height)]; });
   }
-  // Orientación «según la imagen»: la A (80×60) va en A4 apaisado y la B (60×90) en A4 vertical.
-  r.ok = r.dialogo && r.filas === 3 && r.omitidas === 1 && r.archivo && r.paginas === 2 && JSON.stringify(r.tamanos) === JSON.stringify([[842, 595], [595, 842]]);
+  // Orientación «según la imagen»: A (80×60) apaisada, B (60×90) vertical, la PNG llamada .jpg (80×60) apaisada y el
+  // JPEG con EXIF 6 (200×100 girado → 100×200) vertical; el .jpg que es texto se omite.
+  r.ok = r.dialogo && r.filas === 5 && r.omitidas === 1 && r.archivo && r.paginas === 4 && JSON.stringify(r.tamanos) === JSON.stringify([[842, 595], [595, 842], [842, 595], [595, 842]]);
   return r;
 }
 
 // HTML a PDF: un prueba.html elegido por el diálogo → PDF cuyo texto contiene «Hola liberadoPDF».
 async function faseHtmlAPdf({ ruta, preload, salida }) {
-  const r = { dialogo: false, archivo: false, texto: null, urlRechazada: null };
-  const { js } = abrirVentanaDePrueba({ ruta, preload, salida });
+  const r = { dialogo: false, archivo: false, texto: null, urlRechazada: null, presentacionDespues: null };
+  const { win, js, presentar } = abrirVentanaDePrueba({ ruta, preload, salida });
   await esperarEvento('primera-pagina', 10_000);
   r.dialogo = await abrirYEjecutarHerramienta(js, 'htmlAPdf', { origen: 'archivo' }, ['.liberadopdf-herramienta [data-accion="anadir"]']);
   const destino = process.env.LIBERADOPDF_HUMO_GUARDAR;
   r.archivo = await esperarArchivo(destino, 40_000);
+  // Tras convertir, la presentación (pantalla completa) debe seguir funcionando en esta misma instancia.
+  win.show(); win.focus();
+  r.presentacionDespues = await presentar();
   if (!r.archivo) r.mensajeDialogo = await js(`document.querySelector('.liberadopdf-herramienta .mensaje')?.textContent ?? null`);
   if (r.archivo) r.texto = await textoDePagina(js, destino, 1);
   // Una URL que no es http(s) se rechaza en el main sin abrir ventana.
   r.urlRechazada = JSON.parse(await js(`window.liberadopdf.htmlAPdf({ origen: 'url', valor: 'file:///etc/passwd' }).then(JSON.stringify)`));
-  r.ok = r.dialogo && r.archivo && /Hola liberadoPDF/.test(r.texto ?? '') && Boolean(r.urlRechazada?.error);
+  r.ok = r.dialogo && r.archivo && /Hola liberadoPDF/.test(r.texto ?? '') && Boolean(r.urlRechazada?.error) && r.presentacionDespues === true;
   return r;
 }
 
@@ -861,7 +888,15 @@ async function faseReparar({ ruta, preload, salida }) {
   r.archivo = await esperarArchivo(destino);
   if (r.archivo) { r.paginas = (await paginasDe(destino)).paginas; r.nombre = path.basename(destino); }
   else r.mensaje = await js(`document.querySelector('.liberadopdf-herramienta .mensaje')?.textContent ?? null`);
-  r.ok = r.dialogo && r.archivo && r.paginas === 4;
+  // Segundo archivo: el ejemplo con object streams (formato por defecto de pdflatex, Word, Chrome) truncado.
+  process.env.LIBERADOPDF_HUMO_ELEGIR = process.env.LIBERADOPDF_HUMO_OBJSTM;
+  const destino2 = destino + '.objstm.pdf';
+  process.env.LIBERADOPDF_HUMO_GUARDAR = destino2;
+  await abrirYEjecutarHerramienta(js, 'reparar', {}, ['.liberadopdf-herramienta [data-accion="anadir"]']);
+  r.archivoObjstm = await esperarArchivo(destino2);
+  if (r.archivoObjstm) r.paginasObjstm = (await paginasDe(destino2)).paginas;
+  else r.mensajeObjstm = await js(`document.querySelector('.liberadopdf-herramienta .mensaje')?.textContent ?? null`);
+  r.ok = r.dialogo && r.archivo && r.paginas === 4 && r.archivoObjstm && r.paginasObjstm === 4;
   return r;
 }
 
@@ -875,21 +910,47 @@ async function faseOcr({ ruta, preload, salida }) {
   r.dialogo = await abrirYEjecutarHerramienta(js, 'ocr', { idioma: 'spa', ppp: '200' });
   const destino = process.env.LIBERADOPDF_HUMO_GUARDAR;
   r.archivo = await esperarArchivo(destino, 120_000);
-  if (r.archivo) r.texto = await textoDePagina(js, destino, 1);
-  else r.mensaje = await js(`document.querySelector('.liberadopdf-herramienta .mensaje')?.textContent ?? null`);
-  // Cancelación (Review Focus 3): sobre el ejemplo animado de 4 páginas, Cancelar a los 300 ms.
-  const animado = path.join(path.dirname(ruta), '..', '..', 'recursos', 'ejemplo_animado.pdf');
-  const { js: js2 } = abrirVentanaDePrueba({ ruta: existsSync(animado) ? animado : process.env.LIBERADOPDF_HUMO_ANIMADO, preload, salida });
+  if (r.archivo) {
+    r.texto = await textoDePagina(js, destino, 1);
+    // Capa invisible por modo de texto (3 Tr), sin un ExtGState por palabra.
+    const { PDFDocument, PDFDict, PDFName } = await pdfLibMain();
+    const doc = await PDFDocument.load(readFileSync(destino), { updateMetadata: false });
+    r.extGStates = [...doc.context.enumerateIndirectObjects()].filter(([, o]) => o instanceof PDFDict && o.get(PDFName.of('Type')) === PDFName.of('ExtGState')).length;
+    const { decodePDFRawStream, PDFRawStream: PRS, PDFArray } = await pdfLibMain();
+    const contenidos = [];
+    for (const pagina of doc.getPages()) { const c = pagina.node.Contents(); const refs = c instanceof PDFArray ? c.asArray() : c ? [c] : []; for (const ref of refs) { const s = doc.context.lookup(ref); if (s instanceof PRS) contenidos.push(Buffer.from(decodePDFRawStream(s).decode()).toString('latin1')); } }
+    r.textoInvisible = contenidos.some(t => /\b3 Tr\b/.test(t));
+  } else r.mensaje = await js(`document.querySelector('.liberadopdf-herramienta .mensaje')?.textContent ?? null`);
+  // Cancelación (Review Focus 3): sobre el ejemplo animado de 4 páginas, Cancelar en plena recognición (2,5 s) y
+  // comprobar que la ejecución se asienta como «cancelada» (tesseract no rechaza sus promesas al terminar el worker).
+  const { js: js2 } = abrirVentanaDePrueba({ ruta: process.env.LIBERADOPDF_HUMO_ANIMADO, preload, salida });
   await esperarEvento('primera-pagina', 10_000);
   const destino2 = destino + '.cancelado.pdf';
   process.env.LIBERADOPDF_HUMO_GUARDAR = destino2;
-  await abrirYEjecutarHerramienta(js2, 'ocr', { idioma: 'spa', ppp: '200' });
-  await espera(300);
-  await js2(`document.querySelector('.liberadopdf-herramienta .pie button').click()`, true); // Cancelar
-  await espera(4000);
+  await abrirYEjecutarHerramienta(js2, 'ocr', { idioma: 'spa', ppp: '300' });
+  // Esperar a que esté reconociendo la página 2 (o 3): entonces Cancelar cae en plena recognición.
+  for (let i = 0; i < 400 && !/página [23]/.test(r.progresoAlCancelar ?? ''); i++) { await espera(30); r.progresoAlCancelar = await js2(`document.querySelector('.liberadopdf-herramienta .progreso span')?.textContent ?? null`); }
+  await js2(`document.querySelector('.liberadopdf-herramienta .pie button')?.click()`, true); // Cancelar
+  for (let i = 0; i < 60 && r.estadoTrasCancelar !== 'cancelada'; i++) { await espera(250); r.estadoTrasCancelar = await js2(`window.liberadopdfHerramientas.ultimaEjecucion?.estado ?? null`); }
   r.cancelado = !(await js2(`Boolean(document.querySelector('.liberadopdf-herramienta'))`));
   r.archivoTrasCancelar = existsSync(destino2);
-  r.ok = r.dialogo && r.archivo && r.textoAntes === '' && /LIBERADO/.test(r.texto ?? '') && r.cancelado && !r.archivoTrasCancelar;
+  // Página escaneada girada 90° (/Rotate): el texto invisible debe ir girado con ella y seguir siendo buscable.
+  const { js: js3 } = abrirVentanaDePrueba({ ruta: process.env.LIBERADOPDF_HUMO_GIRADO, preload, salida });
+  await esperarEvento('primera-pagina', 10_000);
+  const destino3 = destino + '.girado.pdf';
+  process.env.LIBERADOPDF_HUMO_GUARDAR = destino3;
+  await abrirYEjecutarHerramienta(js3, 'ocr', { idioma: 'spa', ppp: '200' });
+  r.archivoGirado = await esperarArchivo(destino3, 120_000);
+  if (r.archivoGirado) {
+    const items = await itemsDePagina(js3, destino3, 1);
+    const liberado = items.find(i => /LIBERADO/.test(i.str));
+    r.textoGirado = items.map(i => i.str).join(' ');
+    r.itemGirado = liberado ? { a: Math.round(liberado.a * 1000) / 1000, b: Math.round(liberado.b * 1000) / 1000, x: Math.round(liberado.x), y: Math.round(liberado.y) } : null;
+    // Página sin girar de 70×160 mm (198×454 pt) con /Rotate 90: el texto va girado (a ≈ 0, b ≠ 0) y dentro de ella.
+    r.giradoOk = Boolean(liberado) && Math.abs(liberado.a) < 1e-3 && Math.abs(liberado.b) > 0.5 && liberado.x >= 0 && liberado.x <= 200 && liberado.y >= 0 && liberado.y <= 460;
+  }
+  r.ok = r.dialogo && r.archivo && r.textoAntes === '' && /LIBERADO/.test(r.texto ?? '') && r.textoInvisible && r.extGStates < 10
+    && r.estadoTrasCancelar === 'cancelada' && r.cancelado && !r.archivoTrasCancelar && r.giradoOk === true;
   return r;
 }
 
@@ -903,14 +964,22 @@ async function faseComprimir({ ruta, preload, salida }) {
   r.dialogo = await abrirYEjecutarHerramienta(js, 'comprimir', { calidad: 'baja' });
   const destino = process.env.LIBERADOPDF_HUMO_GUARDAR;
   r.archivo = await esperarArchivo(destino, 90_000);
-  if (r.archivo) { r.despues = statSync(destino).size; r.paginas = (await paginasDe(destino)).paginas; }
-  else r.mensaje = await js(`document.querySelector('.liberadopdf-herramienta .mensaje')?.textContent ?? null`);
-  // No reducible: el propio resultado comprimido.
-  const { js: js2 } = abrirVentanaDePrueba({ ruta: destino, preload, salida });
+  if (r.archivo) {
+    r.despues = statSync(destino).size; r.paginas = (await paginasDe(destino)).paginas;
+    // La página 3 es una PNG con predictor: debe haberse recodificado a JPEG y parecerse a la original (con basura
+    // difiere casi al 100 %).
+    r.fraccionDistintaPng = await fraccionDistinta(js, destino, 3, 40);
+    const { PDFDocument, PDFRawStream, PDFName } = await pdfLibMain();
+    const doc = await PDFDocument.load(readFileSync(destino), { updateMetadata: false });
+    r.filtrosResultado = [...doc.context.enumerateIndirectObjects()].filter(([, o]) => o instanceof PDFRawStream && o.dict.get(PDFName.of('Subtype')) === PDFName.of('Image')).map(([, o]) => String(o.dict.get(PDFName.of('Filter'))));
+  }
+  else { r.mensaje = await js(`document.querySelector('.liberadopdf-herramienta .mensaje')?.textContent ?? null`); r.ok = false; return r; }
+  // No reducible: el ejemplo animado sin imágenes y ya recomprimido por qpdf con las mismas opciones.
+  const { js: js2 } = abrirVentanaDePrueba({ ruta: process.env.LIBERADOPDF_HUMO_OPTIMIZADO, preload, salida });
   await esperarEvento('primera-pagina', 10_000);
   const destino2 = destino + '.segunda_pasada.pdf';
   process.env.LIBERADOPDF_HUMO_GUARDAR = destino2;
-  await abrirYEjecutarHerramienta(js2, 'comprimir', { calidad: 'alta' }); // «alta» no reduce un JPEG ya pequeño ni una estructura ya recomprimida
+  await abrirYEjecutarHerramienta(js2, 'comprimir', { calidad: 'baja' });
   for (let i = 0; i < 60 && !r.mensajeSegundaPasada; i++) { await espera(500); r.mensajeSegundaPasada = await js2(`document.querySelector('.liberadopdf-herramienta .mensaje:not([hidden])')?.textContent ?? null`); }
   r.archivoSegundaPasada = existsSync(destino2);
   // Cancelar: fotos otra vez; Ejecutar y Cancelar en el mismo tick (la segunda pasada tarda menos de 400 ms).
@@ -925,7 +994,7 @@ async function faseComprimir({ ruta, preload, salida }) {
   await espera(6000);
   r.cancelado = !(await js3(`Boolean(document.querySelector('.liberadopdf-herramienta'))`));
   r.archivoTrasCancelar = existsSync(destino3);
-  r.ok = r.dialogo && r.archivo && r.despues < r.antes / 2 && r.paginas === 2 && /No se pudo reducir/.test(r.mensajeSegundaPasada ?? '') && !r.archivoSegundaPasada && r.dialogo3 && r.cancelado && !r.archivoTrasCancelar;
+  r.ok = r.dialogo && r.archivo && r.despues < r.antes / 2 && r.paginas === 3 && r.fraccionDistintaPng < 0.15 && JSON.stringify(r.filtrosResultado) === JSON.stringify(['/DCTDecode', '/DCTDecode', '/DCTDecode']) && /No se pudo reducir/.test(r.mensajeSegundaPasada ?? '') && !r.archivoSegundaPasada && r.dialogo3 && r.cancelado && !r.archivoTrasCancelar;
   return r;
 }
 

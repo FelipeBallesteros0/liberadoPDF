@@ -68,20 +68,20 @@ El menú **Herramientas** opera sobre el documento abierto y **nunca lo sobrescr
 | Números de página… | Texto con `{n}` y `{total}` en seis posiciones, tamaño y número inicial; Helvetica | un PDF |
 | Marca de agua… | Texto (color, opacidad, ángulo, mosaico) o imagen PNG/JPG (otros formatos se convierten) | un PDF |
 | Recortar páginas… | Marca un rectángulo sobre la página o escribe las medidas; cambia el CropBox | un PDF |
-| PDF a imágenes… | PNG o JPEG por página a la resolución elegida | una carpeta (`… - página 01.png`) |
-| Imágenes a PDF… | Una página por imagen (A4, Carta o el tamaño de la imagen); las ilegibles se omiten | un PDF |
+| PDF a imágenes… | PNG o JPEG por página a la resolución elegida; pide la carpeta al empezar y guarda cada imagen al salir | una carpeta (`… - página 01.png`) |
+| Imágenes a PDF… | Una página por imagen (A4, Carta o el tamaño de la imagen); el formato se detecta por el contenido, las fotos con orientación EXIF se enderezan y las ilegibles se omiten con aviso | un PDF |
 | Página web o HTML a PDF… | Una dirección http(s) (con internet) o un archivo `.html` local, impreso por Electron | un PDF |
 | Aplanar formularios y anotaciones… | Los campos pasan a contenido fijo; opcionalmente quita todas las anotaciones | un PDF |
 | Metadatos… | Título, autor, asunto, palabras clave y aplicación creadora (precarga los actuales) | un PDF |
 | Proteger con contraseña… | AES-256 con contraseña de apertura y de propietario; permisos de imprimir, copiar y modificar | un PDF |
 | Desbloquear PDF… | Quita el cifrado con la contraseña | un PDF |
-| Reparar PDF… | qpdf reescribe el archivo; si faltan la xref o el trailer (archivo truncado) se reconstruyen; pdf-lib como último recurso. Permite elegir otro archivo, porque un PDF roto a menudo no abre | un PDF |
-| OCR (texto en PDF escaneado)… | Reconoce el texto de cada página (español, inglés o ambos; 200 o 300 ppp) y lo añade como capa invisible: el PDF queda buscable y copiable | un PDF |
+| Reparar PDF… | qpdf reescribe el archivo; si faltan la xref o el trailer (archivo truncado) se reconstruyen, también con object streams (el formato de pdflatex, Word o Chrome); pdf-lib como último recurso. Un PDF cifrado hay que desbloquearlo antes. Permite elegir otro archivo, porque un PDF roto a menudo no abre | un PDF |
+| OCR (texto en PDF escaneado)… | Reconoce el texto de cada página (español, inglés o ambos; 200 o 300 ppp) y lo añade como capa invisible (modo de texto invisible, también en páginas giradas o recortadas): el PDF queda buscable y copiable | un PDF |
 | Comprimir… | Recodifica las fotos como JPEG (alta, media o baja) y recomprime la estructura con qpdf; si no baja al menos un 2 %, avisa y no guarda | un PDF |
 
 - **OCR**: tarda unos 2–5 s por página a 200 ppp en un PC normal; los idiomas van dentro del programa (`recursos/tessdata`, 6 MB) y no se descarga nada. Un texto girado o muy pegado al borde se reconoce peor.
 - **Cancelar** detiene la herramienta sin dejar archivos a medias.
-- **Limitaciones**: al unir, dividir u organizar, los campos de formulario (incluidas las animaciones de `animate`, que son campos) se copian sin su formulario y dejan de funcionar en el resultado; «Comprimir» no toca imágenes con máscara, indexadas o de 1 bit; «Reparar» no recupera contenido que ya no esté en el archivo.
+- **Limitaciones**: al unir, dividir u organizar, los campos de formulario (incluidas las animaciones de `animate`, que son campos) se copian sin su formulario y dejan de funcionar en el resultado; «Comprimir» no toca imágenes con máscara, indexadas o de 1 bit, y solo cambia una imagen si el JPEG resultante pesa menos que ella en el archivo; «Reparar» no recupera contenido que ya no esté en el archivo.
 
 ## Ajustes
 

@@ -7,7 +7,7 @@ export function analizarRangos(texto, total) {
   if (trozos.length === 0) return { error: 'Rango vacío' };
   for (const trozo of trozos) {
     const m = trozo.match(/^(\d+)?\s*(-)?\s*(\d+)?$/);
-    if (!m || (!m[1] && !m[3])) return { error: `No entiendo: ${trozo}` };
+    if (!m || (!m[1] && !m[3]) || (m[1] && m[3] && !m[2])) return { error: `No entiendo: ${trozo}` }; // «1 3» sin guion no es un rango
     const desde = m[1] ? Number(m[1]) : 1;
     const hasta = m[2] ? (m[3] ? Number(m[3]) : total) : desde;
     for (const n of [desde, hasta]) if (n < 1 || n > total) return { error: `Página fuera del documento: ${n}` };

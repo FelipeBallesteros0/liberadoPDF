@@ -29,7 +29,7 @@ export function instalarHtmlAPdf(H) {
         { clave: 'fondos', etiqueta: 'Imprimir fondos y colores', tipo: 'booleano', valor: true },
       ],
       cuerpo,
-      alEjecutar: async (v, { progreso }) => {
+      alEjecutar: async (v, { progreso, senal }) => {
         let valor;
         if (v.origen === 'url') {
           valor = urlPermitida(v.url);
@@ -40,6 +40,7 @@ export function instalarHtmlAPdf(H) {
         }
         progreso({ hecho: 0, total: 1, texto: 'Cargando la página…' });
         const r = await window.liberadopdf.htmlAPdf({ origen: v.origen, valor, tamano: v.tamano, apaisado: v.apaisado, fondos: v.fondos });
+        if (senal?.aborted) throw Object.assign(new Error('Cancelado'), { cancelado: true });
         if (r?.error) return { mensaje: r.error };
         return { nombre: nombreDeHtml(v.origen, v.origen === 'url' ? valor : archivo.nombre), bytes: new Uint8Array(r.bytes), resumen: 'Página convertida' };
       },

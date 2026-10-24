@@ -79,7 +79,12 @@ if (!process.env.LIBERADOPDF_HUMO && !app.requestSingleInstanceLock()) {
     alReciente: ruta => { const destino = ventanaActiva(); destino ? abrirEnVentana(destino, ruta) : abrirNueva(ruta); },
     alVaciarRecientes: () => { guardar({ ...obtenerConfigBase(), recientes: [] }); menu(); },
     alAccion: (win, nombre) => { (win ?? ventanaActiva())?.webContents.executeJavaScript(`window.liberadopdfAcciones?.${nombre}?.()`, true); },
-    alHerramienta: (win, clave) => { (win ?? ventanaActiva())?.webContents.executeJavaScript(`window.liberadopdfAcciones?.herramienta?.(${JSON.stringify(clave)})`, true); },
+    alHerramienta: (win, clave) => {
+      const destino = win ?? ventanaActiva();
+      if (!destino) return;
+      if (!destino.liberadopdfRuta) { dialog.showMessageBox(destino, { type: 'info', title: 'Herramientas', message: 'Abre primero un PDF', detail: 'Las herramientas trabajan sobre el documento abierto. Para reparar un PDF que no abre, abre cualquier otro PDF y elige el archivo roto en Herramientas ▸ Reparar.' }); return; }
+      destino.webContents.executeJavaScript(`window.liberadopdfAcciones?.herramienta?.(${JSON.stringify(clave)})`, true);
+    },
   });
 
   app.whenReady().then(() => {

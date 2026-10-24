@@ -20,6 +20,8 @@ export async function reconocerPaginas({ app, paginas, idiomas, ppp, senal, prog
   const trabajador = await createWorker(idiomas, 1, OPCIONES_TESSERACT);
   const cancelar = () => trabajador.terminate();
   senal?.addEventListener('abort', cancelar, { once: true });
+  // tesseract.js no rechaza sus promesas al terminar el worker: se compite contra la señal para que la espera termine.
+  const abortado = new Promise((_, rechazar) => senal?.addEventListener('abort', () => rechazar(Object.assign(new Error('Cancelado'), { cancelado: true })), { once: true }));
   const resultado = [];
   try {
     for (const [i, n] of paginas.entries()) {
@@ -37,10 +39,11 @@ export async function reconocerPaginas({ app, paginas, idiomas, ppp, senal, prog
       await page.render({ canvasContext: ctx, viewport }).promise;
       const imagen = await new Promise(res => canvas.toBlob(res, 'image/png')); // tesseract.js lee PNG/JPEG; ImageData crudo no
       canvas.width = canvas.height = 0;
-      const { data } = await trabajador.recognize(imagen, {}, { text: false, blocks: true });
+      const { data } = await Promise.race([trabajador.recognize(imagen, {}, { text: false, blocks: true }), abortado]);
       if (senal?.aborted) throw Object.assign(new Error('Cancelado'), { cancelado: true });
-      const base = page.getViewport({ scale: 1 });
-      resultado.push({ numero: n, palabras: palabrasAPdf(palabrasDeBloques(data.blocks), { escala, altoPagina: base.height }) });
+      // convertToPdfPoint deshace escala, /Rotate y el origen del CropBox; el texto se escribirá girado como la página.
+      const aPdf = (x, y) => viewport.convertToPdfPoint(x, y);
+      resultado.push({ numero: n, rotacion: viewport.rotation, palabras: palabrasAPdf(palabrasDeBloques(data.blocks), { escala, altoPagina: viewport.height / escala, aPdf }) });
     }
   } catch (e) {
     if (senal?.aborted) throw Object.assign(new Error('Cancelado'), { cancelado: true });

@@ -14,3 +14,7 @@ fuente2 = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf', 
 d.text((120, 450), 'Texto escaneado sin capa de texto.', fill=(40, 40, 40), font=fuente2)
 img.save(salida, 'JPEG', quality=90)
 print(salida, img.size)
+# Versión tumbada (como sale de un escáner apaisado): con /Rotate 90 en el PDF se ve derecha.
+tumbada = img.rotate(90, expand=True)
+tumbada.save(raiz / 'recursos' / 'escaneado_tumbado.jpg', 'JPEG', quality=90)
+print(raiz / 'recursos' / 'escaneado_tumbado.jpg', tumbada.size)

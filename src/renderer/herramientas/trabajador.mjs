@@ -2,10 +2,15 @@
 import { ajustarEnPagina, tamanoDePagina } from '../comun/herramientas/imagenes.mjs';
 import { reconstruirXref } from '../comun/herramientas/reparacion.mjs';
 import { tamanoDeFuente, textoWinAnsi } from '../comun/herramientas/ocr.mjs';
+import { cajaVisible } from '../comun/herramientas/caja.mjs';
+import { despredecir } from '../comun/herramientas/prediccion.mjs';
+import { expandirObjectStreams } from '../comun/herramientas/reparacion.mjs';
 import { textoDeNumero, posicionDeTexto, mosaicoDeMarca, colorHex, origenCentrado, aCoordenadasSinRotar, tamanoVisual } from '../comun/herramientas/estampar.mjs';
 // Protocolo: { id, operacion, argumentos } → mensajes { id, progreso } y al final { id, resultado } | { id, error } | { id, cancelado }.
 let pdfLib = null;
 let qpdfModulo = null;
+let sesionImagenes = null; // { id, doc, objetos } de la última listarImagenes (una sola a la vez)
+let contadorSesiones = 0;
 const cancelados = new Set();
 
 async function cargarPdfLib() {
@@ -46,6 +51,21 @@ export async function qpdf(args, { entradas = {}, salida = 'salida.pdf' } = {}) 
 
 const cancelado = (id) => cancelados.has(id);
 const progreso = (id, hecho, total, texto) => postMessage({ id, progreso: { hecho, total, texto } });
+
+// Flate (zlib) con la API del navegador, para los object streams de «Reparar».
+async function inflar(bytes) {
+  const ds = new DecompressionStream('deflate');
+  const escritor = ds.writable.getWriter();
+  escritor.write(bytes).catch(() => {});
+  escritor.close().catch(() => {});
+  return new Uint8Array(await new Response(ds.readable).arrayBuffer());
+}
+
+// Zona visible de la página (CropBox ∩ MediaBox): numerar, marca de agua y OCR se colocan respecto a ella.
+function cajaDePagina(pagina) {
+  const crop = pagina.node.CropBox?.();
+  return cajaVisible({ mediaBox: pagina.getMediaBox(), cropBox: crop ? pagina.getCropBox() : undefined });
+}
 
 // Carga un PDF para editarlo; un documento cifrado se rechaza con el error 'cifrado' (el diálogo lo traduce).
 async function cargarDocumento(bytes) {
@@ -118,15 +138,15 @@ const operaciones = {
       const pagina = todas[n - 1];
       if (!pagina) continue;
       const texto = textoDeNumero(formato, n + inicio - 1, total);
-      const { width, height } = pagina.getSize();
+      const caja = cajaDePagina(pagina);
       const rotacion = pagina.getRotation().angle;
-      const visual = tamanoVisual({ anchoPagina: width, altoPagina: height, rotacion });
+      const visual = tamanoVisual({ anchoPagina: caja.ancho, altoPagina: caja.alto, rotacion });
       let anchoTexto;
       try { anchoTexto = fuente.widthOfTextAtSize(texto, tamano); } catch { throw new Error('El texto tiene caracteres que la fuente Helvetica no admite'); }
       const altoTexto = fuente.heightAtSize(tamano, { descender: false });
       const { x: vx, y: vy } = posicionDeTexto({ posicion, anchoPagina: visual.ancho, altoPagina: visual.alto, anchoTexto, altoTexto });
-      const { x, y } = aCoordenadasSinRotar({ vx, vy, rotacion, anchoPagina: width, altoPagina: height });
-      pagina.drawText(texto, { x, y, size: tamano, font: fuente, color: rgb(0, 0, 0), rotate: degrees(rotacion) });
+      const p = aCoordenadasSinRotar({ vx, vy, rotacion, anchoPagina: caja.ancho, altoPagina: caja.alto });
+      pagina.drawText(texto, { x: caja.x + p.x, y: caja.y + p.y, size: tamano, font: fuente, color: rgb(0, 0, 0), rotate: degrees(rotacion) });
     }
     return await doc.save();
   },
@@ -141,9 +161,9 @@ const operaciones = {
       progreso(i, paginas.length);
       const pagina = todas[n - 1];
       if (!pagina) continue;
-      const { width, height } = pagina.getSize();
+      const caja = cajaDePagina(pagina);
       const rotacion = pagina.getRotation().angle;
-      const visual = tamanoVisual({ anchoPagina: width, altoPagina: height, rotacion });
+      const visual = tamanoVisual({ anchoPagina: caja.ancho, altoPagina: caja.alto, rotacion });
       let ancho, alto;
       if (fuente) {
         try { ancho = fuente.widthOfTextAtSize(texto, tamano); } catch { throw new Error('El texto tiene caracteres que la fuente Helvetica no admite'); }
@@ -155,7 +175,8 @@ const operaciones = {
       const centros = mosaico ? mosaicoDeMarca({ anchoPagina: visual.ancho, altoPagina: visual.alto, anchoTexto: ancho, altoTexto: alto }) : [{ x: visual.ancho / 2, y: visual.alto / 2 }];
       for (const c of centros) {
         const origenVisual = origenCentrado({ cx: c.x, cy: c.y, ancho, alto, angulo });
-        const { x, y } = aCoordenadasSinRotar({ vx: origenVisual.x, vy: origenVisual.y, rotacion, anchoPagina: width, altoPagina: height });
+        const p = aCoordenadasSinRotar({ vx: origenVisual.x, vy: origenVisual.y, rotacion, anchoPagina: caja.ancho, altoPagina: caja.alto });
+        const x = caja.x + p.x, y = caja.y + p.y;
         const rotate = degrees(angulo + rotacion);
         if (fuente) pagina.drawText(texto, { x, y, size: tamano, font: fuente, color: rgb(r, g, b), opacity: opacidad, rotate });
         else pagina.drawImage(grafico, { x, y, width: ancho, height: alto, opacity: opacidad, rotate });
@@ -221,11 +242,13 @@ const operaciones = {
       pagina.drawImage(incrustada, { x: caja.x, y: caja.y, width: caja.ancho, height: caja.alto });
     }
     if (doc.getPageCount() === 0) throw new Error('Ninguna imagen se pudo incrustar');
-    return await doc.save();
+    return { bytes: await doc.save(), paginas: doc.getPageCount(), omitidas };
   },
   // paginas: [{ numero, palabras: [{ texto, x, y, ancho, alto }] }] → texto invisible (opacidad 0) sobre cada palabra.
+  // paginas: [{ numero, rotacion, palabras: [{ texto, x, y, ancho, alto }] }] (x, y ya en coordenadas del PDF).
+  // Modo de texto invisible (3 Tr) como hacen los OCR de verdad: ni un ExtGState por palabra ni dependencia de la transparencia.
   async ocrEscribir({ bytes, paginas }, { progreso, cancelado }) {
-    const { StandardFonts, rgb } = await cargarPdfLib();
+    const { StandardFonts, rgb, degrees, pushGraphicsState, popGraphicsState, setTextRenderingMode, TextRenderingMode } = await cargarPdfLib();
     const doc = await cargarDocumento(bytes);
     const fuente = await doc.embedFont(StandardFonts.Helvetica);
     const todas = doc.getPages();
@@ -234,13 +257,15 @@ const operaciones = {
       if (cancelado()) return null;
       progreso(i, paginas.length);
       const pagina = todas[p.numero - 1];
-      if (!pagina) continue;
+      if (!pagina || !p.palabras.length) continue;
+      pagina.pushOperators(pushGraphicsState(), setTextRenderingMode(TextRenderingMode.Invisible));
       for (const w of p.palabras) {
         const texto = textoWinAnsi(w.texto);
         const size = tamanoDeFuente(w.ancho, fuente.widthOfTextAtSize(texto, 1));
-        pagina.drawText(texto, { x: w.x, y: w.y, size, font: fuente, color: rgb(0, 0, 0), opacity: 0 });
+        pagina.drawText(texto, { x: w.x, y: w.y, size, font: fuente, color: rgb(0, 0, 0), rotate: degrees(p.rotacion ?? 0) });
         escritas++;
       }
+      pagina.pushOperators(popGraphicsState());
     }
     if (!escritas) throw new Error('No se reconoció ninguna palabra');
     return await doc.save();
@@ -248,45 +273,67 @@ const operaciones = {
   // --- comprimir ---
   // Imágenes del documento: JPEG con sus bytes tal cual; Flate ya decodificado a muestras. Las que son o tienen
   // máscara se marcan para no tocarlas (recodificarlas como JPEG RGB rompería la transparencia).
+  // Solo metadatos (los bytes se piden de uno en uno con obtenerImagen, dentro de la misma sesión).
   async listarImagenes({ bytes }) {
-    const { PDFRawStream, PDFName, PDFRef, decodePDFRawStream } = await cargarPdfLib();
+    const { PDFRawStream, PDFName, PDFRef, PDFDict, PDFArray, PDFNumber } = await cargarPdfLib();
     const doc = await cargarDocumento(bytes);
-    const nombre = v => (v instanceof PDFName ? v.decodeText() : v?.constructor?.name === 'PDFArray' && v.get(0) instanceof PDFName ? v.get(0).decodeText() : String(v ?? ''));
-    const imagenes = [];
+    const nombre = v => (v instanceof PDFName ? v.decodeText() : v instanceof PDFArray && v.get(0) instanceof PDFName ? v.get(0).decodeText() : String(v ?? ''));
+    const numero = (dict, clave, defecto) => { const v = dict?.get(PDFName.of(clave)); return v instanceof PDFNumber ? v.asNumber() : defecto; };
+    const objetos = new Map();
     const mascaras = new Set();
     for (const [ref, obj] of doc.context.enumerateIndirectObjects()) {
       if (!(obj instanceof PDFRawStream) || obj.dict.get(PDFName.of('Subtype')) !== PDFName.of('Image')) continue;
-      const d = obj.dict;
-      for (const clave of ['SMask', 'Mask']) { const m = d.get(PDFName.of(clave)); if (m instanceof PDFRef) mascaras.add(m.toString()); }
-      imagenes.push({ ref, obj });
+      for (const clave of ['SMask', 'Mask']) { const m = obj.dict.get(PDFName.of(clave)); if (m instanceof PDFRef) mascaras.add(m.toString()); }
+      objetos.set(ref.toString(), { ref, obj });
     }
-    const salida = [];
-    const transferir = [];
-    for (const { ref, obj } of imagenes) {
+    const imagenes = [];
+    for (const { ref, obj } of objetos.values()) {
       const d = obj.dict;
       const filtro = nombre(d.get(PDFName.of('Filter')));
-      const espacioColor = nombre(d.get(PDFName.of('ColorSpace')));
+      let parms = doc.context.lookup(d.get(PDFName.of('DecodeParms')));
+      if (parms instanceof PDFArray) parms = doc.context.lookup(parms.get(0));
+      if (!(parms instanceof PDFDict)) parms = null;
       const info = {
         objeto: ref.objectNumber, generacion: ref.generationNumber, filtro,
-        ancho: Number(d.get(PDFName.of('Width'))?.asNumber?.() ?? 0), alto: Number(d.get(PDFName.of('Height'))?.asNumber?.() ?? 0),
-        bitsPorComponente: Number(d.get(PDFName.of('BitsPerComponent'))?.asNumber?.() ?? 0), espacioColor,
+        ancho: numero(d, 'Width', 0), alto: numero(d, 'Height', 0), bitsPorComponente: numero(d, 'BitsPerComponent', 0), espacioColor: nombre(d.get(PDFName.of('ColorSpace'))),
         tieneMascara: mascaras.has(ref.toString()) || d.has(PDFName.of('SMask')) || d.has(PDFName.of('Mask')) || d.has(PDFName.of('Decode')),
-        bytes: null,
+        longitudComprimida: obj.contents.length,
+        predictor: numero(parms, 'Predictor', 1), colores: numero(parms, 'Colors', 1), columnas: numero(parms, 'Columns', 1), bitsPredictor: numero(parms, 'BitsPerComponent', 8),
       };
-      if (filtro === 'DCTDecode') info.bytes = obj.contents;
-      else if (filtro === 'FlateDecode') { try { info.bytes = decodePDFRawStream(obj).decode(); } catch { info.tieneMascara = true; info.bytes = new Uint8Array(0); } }
-      else info.bytes = new Uint8Array(0);
-      salida.push(info);
+      imagenes.push(info);
+      objetos.get(ref.toString()).info = info;
     }
-    return salida;
+    sesionImagenes = { id: ++contadorSesiones, doc, objetos };
+    return { sesion: sesionImagenes.id, imagenes };
+  },
+  // Bytes de una imagen: JPEG tal cual; Flate decodificado y sin predictor (si no se puede deshacer, error y se salta).
+  async obtenerImagen({ sesion, objeto, generacion }) {
+    const { PDFRef, decodePDFRawStream } = await cargarPdfLib();
+    if (!sesionImagenes || sesionImagenes.id !== sesion) throw new Error('La lista de imágenes caducó: vuelve a ejecutar la herramienta');
+    const entrada = sesionImagenes.objetos.get(PDFRef.of(objeto, generacion).toString());
+    if (!entrada) throw new Error('Imagen desconocida');
+    const { obj, info: { filtro, predictor, colores, columnas, bitsPredictor } } = entrada;
+    if (filtro === 'DCTDecode') return { bytes: new Uint8Array(obj.contents) };
+    if (filtro !== 'FlateDecode') throw new Error('Filtro no admitido');
+    let datos = decodePDFRawStream(obj).decode();
+    if (predictor >= 2) {
+      datos = despredecir({ datos, predictor, colores, bitsPorComponente: bitsPredictor, columnas });
+      if (!datos) throw new Error('Predictor que no se pudo deshacer');
+    }
+    return { bytes: datos };
   },
   // reemplazos: [{ objeto, generacion, jpeg, ancho, alto }] → el stream pasa a ser un JPEG RGB; luego qpdf recomprime.
   async reemplazarImagenes({ bytes, reemplazos }, { progreso }) {
     const { PDFRawStream, PDFRef } = await cargarPdfLib();
     const doc = await cargarDocumento(bytes);
+    const { PDFName, PDFRawStream: _PRS } = await cargarPdfLib();
+    const DE_CODIFICACION = new Set(['Type', 'Subtype', 'Width', 'Height', 'ColorSpace', 'BitsPerComponent', 'Filter', 'DecodeParms', 'Length', 'SMask', 'Mask', 'Decode', 'Interpolate']);
     for (const r of reemplazos) {
+      const ref = PDFRef.of(r.objeto, r.generacion);
       const dict = doc.context.obj({ Type: 'XObject', Subtype: 'Image', Width: r.ancho, Height: r.alto, ColorSpace: 'DeviceRGB', BitsPerComponent: 8, Filter: 'DCTDecode', Length: r.jpeg.length });
-      doc.context.assign(PDFRef.of(r.objeto, r.generacion), PDFRawStream.of(dict, r.jpeg));
+      const original = doc.context.lookup(ref);
+      if (original instanceof PDFRawStream) for (const [clave, valor] of original.dict.entries()) { if (!DE_CODIFICACION.has(clave.decodeText())) dict.set(clave, valor); } // /OC, /Intent, /Metadata…
+      doc.context.assign(ref, PDFRawStream.of(dict, r.jpeg));
     }
     progreso(0, 1, 'Recomprimiendo con qpdf…');
     const intermedio = await doc.save({ useObjectStreams: true });
@@ -318,8 +365,12 @@ const operaciones = {
     const r1 = await qpdf(['--warning-exit-0', 'entrada.pdf', 'salida.pdf'], { entradas: { 'entrada.pdf': bytes } });
     if (r1.codigo === 0 && r1.bytes?.length) return { bytes: r1.bytes, avisos: r1.avisos, motor: 'qpdf' };
     avisos.push(...r1.avisos);
+    // Un PDF cifrado no se puede reparar a ciegas (saldría basura): primero hay que desbloquearlo.
+    if (r1.avisos.some(a => /invalid password|encrypted/i.test(a)) || /\/Encrypt\s+\d+\s+\d+\s+R/.test(new TextDecoder('latin1').decode(bytes.subarray(Math.max(0, bytes.length - 65536))))) throw new Error('cifrado');
     progreso(1, 3, 'Reconstruyendo la tabla de objetos…');
-    const reconstruido = reconstruirXref(bytes);
+    let expandido = bytes;
+    try { expandido = await expandirObjectStreams(bytes, inflar); } catch { expandido = bytes; }
+    const reconstruido = reconstruirXref(expandido);
     if (reconstruido) {
       const r2 = await qpdf(['--warning-exit-0', 'entrada.pdf', 'salida.pdf'], { entradas: { 'entrada.pdf': reconstruido } });
       if (r2.codigo === 0 && r2.bytes?.length) return { bytes: r2.bytes, avisos: [...avisos, ...r2.avisos], motor: 'xref reconstruida + qpdf' };
@@ -327,7 +378,7 @@ const operaciones = {
     }
     progreso(2, 3, 'Intentando con pdf-lib…');
     const { PDFDocument } = await cargarPdfLib();
-    for (const candidato of [reconstruido, bytes].filter(Boolean)) {
+    for (const candidato of [reconstruido, expandido, bytes].filter(Boolean)) {
       try {
         const doc = await PDFDocument.load(candidato, { ignoreEncryption: true, throwOnInvalidObject: false, updateMetadata: false });
         if (doc.getPageCount() > 0) return { bytes: await doc.save(), avisos, motor: 'pdf-lib' };

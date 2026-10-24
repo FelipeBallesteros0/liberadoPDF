@@ -35,6 +35,40 @@ function numeroDePagesRaiz(texto) {
   return null;
 }
 
+// Saca los objetos guardados dentro de object streams (/Type /ObjStm) y los añade al final como objetos normales,
+// para que `reconstruirXref` (y qpdf) los vean. `inflar(Uint8Array) → Promise<Uint8Array>` descomprime Flate.
+export async function expandirObjectStreams(bytes, inflar) {
+  const texto = decodificador.decode(bytes);
+  const re = /(\d+)[ \t]+\d+[ \t]+obj\s*<<((?:(?!stream)[\s\S])*?\/Type\s*\/ObjStm(?:(?!stream)[\s\S])*?)>>\s*stream\r?\n/g;
+  const trozos = [];
+  let m;
+  while ((m = re.exec(texto))) {
+    const dict = m[2];
+    const n = Number((/\/N\s+(\d+)/.exec(dict) ?? [])[1]);
+    const first = Number((/\/First\s+(\d+)/.exec(dict) ?? [])[1]);
+    const length = Number((/\/Length\s+(\d+)/.exec(dict) ?? [])[1]);
+    const inicio = m.index + m[0].length;
+    if (!(n > 0) || !(first >= 0) || !(length > 0) || inicio + length > bytes.length) continue;
+    let datos;
+    try { datos = /\/Filter\s*\/FlateDecode/.test(dict) ? await inflar(bytes.subarray(inicio, inicio + length)) : bytes.subarray(inicio, inicio + length); } catch { continue; }
+    if (/\/Predictor\s+(\d+)/.test(dict) && Number(RegExp.$1) > 1) continue; // no se maneja; se deja para pdf-lib
+    const contenido = decodificador.decode(datos);
+    const pares = contenido.slice(0, first).trim().split(/\s+/).map(Number);
+    for (let k = 0; k + 1 < pares.length && k / 2 < n; k += 2) {
+      const numero = pares[k], desde = first + pares[k + 1];
+      const hasta = k + 3 < pares.length ? first + pares[k + 3] : contenido.length;
+      if (!(numero >= 0) || !(desde >= first) || hasta < desde) continue;
+      trozos.push(`\n${numero} 0 obj\n${contenido.slice(desde, hasta).trim()}\nendobj\n`);
+    }
+  }
+  if (!trozos.length) return bytes;
+  const cola = (texto.endsWith('\n') ? '' : '\n') + trozos.join('');
+  const salida = new Uint8Array(bytes.length + cola.length);
+  salida.set(bytes, 0);
+  for (let i = 0; i < cola.length; i++) salida[bytes.length + i] = cola.charCodeAt(i) & 0xff;
+  return salida;
+}
+
 export function reconstruirXref(bytes) {
   const objetos = objetosDe(bytes);
   if (objetos.size === 0) return null;
