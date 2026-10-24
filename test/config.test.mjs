@@ -35,3 +35,8 @@ test('fondo: solo colores #rrggbb', () => {
   assert.equal(normalizarConfig({ presentacion: { fondo: 'rojo' } }).presentacion.fondo, '#000000');
   assert.equal(normalizarConfig({ presentacion: { fondo: '#1A2b3C' } }).presentacion.fondo, '#1A2b3C');
 });
+
+test('porDocumento conserva los objetos por ruta (calibración, notas a la derecha) y descarta lo demás', () => {
+  const c = normalizarConfig({ porDocumento: { 'a.pdf': { notasDerecha: true, calibracion: 2 }, 'b.pdf': 5 } });
+  assert.deepEqual(c.porDocumento, { 'a.pdf': { notasDerecha: true, calibracion: 2 } });
+});

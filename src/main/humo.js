@@ -451,7 +451,40 @@ async function fasePresentador({ ruta, preload, salida }) {
   return r;
 }
 
-const FASES = { basica: faseBasica, bucle: faseBucle, inexistente: faseInexistente, presentacionAnimada: fasePresentacionAnimada, cierre: faseCierre, corrupto: faseCorrupto, ajustes: faseAjustes, nocturno: faseNocturno, instantanea: faseInstantanea, guardar: faseGuardar, transiciones: faseTransiciones, punteros: fasePunteros, cuadricula: faseCuadricula, medicion: faseMedicion, presentador: fasePresentador };
+// Notas a la derecha (ejemplo_notas.pdf + config de prueba): en presentación la mitad derecha de la pantalla cambia
+// al quitar la clase (ampliación de la mitad izquierda frente a la nota), y el presentador pinta la mitad derecha en 16:9.
+async function faseNotasDerecha({ ruta, preload, salida }) {
+  const r = { clase: false, mitadDerechaDistinta: false, presentador16x9: false };
+  const { win, js, presentar } = abrirVentanaDePrueba({ ruta, preload, salida });
+  await esperarEvento('primera-pagina', 10_000);
+  win.show(); win.focus(); win.moveTop();
+  r.presentacion = await presentar();
+  await espera(1500);
+  r.clase = await js('document.getElementById("viewerContainer").classList.contains("liberadopdf-notas-derecha")');
+  const con = await win.webContents.capturePage();
+  await js('document.getElementById("viewerContainer").classList.remove("liberadopdf-notas-derecha")');
+  await espera(600);
+  const sin = await win.webContents.capturePage();
+  writeFileSync(path.join(salida, 'con.png'), con.toPNG());
+  writeFileSync(path.join(salida, 'sin.png'), sin.toPNG());
+  const { width, height } = con.getSize();
+  const derechaCon = con.crop({ x: Math.floor(width / 2), y: 0, width: Math.floor(width / 2), height });
+  const derechaSin = sin.crop({ x: Math.floor(width / 2), y: 0, width: Math.floor(width / 2), height });
+  r.mitadDerechaDistinta = difieren(derechaCon, derechaSin);
+  await js('document.getElementById("viewerContainer").classList.add("liberadopdf-notas-derecha")');
+  await js('window.liberadopdfAcciones.presentador()');
+  await espera(2500);
+  const presentador = BrowserWindow.getAllWindows().find(w => w !== win && w.webContents.getURL().includes('presentador.html'));
+  if (presentador) {
+    const t = JSON.parse(await presentador.webContents.executeJavaScript('JSON.stringify((c => ({ w: c.width, h: c.height }))(document.querySelector(".actual canvas")))'));
+    r.aspecto = t.h ? t.w / t.h : 0;
+    r.presentador16x9 = r.aspecto > 1.6 && r.aspecto < 1.95 && (await presentador.webContents.executeJavaScript(`(${NO_EN_BLANCO})('.actual canvas')`));
+  }
+  r.ok = r.presentacion && r.clase && r.mitadDerechaDistinta && r.presentador16x9;
+  return r;
+}
+
+const FASES = { basica: faseBasica, bucle: faseBucle, inexistente: faseInexistente, presentacionAnimada: fasePresentacionAnimada, cierre: faseCierre, corrupto: faseCorrupto, ajustes: faseAjustes, nocturno: faseNocturno, instantanea: faseInstantanea, guardar: faseGuardar, transiciones: faseTransiciones, punteros: fasePunteros, cuadricula: faseCuadricula, medicion: faseMedicion, presentador: fasePresentador, notasDerecha: faseNotasDerecha };
 
 export async function ejecutarHumo({ ruta, salida, fase, preload }) {
   mkdirSync(salida, { recursive: true });

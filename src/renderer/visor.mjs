@@ -51,7 +51,7 @@ const acciones = {
     const p = grupos ? grupos.paginaDeLamina(n) : (Number.isInteger(n) && n >= 1 && n <= app.pagesCount ? n : null);
     if (p) app.page = p;
   },
-  presentacion() { app.requestPresentationMode(); },
+  async presentacion() { await window.liberadopdf.antesDePresentar().catch(() => {}); app.requestPresentationMode(); },
   ayuda() { alternarAyuda(); },
   reloj() { presentacion.reloj(); },
   negro() { presentacion.negro(); },
@@ -88,17 +88,35 @@ const aplicarConfig = (nueva) => {
   presentacion.actualizarConfig(nueva);
   aplicarTema(nueva.tema);
   window.liberadopdfAplicarExtra?.(nueva); // ganchos de módulos posteriores (nocturno)
+  window.liberadopdfAplicarDocumento?.();
 };
-const ajustes = instalarAjustes({ obtenerConfig, guardar: nueva => window.liberadopdf.guardarConfig(nueva), aplicar: aplicarConfig, pantallas: () => window.liberadopdf.pantallas() });
+const ajustes = instalarAjustes({
+  obtenerConfig, guardar: nueva => window.liberadopdf.guardarConfig(nueva), aplicar: aplicarConfig, pantallas: () => window.liberadopdf.pantallas(),
+  documento: ruta ? {
+    etiqueta: 'Páginas con las notas a la derecha (Beamer, pgfpages)',
+    obtener: () => Boolean(obtenerConfig().porDocumento?.[ruta]?.notasDerecha),
+    poner: (valor) => {
+      const actual = obtenerConfig();
+      const porDocumento = { ...actual.porDocumento, [ruta]: { ...(actual.porDocumento[ruta] ?? {}), notasDerecha: Boolean(valor) } };
+      aplicarConfig({ ...actual, porDocumento });
+      window.liberadopdf.guardarConfig({ porDocumento });
+    },
+  } : null,
+});
 aplicarTema(config.tema);
 const nocturno = instalarNocturno({ obtenerConfig, guardar: nueva => { config = nueva; window.liberadopdf.guardarConfig(nueva); } });
 const instantanea = instalarInstantanea();
 const transiciones = instalarTransiciones({ app, obtenerConfig, modoActual });
 const punteros = instalarPunteros({ app, modoActual });
+// Páginas de Beamer con las notas en la mitad derecha (pgfpages): en presentación se muestra solo la izquierda.
+const notasDerecha = () => Boolean(obtenerConfig().porDocumento?.[ruta]?.notasDerecha);
+const aplicarNotasDerecha = () => document.getElementById('viewerContainer').classList.toggle('liberadopdf-notas-derecha', notasDerecha());
+app.eventBus.on('presentationmodechanged', () => setTimeout(aplicarNotasDerecha, 0));
 // Estado para la vista de presentador
 let etiquetasDocumento = null;
-const enviarEstado = () => window.liberadopdf.presentadorEstado({ pagina: app.page, totalPaginas: app.pagesCount, etiquetas: etiquetasDocumento });
+const enviarEstado = () => window.liberadopdf.presentadorEstado({ pagina: app.page, totalPaginas: app.pagesCount, etiquetas: etiquetasDocumento, notasDerecha: notasDerecha() });
 app.eventBus.on('pagechanging', enviarEstado);
+window.liberadopdfAplicarDocumento = () => { aplicarNotasDerecha(); enviarEstado(); };
 const medicion = instalarMedicion({
   app, obtenerConfig, ruta,
   guardarPorDocumento: (parcial) => {

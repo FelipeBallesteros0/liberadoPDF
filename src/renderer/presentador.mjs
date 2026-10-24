@@ -30,14 +30,17 @@ let notas = new Map();
 let estado = { pagina: 1, totalPaginas: 0, etiquetas: null };
 let renderizando = Promise.resolve();
 
+// Con notasDerecha (pgfpages) cada página es doble: aquí se pinta solo la mitad derecha (las notas).
 async function pintarPagina(numero, lienzo, anchoMaximo) {
   if (!documento || numero < 1 || numero > documento.numPages) { lienzo.width = 0; lienzo.height = 0; return; }
   const pagina = await documento.getPage(numero);
   const base = pagina.getViewport({ scale: 1 });
-  const escala = Math.max(0.1, Math.min(anchoMaximo / base.width, 2)) * (window.devicePixelRatio || 1);
-  const viewport = pagina.getViewport({ scale: escala });
-  lienzo.width = Math.round(viewport.width);
-  lienzo.height = Math.round(viewport.height);
+  const mitad = estado.notasDerecha ? 2 : 1;
+  const escala = Math.max(0.1, Math.min(anchoMaximo / (base.width / mitad), 2)) * (window.devicePixelRatio || 1);
+  const completo = pagina.getViewport({ scale: escala });
+  const viewport = mitad === 2 ? pagina.getViewport({ scale: escala, offsetX: -completo.width / 2 }) : completo;
+  lienzo.width = Math.round(completo.width / mitad);
+  lienzo.height = Math.round(completo.height);
   await pagina.render({ canvasContext: lienzo.getContext('2d'), viewport }).promise;
 }
 
@@ -51,6 +54,7 @@ function actualizar() {
     const siguiente = grupos?.posicion(estado.pagina + 1);
     pieSiguiente.textContent = estado.pagina + 1 <= estado.totalPaginas ? (siguiente ? textoContador(siguiente, grupos) : `página ${estado.pagina + 1}`) : 'fin';
     elNota.textContent = notaDe(notas, posicion ?? { etiqueta: String(estado.pagina), lamina: estado.pagina });
+    document.querySelector('.notas').hidden = Boolean(estado.notasDerecha) && !elNota.textContent;
   }).catch(e => { window.liberadopdfError = String(e?.stack ?? e); console.warn('presentador:', e?.message ?? e); });
 }
 

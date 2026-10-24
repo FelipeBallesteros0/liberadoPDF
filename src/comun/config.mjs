@@ -58,9 +58,10 @@ export function normalizarConfig(entrada) {
     nombre: typeof r.nombre === 'string' ? r.nombre : r.ruta,
     fecha: typeof r.fecha === 'number' ? r.fecha : 0,
   }));
-  // porDocumento solo admite objetos planos por ruta
+  // porDocumento es un mapa libre ruta → objeto (fusionar solo conserva las claves por defecto, y no hay ninguna)
+  const porDocumentoEntrada = esObjetoPlano(entrada) && esObjetoPlano(entrada.porDocumento) ? entrada.porDocumento : {};
   config.porDocumento = Object.fromEntries(
-    Object.entries(config.porDocumento).filter(([, v]) => esObjetoPlano(v)),
+    Object.entries(porDocumentoEntrada).filter(([, v]) => esObjetoPlano(v)).map(([k, v]) => [k, { ...v }]),
   );
   // fondo: solo colores #rrggbb
   if (!/^#[0-9a-f]{6}$/i.test(config.presentacion.fondo)) config.presentacion.fondo = valoresPorDefecto().presentacion.fondo;

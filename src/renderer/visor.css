@@ -170,3 +170,6 @@
 .liberadopdf-medicion .etiqueta { font: 600 12px system-ui, sans-serif; fill: #fff; }
 .liberadopdf-medicion .fondo { fill: rgba(224, 32, 32, 0.9); }
 .liberadopdf-calibrar input { width: 100%; box-sizing: border-box; margin: 6px 0; padding: 6px; font: inherit; }
+
+/* Notas de Beamer a la derecha (pgfpages): en presentación solo se ve la mitad izquierda, ampliada al doble */
+#viewerContainer.pdfPresentationMode.liberadopdf-notas-derecha .pdfViewer .page { clip-path: inset(0 50% 0 0); transform: scale(2); transform-origin: 0 50%; }

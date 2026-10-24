@@ -3,7 +3,7 @@ import { CAMPOS, leerCampo, escribirCampo, opcionesDePantalla } from '../comun/a
 import { valoresPorDefecto } from '../comun/config.mjs';
 import { raizDeCapas } from './capas.mjs';
 
-export function instalarAjustes({ obtenerConfig, guardar, aplicar, pantallas }) {
+export function instalarAjustes({ obtenerConfig, guardar, aplicar, pantallas, documento = null }) {
   let dialogo = null;
 
   const control = (campo, config, listaPantallas) => {
@@ -71,6 +71,20 @@ export function instalarAjustes({ obtenerConfig, guardar, aplicar, pantallas }) 
       texto.textContent = campo.etiqueta;
       fila.append(texto, control(campo, config, listaPantallas));
       caja.append(fila);
+    }
+    if (documento) {
+      const h3 = document.createElement('h3');
+      h3.textContent = 'Este documento';
+      const fila = document.createElement('label');
+      fila.className = 'fila';
+      const texto = document.createElement('span');
+      texto.textContent = documento.etiqueta;
+      const casilla = document.createElement('input');
+      casilla.type = 'checkbox';
+      casilla.checked = documento.obtener();
+      casilla.addEventListener('change', () => documento.poner(casilla.checked));
+      fila.append(texto, casilla);
+      caja.append(h3, fila);
     }
     const pie = document.createElement('div');
     pie.className = 'pie';

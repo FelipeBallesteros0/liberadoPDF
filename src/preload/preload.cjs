@@ -29,6 +29,7 @@ contextBridge.exposeInMainWorld('liberadopdf', {
   pantallas: () => ipcRenderer.invoke('pantallas'),
   instantanea: rect => ipcRenderer.invoke('instantanea', rect),
   modoGuardado: modo => ipcRenderer.invoke('modo-guardado', modo),
+  antesDePresentar: () => ipcRenderer.invoke('antes-de-presentar'),
   presentadorAbrir: () => ipcRenderer.invoke('presentador-abrir'),
   presentadorCerrar: () => ipcRenderer.invoke('presentador-cerrar'),
   presentadorEstado: estado => ipcRenderer.send('presentador-estado', estado),

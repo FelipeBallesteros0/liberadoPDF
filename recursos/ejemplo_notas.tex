@@ -1,0 +1,14 @@
+% PDF de ejemplo con notas de Beamer en la mitad derecha de cada página (pgfpages, show notes on second screen).
+\pdfminorversion=4
+\pdfobjcompresslevel=0
+\documentclass[aspectratio=169]{beamer}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{pgfpages}
+\setbeameroption{show notes on second screen=right}
+\setbeamertemplate{navigation symbols}{}
+\begin{document}
+\begin{frame}{Uno}\centering Lámina uno.\note{Nota de la lámina uno: recordar el saludo.}\end{frame}
+\begin{frame}{Dos}\centering Lámina dos.\note{Nota de la lámina dos: la demo va aquí.}\end{frame}
+\begin{frame}{Tres}\centering Lámina tres.\note{Nota de la lámina tres: cerrar con la pregunta.}\end{frame}
+\end{document}

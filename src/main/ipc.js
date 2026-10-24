@@ -7,12 +7,27 @@ import { agregarReciente } from '../comun/config.mjs';
 import { abrirEnVentana, abrirInicioEnVentana, crearVentanaPresentador } from './ventanas.js';
 import { readFileSync } from 'node:fs';
 import { errorDeRutaPdf } from '../comun/argumentos.mjs';
+import { elegirPantallas } from '../comun/pantallas.mjs';
 
 export const eventosHumo = new EventEmitter();
 const ENLACE_EXTERNO = /^(https?:|mailto:)/i;
 
-export function instalarIpc({ obtenerConfig, obtenerConfigBase = obtenerConfig, guardar, abrirEnNueva, alCambiarRecientes = () => {}, preload, elegirPantallaPresentador = () => undefined }) {
+export function instalarIpc({ obtenerConfig, obtenerConfigBase = obtenerConfig, guardar, abrirEnNueva, alCambiarRecientes = () => {}, preload }) {
   const ventanaDe = evento => BrowserWindow.fromWebContents(evento.sender);
+  const pantallasSimples = () => { const principal = screen.getPrimaryDisplay().id; return screen.getAllDisplays().map(d => ({ id: d.id, principal: d.id === principal })); };
+  const pantallaPorId = id => screen.getAllDisplays().find(d => d.id === id);
+  const pantallaDelPresentador = () => { const { presentador } = elegirPantallas(pantallasSimples(), obtenerConfig()); return presentador === null ? undefined : pantallaPorId(presentador); };
+
+  // Antes de pedir pantalla completa: con dos o más pantallas, la ventana del visor va a la del proyector.
+  ipcMain.handle('antes-de-presentar', (evento) => {
+    const win = ventanaDe(evento);
+    if (!win) return false;
+    const { presentacion } = elegirPantallas(pantallasSimples(), obtenerConfig());
+    const destino = presentacion === null ? null : pantallaPorId(presentacion);
+    if (!destino) return false;
+    if (screen.getDisplayMatching(win.getBounds()).id !== destino.id) { if (win.isMaximized()) win.unmaximize(); win.setBounds(destino.workArea); }
+    return true;
+  });
 
   ipcMain.handle('abrir-dialogo', async (evento) => {
     const { canceled, filePaths } = await dialog.showOpenDialog(ventanaDe(evento), {
@@ -41,7 +56,7 @@ export function instalarIpc({ obtenerConfig, obtenerConfigBase = obtenerConfig, 
   ipcMain.handle('presentador-abrir', (evento) => {
     const win = ventanaDe(evento);
     if (!win) return false;
-    crearVentanaPresentador({ win, preload, pantalla: elegirPantallaPresentador(win) });
+    crearVentanaPresentador({ win, preload, pantalla: pantallaDelPresentador() });
     return true;
   });
   ipcMain.handle('presentador-cerrar', (evento) => { const p = ventanaDe(evento)?.liberadopdfPresentador; if (p && !p.isDestroyed()) p.close(); });

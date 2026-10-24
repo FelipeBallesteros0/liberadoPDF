@@ -30,6 +30,7 @@ const FASES = [
   { nombre: 'cuadricula', env: {} },
   { nombre: 'medicion', env: {} },
   { nombre: 'presentador', env: {} },
+  { nombre: 'notasDerecha', env: { LIBERADOPDF_PDF: path.join(raiz, 'recursos', 'ejemplo_notas.pdf'), LIBERADOPDF_CONFIG_PRUEBA: JSON.stringify({ porDocumento: { [path.join(raiz, 'recursos', 'ejemplo_notas.pdf')]: { notasDerecha: true } } }) } },
 ];
 writeFileSync(pdfPrueba + '.notas.txt', '## 2\nNota de la dos\n');
 writeFileSync(path.join(salida, 'corrupto.pdf'), 'esto no es un PDF\n');
