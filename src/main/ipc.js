@@ -31,6 +31,11 @@ export function instalarIpc({ obtenerConfig, obtenerConfigBase = obtenerConfig, 
     const error = errorDeRutaPdf(ruta, existsSync);
     if (error) abrirInicioEnVentana(ventanaDe(evento), error); else abrirEnNueva(ruta);
   });
+  // Modo del próximo guardado que pedirá pdf.js (Ctrl+S → sobrescribir; botón o Guardar como → diálogo)
+  ipcMain.handle('modo-guardado', (evento, modo) => {
+    const win = ventanaDe(evento);
+    if (win) win.liberadopdfGuardado = modo === 'sobrescribir' ? 'sobrescribir' : 'como';
+  });
   // La pantalla de inicio con un mensaje (p. ej. PDF corrupto detectado por pdf.js en el renderer).
   ipcMain.handle('abrir-inicio', (evento, mensaje) => { abrirInicioEnVentana(ventanaDe(evento), String(mensaje ?? '').slice(0, 300)); });
   ipcMain.handle('recientes', () => obtenerConfig().recientes.filter(r => existsSync(r.ruta)));

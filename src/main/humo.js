@@ -2,7 +2,7 @@
 // Fases: basica (primera página, animación, teclas, presentación, contador, pantalla negra),
 //        bucle (avance automático con bucle, con LIBERADOPDF_CONFIG_PRUEBA).
 import { app, BrowserWindow, clipboard, screen, nativeImage } from 'electron';
-import { mkdirSync, writeFileSync, readFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync, readFileSync, existsSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { crearVentana } from './ventanas.js';
 import { eventosHumo } from './ipc.js';
@@ -277,7 +277,42 @@ async function faseInstantanea({ ruta, preload, salida }) {
   return r;
 }
 
-const FASES = { basica: faseBasica, bucle: faseBucle, inexistente: faseInexistente, presentacionAnimada: fasePresentacionAnimada, cierre: faseCierre, corrupto: faseCorrupto, ajustes: faseAjustes, nocturno: faseNocturno, instantanea: faseInstantanea };
+// Guardar: un texto libre añadido con el editor de pdf.js se guarda en la ruta forzada (LIBERADOPDF_HUMO_GUARDAR).
+async function faseGuardar({ ruta, preload, salida }) {
+  const r = { editoresVisibles: false, archivo: false, contieneTexto: false, sinEdiciones: false };
+  const destino = process.env.LIBERADOPDF_HUMO_GUARDAR;
+  const { win, js, tecla } = abrirVentanaDePrueba({ ruta, preload, salida });
+  await esperarEvento('primera-pagina', 10_000);
+  win.show(); win.focus(); win.moveTop();
+  await espera(500);
+  r.editoresVisibles = await js('window.liberadopdfEstado.editoresVisibles');
+  // Texto libre: modo FreeText (3), clic en la página, escribir y confirmar con Escape
+  await js('PDFViewerApplication.pdfViewer.annotationEditorMode = { mode: 3 }');
+  await espera(300);
+  const { width, height } = win.getContentBounds();
+  const x = Math.round(width * 0.55), y = Math.round(height * 0.45);
+  win.webContents.sendInputEvent({ type: 'mouseDown', x, y, button: 'left', clickCount: 1 });
+  win.webContents.sendInputEvent({ type: 'mouseUp', x, y, button: 'left', clickCount: 1 });
+  await espera(400);
+  for (const ch of 'hola') win.webContents.sendInputEvent({ type: 'char', keyCode: ch });
+  await espera(200);
+  tecla('Escape');
+  await espera(400);
+  r.anotaciones = await js('PDFViewerApplication.pdfDocument.annotationStorage.size');
+  await js('window.liberadopdfAcciones.guardar()');
+  for (let i = 0; i < 40 && !existsSync(destino); i++) await espera(250);
+  await espera(500);
+  r.archivo = existsSync(destino) && statSync(destino).size > 0;
+  if (r.archivo) {
+    const bytes = readFileSync(destino).toString('latin1');
+    r.contieneTexto = bytes.includes('/FreeText') || bytes.includes('hola');
+  }
+  r.sinEdiciones = win.liberadopdfEdiciones === false;
+  r.ok = r.editoresVisibles && r.archivo && r.contieneTexto && r.sinEdiciones;
+  return r;
+}
+
+const FASES = { basica: faseBasica, bucle: faseBucle, inexistente: faseInexistente, presentacionAnimada: fasePresentacionAnimada, cierre: faseCierre, corrupto: faseCorrupto, ajustes: faseAjustes, nocturno: faseNocturno, instantanea: faseInstantanea, guardar: faseGuardar };
 
 export async function ejecutarHumo({ ruta, salida, fase, preload }) {
   mkdirSync(salida, { recursive: true });

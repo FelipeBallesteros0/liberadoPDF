@@ -1,5 +1,6 @@
 // Ventanas de liberadoPDF: visor (un PDF por ventana) o pantalla de inicio.
-import { BrowserWindow, dialog, shell } from 'electron';
+import { BrowserWindow, dialog, shell, session } from 'electron';
+import { rutaDeGuardadoComo } from '../comun/guardado.mjs';
 import { ESQUEMA, urlVisor, urlInicio } from './protocolo.js';
 
 const ENLACE_EXTERNO = /^(https?:|mailto:)/i;
@@ -48,12 +49,51 @@ export function crearVentana({ ruta, preload, mensaje }) {
   });
   win.on('enter-html-full-screen', () => win.setMenuBarVisibility(false));
   win.on('leave-html-full-screen', () => win.setMenuBarVisibility(true));
+  win.liberadopdfRuta = ruta ?? null;
   win.loadURL(ruta ? urlVisor(ruta) : urlInicio(mensaje));
   return win;
 }
 
+// Guardar / guardar como: pdf.js descarga el PDF con sus cambios por un <a download>; aquí se decide la ruta.
+// Modo 'sobrescribir' (Ctrl+S) → confirma y escribe sobre el archivo abierto; cualquier otro → diálogo «Guardar como».
+export function instalarGuardado() {
+  session.defaultSession.on('will-download', (evento, item, contenido) => {
+    const win = BrowserWindow.fromWebContents(contenido);
+    if (!win) return;
+    const modo = win.liberadopdfGuardado ?? 'como';
+    win.liberadopdfGuardado = null;
+    const original = win.liberadopdfRuta;
+    const forzada = process.env.LIBERADOPDF_HUMO_GUARDAR; // prueba de humo: sin diálogos
+    if (forzada) {
+      item.setSavePath(forzada);
+    } else if (modo === 'sobrescribir' && original) {
+      const respuesta = dialog.showMessageBoxSync(win, {
+        type: 'question', title: 'Guardar', message: `¿Sobrescribir ${original.split(/[\\/]/).pop()}?`,
+        detail: original, buttons: ['Sobrescribir', 'Cancelar'], defaultId: 0, cancelId: 1, noLink: true,
+      });
+      if (respuesta !== 0) { item.cancel(); return; }
+      item.setSavePath(original);
+    } else {
+      item.setSaveDialogOptions({
+        title: 'Guardar como',
+        defaultPath: original ? rutaDeGuardadoComo(original) : undefined,
+        filters: [{ name: 'PDF', extensions: ['pdf'] }],
+      });
+    }
+    item.once('done', (e, estado) => {
+      if (estado === 'completed') {
+        win.liberadopdfEdiciones = false;
+        if (!win.isDestroyed()) win.webContents.send('guardado', { ruta: item.getSavePath() });
+      } else if (estado === 'interrupted') {
+        dialog.showMessageBox(win, { type: 'error', title: 'Guardar', message: 'No se pudo guardar el archivo.', detail: item.getSavePath() || original || '' });
+      }
+    });
+  });
+}
+
 export function abrirEnVentana(win, ruta) {
   win.liberadopdfEdiciones = false;
+  win.liberadopdfRuta = ruta;
   win.loadURL(urlVisor(ruta));
 }
 

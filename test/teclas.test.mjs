@@ -50,3 +50,9 @@ test('N alterna nocturno; Ctrl+Mayús+S es instantánea solo en ventana; Ctrl+, 
   assert.equal(accionDeTecla(ev('S', { ctrlKey: true, shiftKey: true }), presentacion), null);
   assert.equal(accionDeTecla(ev(',', { ctrlKey: true }), ventana).accion, 'ajustes');
 });
+
+test('Ctrl+S guarda y Ctrl+Mayús+G guarda como, solo en ventana', () => {
+  assert.equal(accionDeTecla(ev('s', { ctrlKey: true }), ventana).accion, 'guardar');
+  assert.equal(accionDeTecla(ev('G', { ctrlKey: true, shiftKey: true }), ventana).accion, 'guardarComo');
+  assert.equal(accionDeTecla(ev('s', { ctrlKey: true }), presentacion), null);
+});

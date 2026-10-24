@@ -24,6 +24,7 @@ const FASES = [
   { nombre: 'ajustes', env: {} },
   { nombre: 'nocturno', env: {} },
   { nombre: 'instantanea', env: {} },
+  { nombre: 'guardar', env: { LIBERADOPDF_HUMO_GUARDAR: path.join(carpetaHumo, 'guardar', 'guardado.pdf') } },
 ];
 writeFileSync(path.join(salida, 'corrupto.pdf'), 'esto no es un PDF\n');
 

@@ -11,6 +11,9 @@ export function construirMenu({ recientes, alAbrir, alAbrirNueva, alReciente, al
       submenu: [
         { label: 'Abrir…', accelerator: 'CmdOrCtrl+O', click: (item, win) => alAbrir(win) },
         { label: 'Abrir en ventana nueva…', accelerator: 'CmdOrCtrl+N', click: () => alAbrirNueva() },
+        { type: 'separator' },
+        { label: 'Guardar', accelerator: 'CmdOrCtrl+S', registerAccelerator: false, click: (item, win) => alAccion(win, 'guardar') },
+        { label: 'Guardar como…', accelerator: 'CmdOrCtrl+Shift+G', registerAccelerator: false, click: (item, win) => alAccion(win, 'guardarComo') },
         {
           label: 'Recientes',
           submenu: submenuRecientes.length

@@ -3,7 +3,7 @@ import { app, BrowserWindow, dialog } from 'electron';
 import path from 'node:path';
 import { existsSync } from 'node:fs';
 import { registrarEsquemaPrivilegiado, instalarProtocolo } from './protocolo.js';
-import { crearVentana, ventanaActiva, abrirEnVentana } from './ventanas.js';
+import { crearVentana, ventanaActiva, abrirEnVentana, instalarGuardado } from './ventanas.js';
 import { abrirDesdeArgumentos } from './apertura.js';
 import { construirMenu } from './menu.js';
 import { instalarIpc } from './ipc.js';
@@ -77,6 +77,7 @@ if (!process.env.LIBERADOPDF_HUMO && !app.requestSingleInstanceLock()) {
 
   app.whenReady().then(() => {
     instalarProtocolo({ raices });
+    instalarGuardado();
     instalarIpc({ obtenerConfig, obtenerConfigBase, guardar, abrirEnNueva: abrirNueva, alCambiarRecientes: menu });
     menu();
     if (process.env.LIBERADOPDF_HUMO) {

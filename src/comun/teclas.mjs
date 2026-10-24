@@ -11,10 +11,12 @@ export function accionDeTecla(ev, { modo, enEntrada, digitos = '' }) {
 
   if (ctrlKey && shiftKey && !altKey && !metaKey) {
     if (minuscula === 's') return modo === 'ventana' ? { accion: 'instantanea' } : null;
+    if (minuscula === 'g') return modo === 'ventana' ? { accion: 'guardarComo' } : null;
     return null;
   }
   if (ctrlKey && !altKey && !metaKey && !shiftKey) {
     if (minuscula === 'o') return { accion: 'abrir' };
+    if (minuscula === 's') return modo === 'ventana' ? { accion: 'guardar' } : null;
     if (minuscula === 'n') return { accion: 'abrirNueva' };
     if (key === ',') return { accion: 'ajustes' };
     return null;
