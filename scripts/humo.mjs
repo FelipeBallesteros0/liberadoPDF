@@ -28,6 +28,7 @@ const FASES = [
   { nombre: 'transiciones', env: { LIBERADOPDF_PDF: path.join(raiz, 'recursos', 'ejemplo_transiciones.pdf') } },
   { nombre: 'punteros', env: {} },
   { nombre: 'cuadricula', env: {} },
+  { nombre: 'medicion', env: {} },
 ];
 writeFileSync(path.join(salida, 'corrupto.pdf'), 'esto no es un PDF\n');
 

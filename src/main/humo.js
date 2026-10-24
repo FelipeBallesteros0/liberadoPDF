@@ -396,7 +396,32 @@ async function faseCuadricula({ ruta, preload, salida }) {
   return r;
 }
 
-const FASES = { basica: faseBasica, bucle: faseBucle, inexistente: faseInexistente, presentacionAnimada: fasePresentacionAnimada, cierre: faseCierre, corrupto: faseCorrupto, ajustes: faseAjustes, nocturno: faseNocturno, instantanea: faseInstantanea, guardar: faseGuardar, transiciones: faseTransiciones, punteros: fasePunteros, cuadricula: faseCuadricula };
+// Medición: a zoom 1 pdf.js usa 96 px por pulgada (CSS), así que 96 px (y 192 px a zoom 2) son 25,4 mm.
+async function faseMedicion({ ruta, preload, salida }) {
+  const r = { escala1: null, escala2: null };
+  const { win, js } = abrirVentanaDePrueba({ ruta, preload, salida });
+  await esperarEvento('primera-pagina', 10_000);
+  win.show(); win.focus(); win.moveTop();
+  const clic = (x, y) => {
+    win.webContents.sendInputEvent({ type: 'mouseDown', x: Math.round(x), y: Math.round(y), button: 'left', clickCount: 1 });
+    win.webContents.sendInputEvent({ type: 'mouseUp', x: Math.round(x), y: Math.round(y), button: 'left', clickCount: 1 });
+  };
+  const medir = async (escala, px) => {
+    await js(`PDFViewerApplication.pdfViewer.currentScaleValue = ${escala}`);
+    await espera(700);
+    await js('window.liberadopdfAcciones.medirDistancia()');
+    const rect = JSON.parse(await js("JSON.stringify(document.querySelector(\".page[data-page-number='1']\").getBoundingClientRect())"));
+    clic(rect.left + 60, rect.top + 60); await espera(150);
+    clic(rect.left + 60 + px, rect.top + 60); await espera(400);
+    return js('document.querySelector(".liberadopdf-medicion .etiqueta")?.textContent ?? null');
+  };
+  r.escala1 = await medir(1, 96);
+  r.escala2 = await medir(2, 192);
+  r.ok = r.escala1 === '25,4 mm' && r.escala2 === '25,4 mm';
+  return r;
+}
+
+const FASES = { basica: faseBasica, bucle: faseBucle, inexistente: faseInexistente, presentacionAnimada: fasePresentacionAnimada, cierre: faseCierre, corrupto: faseCorrupto, ajustes: faseAjustes, nocturno: faseNocturno, instantanea: faseInstantanea, guardar: faseGuardar, transiciones: faseTransiciones, punteros: fasePunteros, cuadricula: faseCuadricula, medicion: faseMedicion };
 
 export async function ejecutarHumo({ ruta, salida, fase, preload }) {
   mkdirSync(salida, { recursive: true });

@@ -160,3 +160,13 @@
 .liberadopdf-cuadricula .celda .pie { color: #ddd; font: 13px system-ui, sans-serif; text-align: center; }
 .liberadopdf-cuadricula .celda.actual { border-color: rgba(255, 255, 255, 0.35); }
 .liberadopdf-cuadricula .celda.seleccionada { border-color: #0077b6; background: rgba(0, 119, 182, 0.25); }
+
+/* Medición */
+#viewerContainer.liberadopdf-midiendo .page { cursor: crosshair; }
+.liberadopdf-medicion { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 6; pointer-events: none; overflow: visible; }
+.liberadopdf-medicion .linea { stroke: #e02020; stroke-width: 2; }
+.liberadopdf-medicion .poligono { fill: rgba(224, 32, 32, 0.15); stroke: #e02020; stroke-width: 1.5; }
+.liberadopdf-medicion .punto { fill: #e02020; }
+.liberadopdf-medicion .etiqueta { font: 600 12px system-ui, sans-serif; fill: #fff; }
+.liberadopdf-medicion .fondo { fill: rgba(224, 32, 32, 0.9); }
+.liberadopdf-calibrar input { width: 100%; box-sizing: border-box; margin: 6px 0; padding: 6px; font: inherit; }

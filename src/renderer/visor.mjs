@@ -14,6 +14,7 @@ import { instalarTransiciones } from '/transiciones.mjs';
 import { instalarPunteros } from '/punteros.mjs';
 import { crearMiniaturas } from '/miniaturas.mjs';
 import { instalarCuadricula } from '/cuadricula.mjs';
+import { instalarMedicion } from '/medicion.mjs';
 
 const app = window.PDFViewerApplication;
 const parametros = new URLSearchParams(location.search);
@@ -59,6 +60,9 @@ const acciones = {
   instantanea() { if (modoActual() === 'ventana') instantanea.iniciar(); },
   ajustes() { ajustes.abrir(); },
   cuadricula() { cuadricula.alternar(); },
+  medirDistancia() { if (modoActual() === 'ventana') medicion.distancia(); },
+  medirArea() { if (modoActual() === 'ventana') medicion.area(); },
+  calibrar() { if (modoActual() === 'ventana') medicion.calibrar(); },
   laser() { punteros.laser(); },
   foco() { punteros.foco(); },
   dibujo() { punteros.dibujo(); },
@@ -90,6 +94,16 @@ const nocturno = instalarNocturno({ obtenerConfig, guardar: nueva => { config = 
 const instantanea = instalarInstantanea();
 const transiciones = instalarTransiciones({ app, obtenerConfig, modoActual });
 const punteros = instalarPunteros({ app, modoActual });
+const medicion = instalarMedicion({
+  app, obtenerConfig, ruta,
+  guardarPorDocumento: (parcial) => {
+    const actual = obtenerConfig();
+    const porDocumento = { ...actual.porDocumento, [ruta]: { ...(actual.porDocumento[ruta] ?? {}), ...parcial } };
+    const nueva = { ...actual, porDocumento };
+    config = nueva;
+    window.liberadopdf.guardarConfig({ porDocumento });
+  },
+});
 window.liberadopdfAplicarExtra = (nueva) => nocturno.aplicar(nueva.nocturno);
 // pdf.js: save() incorpora formularios y anotaciones; download() baja el original si no hay cambios.
 const guardarConPdfjs = async () => {
@@ -113,7 +127,7 @@ window.addEventListener('drop', (ev) => {
   const rutaSoltada = window.liberadopdf.rutaDeArchivo(archivo);
   if (/\.pdf$/i.test(rutaSoltada)) window.liberadopdf.abrirEnEstaVentana(rutaSoltada);
 }, { capture: true });
-window.liberadopdfAcciones = { presentacion: acciones.presentacion, ayuda: acciones.ayuda, personalizarBarra: () => barra.abrirDialogo(), ajustes: acciones.ajustes, instantanea: acciones.instantanea, guardar: acciones.guardar, guardarComo: acciones.guardarComo, cuadricula: acciones.cuadricula };
+window.liberadopdfAcciones = { presentacion: acciones.presentacion, ayuda: acciones.ayuda, personalizarBarra: () => barra.abrirDialogo(), ajustes: acciones.ajustes, instantanea: acciones.instantanea, guardar: acciones.guardar, guardarComo: acciones.guardarComo, cuadricula: acciones.cuadricula, medirDistancia: acciones.medirDistancia, medirArea: acciones.medirArea, calibrar: acciones.calibrar };
 
 const ponerTitulo = () => { document.title = nombre ? `${nombre} · liberadoPDF` : 'liberadoPDF'; };
 const alCargar = async () => {
