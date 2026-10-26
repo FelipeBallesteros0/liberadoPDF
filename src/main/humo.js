@@ -64,17 +64,20 @@ async function faseBasica({ ruta, preload, salida }) {
   win.show(); win.focus(); win.moveTop(); // la ventana al frente: las capturas deben ver la animación
 
   await js('PDFViewerApplication.page = 2');
-  await espera(1800);
-  // Tres capturas separadas 400 ms: basta con que dos difieran (en Windows, justo tras un arranque
+  // Se espera a que la página 2 esté pintada (renderingState 3 = FINISHED): en una máquina sin GPU (el Mac Intel
+  // virtual de GitHub) tarda varios segundos y antes no hay animación que comparar.
+  for (let i = 0; i < 100 && (await js('PDFViewerApplication.pdfViewer.getPageView(1)?.renderingState')) !== 3; i++) await espera(100);
+  await espera(1000);
+  // Capturas separadas 400 ms (hasta 8): basta con que dos seguidas difieran (en Windows, justo tras un arranque
   // frío o con el antivirus activo, una captura aislada puede repetir el fotograma anterior).
-  const capturas = [];
-  for (let i = 0; i < 3; i++) {
-    if (i) await espera(400);
+  const capturas = [await win.webContents.capturePage()];
+  for (let i = 1; i < 8 && !r.animacion; i++) {
+    await espera(400);
     capturas.push(await win.webContents.capturePage());
+    r.animacion = difieren(capturas[i - 1], capturas[i]);
   }
   writeFileSync(path.join(salida, 't1.png'), capturas[0].toPNG());
-  writeFileSync(path.join(salida, 't2.png'), capturas[2].toPNG());
-  r.animacion = difieren(capturas[0], capturas[1]) || difieren(capturas[1], capturas[2]);
+  writeFileSync(path.join(salida, 't2.png'), capturas.at(-1).toPNG());
 
   tecla('PageDown');
   await espera(300);
@@ -119,9 +122,10 @@ async function faseBasica({ ruta, preload, salida }) {
   await espera(300);
   r.clicEnPantalla = !(await js('document.querySelector(".liberadopdf-pantalla")')) && (await pagina()) === 2;
 
-  // En macOS el primer arranque de un binario recién descargado pasa por la revisión de seguridad del sistema (en el
-  // runner de GitHub, 5–6 s); las demás fases arrancan la misma app sin ese coste.
-  r.ok = r.msPrimeraPagina < (process.platform === 'darwin' ? 8000 : 3000) && r.animacion && r.pagina3 && r.flechaEnEntrada && r.presentacionEnBarra && r.presentacion && r.contadorYSaltos && r.pantallaNegra && r.clicEnPantalla;
+  // En macOS el primer arranque de un binario recién copiado pasa por la revisión de seguridad del sistema (en los
+  // runners de GitHub, 5–6 s en Apple Silicon y ~9 s en el Mac Intel virtual, sin GPU); las demás fases arrancan la
+  // misma app sin ese coste.
+  r.ok = r.msPrimeraPagina < (process.platform === 'darwin' ? 12000 : 3000) && r.animacion && r.pagina3 && r.flechaEnEntrada && r.presentacionEnBarra && r.presentacion && r.contadorYSaltos && r.pantallaNegra && r.clicEnPantalla;
   return r;
 }
 
