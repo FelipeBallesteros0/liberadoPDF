@@ -23,7 +23,7 @@ jobs:
       # Pruebas unitarias + humo completo (40 fases) en desarrollo + .app universal firmado + .dmg
       - run: bash scripts/construir.sh darwin
       - name: Humo sobre el .app empaquetado
-        run: mkdir -p test/salida; for fase in basica tema presentacionAnimada presentador video ocr htmlAPdf idioma; do echo "== $fase"; if scripts/humo_linux.sh "$fase" > "test/salida/$fase.json"; then echo ok; else cat "test/salida/$fase.json"; fallo=1; fi; cp -R test/salida/humo_linux "test/salida/paquete-$fase"; done; exit ${fallo:-0}
+        run: mkdir -p test/salida; for fase in basica tema presentacionAnimada presentador video ocr htmlAPdf idioma; do echo "== $fase"; if bash scripts/humo_linux.sh "$fase" > "test/salida/$fase.json"; then echo ok; else cat "test/salida/$fase.json"; fallo=1; fi; cp -R test/salida/humo_linux "test/salida/paquete-$fase" || true; done; exit ${fallo:-0}
       - name: Arquitecturas y firma
         run: |
           APP=dist/liberadoPDF-darwin-universal/liberadoPDF.app
@@ -75,7 +75,7 @@ jobs:
       - name: Humo sobre la app instalada
         env:
           LIBERADOPDF_LANZADOR: /Applications/liberadoPDF.app/Contents/MacOS/liberadoPDF
-        run: mkdir -p test/salida; for fase in basica tema presentacionAnimada ocr; do echo "== $fase"; if scripts/humo_linux.sh "$fase" > "test/salida/$fase.json"; then echo ok; else cat "test/salida/$fase.json"; fallo=1; fi; cp -R test/salida/humo_linux "test/salida/paquete-$fase"; done; exit ${fallo:-0}
+        run: mkdir -p test/salida; for fase in basica tema presentacionAnimada ocr; do echo "== $fase"; if bash scripts/humo_linux.sh "$fase" > "test/salida/$fase.json"; then echo ok; else cat "test/salida/$fase.json"; fallo=1; fi; cp -R test/salida/humo_linux "test/salida/paquete-$fase" || true; done; exit ${fallo:-0}
       - uses: actions/upload-artifact@v4
         if: always()
         with:
