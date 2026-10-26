@@ -7,6 +7,11 @@ export const en = {
   'Personalizar barra…': 'Customize toolbar…', 'Cuadrícula de láminas': 'Slide grid', 'Instantánea al portapapeles': 'Snapshot to clipboard',
   'Medir distancia': 'Measure distance', 'Medir área': 'Measure area', 'Calibrar escala…': 'Calibrate scale…', 'Ajustes…': 'Settings…',
   'Herramientas': 'Tools', 'Ayuda': 'Help', 'Teclas': 'Keys', 'Acerca de liberadoPDF': 'About liberadoPDF',
+  // Menús propios de macOS (aplicación, Edición y Ventana)
+  'Servicios': 'Services', 'Ocultar liberadoPDF': 'Hide liberadoPDF', 'Ocultar otros': 'Hide Others', 'Mostrar todo': 'Show All',
+  'Salir de liberadoPDF': 'Quit liberadoPDF', 'Cerrar ventana': 'Close Window', 'Edición': 'Edit', 'Deshacer': 'Undo', 'Rehacer': 'Redo',
+  'Cortar': 'Cut', 'Copiar': 'Copy', 'Pegar': 'Paste', 'Seleccionar todo': 'Select All', 'Ventana': 'Window', 'Minimizar': 'Minimize',
+  'Zoom': 'Zoom', 'Traer todo al frente': 'Bring All to Front',
   'Visor y presentador de PDF que reproduce las animaciones del paquete animate.': 'PDF viewer and presenter that plays the animations of the animate package.',
   'Licencia MIT.': 'MIT license.',
   'Abre primero un PDF': 'Open a PDF first',

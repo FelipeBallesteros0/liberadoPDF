@@ -24,14 +24,12 @@ There is a portable Linux x64 package (`liberadoPDF-linux-x64.tar.gz`): extract 
 
 ## macOS
 
-There are two zips: `liberadoPDF-darwin-arm64.zip` (Apple Silicon, M1 and later) and `liberadoPDF-darwin-x64.zip` (Intel); macOS 12 or later. Unzip it and drag `liberadoPDF.app` to Applications. The app is not signed by Apple, so the first time macOS will say it "is damaged" or "cannot be verified". Fix it once in Terminal:
+Download `liberadoPDF-macos-universal.dmg` (one package for Apple Silicon and Intel; macOS 12 or later), open it and drag `liberadoPDF.app` to Applications. The app has an ad-hoc signature but is not notarized by Apple (that needs a paid developer account), so the first time macOS asks for confirmation:
 
-```bash
-xattr -cr /Applications/liberadoPDF.app
-codesign --force --deep --sign - /Applications/liberadoPDF.app
-```
+- **macOS 15 Sequoia or later**: double-click it, close the warning, then System Settings ▸ Privacy & Security ▸ "Open Anyway" next to liberadoPDF.
+- **macOS 14 or earlier**: right-click (or Ctrl-click) the app ▸ Open ▸ Open.
 
-The first line removes the quarantine mark; the second gives it an ad-hoc signature, needed on Apple Silicon (it can be skipped if the package was built with `rcodesign`). After that it opens with a double click, appears under "Open with…" for PDFs and accepts PDFs dropped on its Dock icon. Shortcuts use `Cmd` instead of `Ctrl` (`Cmd+S`, `Cmd+,`, `Cmd+Shift+P`…). Inside a `.app` there is no portable mode: data lives in `~/Library/Application Support/liberadoPDF`.
+After that it opens with a normal double click, appears under "Open with…" for PDFs and accepts PDFs dropped on its Dock icon. If macOS ever says the app "is damaged" (a copy that lost its signature), `xattr -cr /Applications/liberadoPDF.app` in Terminal fixes it. Shortcuts use `Cmd` instead of `Ctrl` (`Cmd+S`, `Cmd+,`, `Cmd+Shift+P`…). The dark theme follows the system or is chosen in View ▸ Interface theme. Inside a `.app` there is no portable mode: data lives in `~/Library/Application Support/liberadoPDF`.
 
 ## Keys
 
@@ -157,8 +155,8 @@ On Linux/WSLg, Electron is launched with `ELECTRON_DISABLE_SANDBOX=1` (set by `n
 ```bash
 npm install
 npm test            # unit tests (node --test)
-npm run humo        # smoke test (39 phases): viewer, presentation, presenter, language, video and one phase per tool; generates its test PDFs
-npm run construir   # dist/liberadoPDF-win32-x64(.zip), dist/liberadoPDF-linux-x64(.tar.gz) and dist/liberadoPDF-darwin-{arm64,x64}.zip; scripts/construir.sh win32|linux|darwin for one
+npm run humo        # smoke test (40 phases): viewer, presentation, presenter, language, video and one phase per tool; generates its test PDFs
+npm run construir   # dist/liberadoPDF-win32-x64(.zip), dist/liberadoPDF-linux-x64(.tar.gz) ; on macOS, scripts/construir.sh darwin → dist/liberadoPDF-macos-universal.dmg
 scripts/humo_windows.sh                                         # smoke test on the .exe, launched from WSL
 scripts/humo_windows.sh presentacionAnimada "path/to/pdf" 11    # does the animation on page 11 run in presentation?
 scripts/humo_windows.sh guardar | cuadricula | presentador | cierre   # other phases on the .exe
@@ -168,7 +166,7 @@ scripts/humo_linux.sh basica | video | …                                # the 
 
 The `.exe` icon is set by `wine` (if installed) or by `rcedit-x64.exe` in `~/tools/rcedit/` run through WSL interop ([electron/rcedit](https://github.com/electron/rcedit/releases)). Without either, the executable keeps Electron's default icon.
 
-The macOS packages are built on Linux too (inside a temporary folder on the Linux file system, because Electron's frameworks are made of symbolic links that `/mnt/c` would break). If [`rcodesign`](https://github.com/indygreg/apple-platform-rs/releases) is on the `PATH`, the script signs them ad hoc; without it, each user signs them on their Mac as explained above. There is no Apple notarization (it needs a paid developer account).
+The macOS package is built only on macOS: from Linux the `.app` comes out with a broken signature and macOS calls it "damaged". The `.github/workflows/macos.yml` workflow does it on GitHub's Macs (on `v*` tags, `mac/**` branches or by hand): unit tests and the full smoke test, a universal `.app` with an ad-hoc signature inside a `.dmg`, and smoke phases on the installed app on Apple Silicon and on Intel. The `.dmg` is left as an artifact of the run.
 
 ## Structure
 
@@ -185,7 +183,6 @@ The macOS packages are built on Linux too (inside a temporary folder on the Linu
 - Tools 54–59 of the plan: PDF ↔ Office (Word, Excel, PowerPoint), edit text, redact (black out content), compare PDFs, PDF/A and scan from a camera.
 - Opening "Tools ▸ Repair" from the start page (today a PDF must be open and the broken file is chosen in the dialog).
 - Out of scope: read aloud, audio, external video by URL, Flash and 3D, digital signature validation.
-- macOS: the packages are built but have not yet been tried on a real Mac.
 
 ## License
 

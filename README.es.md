@@ -24,14 +24,12 @@ Hay un paquete portable para Linux x64 (`liberadoPDF-linux-x64.tar.gz`): descomp
 
 ## macOS
 
-Hay dos zip: `liberadoPDF-darwin-arm64.zip` (Apple Silicon, M1 en adelante) y `liberadoPDF-darwin-x64.zip` (Intel); macOS 12 o posterior. Descomprímelo y arrastra `liberadoPDF.app` a Aplicaciones. La app no está firmada por Apple, así que la primera vez macOS dirá que «está dañada» o que «no se puede verificar». Se arregla una vez en la Terminal:
+Descarga `liberadoPDF-macos-universal.dmg` (un solo paquete para Apple Silicon e Intel; macOS 12 o posterior), ábrelo y arrastra `liberadoPDF.app` a Aplicaciones. La app tiene firma ad-hoc pero no está notarizada por Apple (eso exige una cuenta de desarrollador de pago), así que la primera vez macOS pide confirmación:
 
-```bash
-xattr -cr /Applications/liberadoPDF.app
-codesign --force --deep --sign - /Applications/liberadoPDF.app
-```
+- **macOS 15 Sequoia o posterior**: ábrela con doble clic, cierra el aviso y ve a Ajustes del Sistema ▸ Privacidad y seguridad ▸ «Abrir igualmente» junto a liberadoPDF.
+- **macOS 14 o anterior**: clic derecho (o Ctrl+clic) sobre la app ▸ Abrir ▸ Abrir.
 
-La primera línea quita la marca de cuarentena; la segunda le pone una firma ad-hoc, necesaria en Apple Silicon (se puede omitir si el paquete se construyó con `rcodesign`). Después abre con doble clic, aparece en «Abrir con…» de los PDF y acepta PDF soltados sobre su icono del Dock. Los atajos van con `Cmd` en lugar de `Ctrl` (`Cmd+S`, `Cmd+,`, `Cmd+Mayús+P`…). Dentro de un `.app` no hay modo portable: los datos van en `~/Library/Application Support/liberadoPDF`.
+Después abre con doble clic normal, aparece en «Abrir con…» de los PDF y acepta PDF soltados sobre su icono del Dock. Si alguna vez macOS dice que la app «está dañada» (una copia que perdió la firma), `xattr -cr /Applications/liberadoPDF.app` en la Terminal lo arregla. Los atajos van con `Cmd` en lugar de `Ctrl` (`Cmd+S`, `Cmd+,`, `Cmd+Mayús+P`…). El tema oscuro sigue al sistema o se elige en Ver ▸ Tema de la interfaz. Dentro de un `.app` no hay modo portable: los datos van en `~/Library/Application Support/liberadoPDF`.
 
 ## Teclas
 
@@ -157,8 +155,8 @@ En Linux/WSLg Electron se lanza con `ELECTRON_DISABLE_SANDBOX=1` (lo ponen `npm 
 ```bash
 npm install
 npm test            # pruebas unitarias (node --test)
-npm run humo        # prueba de humo (39 fases): visor, presentación, presentador, idioma, video y una fase por herramienta; genera sus PDF de prueba
-npm run construir   # dist/liberadoPDF-win32-x64(.zip), dist/liberadoPDF-linux-x64(.tar.gz) y dist/liberadoPDF-darwin-{arm64,x64}.zip; scripts/construir.sh win32|linux|darwin para uno solo
+npm run humo        # prueba de humo (40 fases): visor, presentación, presentador, idioma, video y una fase por herramienta; genera sus PDF de prueba
+npm run construir   # dist/liberadoPDF-win32-x64(.zip), dist/liberadoPDF-linux-x64(.tar.gz) ; en macOS, scripts/construir.sh darwin → dist/liberadoPDF-macos-universal.dmg
 scripts/humo_windows.sh                                         # prueba de humo sobre el .exe, lanzado desde WSL
 scripts/humo_windows.sh presentacionAnimada "ruta/al/pdf" 11    # ¿la animación de la página 11 corre en presentación?
 scripts/humo_windows.sh guardar | cuadricula | presentador | cierre   # otras fases sobre el .exe
@@ -168,7 +166,7 @@ scripts/humo_linux.sh basica | video | …                                # las 
 
 El icono del `.exe` lo pone `wine` (si está instalado) o `rcedit-x64.exe` en `~/tools/rcedit/` ejecutado por interop de WSL ([electron/rcedit](https://github.com/electron/rcedit/releases)). Sin ninguno de los dos, el ejecutable queda con el icono por defecto de Electron.
 
-Los paquetes de macOS también se construyen en Linux (en una carpeta temporal del sistema de archivos de Linux, porque los frameworks de Electron están hechos de enlaces simbólicos que `/mnt/c` rompería). Si [`rcodesign`](https://github.com/indygreg/apple-platform-rs/releases) está en el `PATH`, el script los firma ad-hoc; sin él, cada usuario los firma en su Mac como se explica arriba. No hay notarización de Apple (exige una cuenta de desarrollador de pago).
+El paquete de macOS solo se construye en macOS: desde Linux el `.app` sale con la firma rota y macOS lo da por «dañado». El workflow `.github/workflows/macos.yml` lo hace en los Mac de GitHub (con etiquetas `v*`, ramas `mac/**` o a mano): pruebas unitarias y humo completo, `.app` universal con firma ad-hoc dentro de un `.dmg`, y fases de humo sobre la app instalada en Apple Silicon y en Intel. El `.dmg` queda como artefacto del run.
 
 ## Estructura
 
@@ -185,7 +183,6 @@ Los paquetes de macOS también se construyen en Linux (en una carpeta temporal d
 - Herramientas 54–59 del plan: PDF ↔ Office (Word, Excel, PowerPoint), editar texto, redactar (tachar contenido), comparar PDF, PDF/A y escanear desde cámara.
 - Abrir «Herramientas ▸ Reparar» desde la pantalla de inicio (hoy hace falta tener un PDF abierto y elegir el archivo roto desde el diálogo).
 - Fuera de alcance: leer en voz alta, audio, video externo por URL, Flash y 3D, validación de firmas digitales.
-- macOS: los paquetes se construyen pero aún no se han probado en un Mac real.
 
 ## Licencia
 

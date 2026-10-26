@@ -119,7 +119,9 @@ async function faseBasica({ ruta, preload, salida }) {
   await espera(300);
   r.clicEnPantalla = !(await js('document.querySelector(".liberadopdf-pantalla")')) && (await pagina()) === 2;
 
-  r.ok = r.msPrimeraPagina < 3000 && r.animacion && r.pagina3 && r.flechaEnEntrada && r.presentacionEnBarra && r.presentacion && r.contadorYSaltos && r.pantallaNegra && r.clicEnPantalla;
+  // En macOS el primer arranque de un binario recién descargado pasa por la revisión de seguridad del sistema (en el
+  // runner de GitHub, 5–6 s); las demás fases arrancan la misma app sin ese coste.
+  r.ok = r.msPrimeraPagina < (process.platform === 'darwin' ? 8000 : 3000) && r.animacion && r.pagina3 && r.flechaEnEntrada && r.presentacionEnBarra && r.presentacion && r.contadorYSaltos && r.pantallaNegra && r.clicEnPantalla;
   return r;
 }
 
@@ -1055,7 +1057,10 @@ async function faseIdioma({ ruta, preload, salida }) {
   r.relanzado = await Promise.race([relanzar, espera(5000).then(() => null)]);
   r.idiomaGuardado = JSON.parse(readFileSync(path.join(salida, 'datos', 'config.json'), 'utf8')).idioma;
   const en = esperado === 'en';
-  r.ok = JSON.stringify(r.menu) === JSON.stringify(en ? ['File', 'View', 'Tools', 'Help'] : ['Archivo', 'Ver', 'Herramientas', 'Ayuda'])
+  const menuEsperado = process.platform === 'darwin'
+    ? (en ? ['liberadoPDF', 'File', 'Edit', 'View', 'Tools', 'Window', 'Help'] : ['liberadoPDF', 'Archivo', 'Edición', 'Ver', 'Herramientas', 'Ventana', 'Ayuda'])
+    : (en ? ['File', 'View', 'Tools', 'Help'] : ['Archivo', 'Ver', 'Herramientas', 'Ayuda']);
+  r.ok = JSON.stringify(r.menu) === JSON.stringify(menuEsperado)
     && (en ? /Previous/ : /anterior/).test(r.pdfjs ?? '')
     && r.ayuda === (en ? 'liberadoPDF keys' : 'Teclas de liberadoPDF')
     && r.numerarTitulo === (en ? 'Page numbers' : 'Números de página') && r.numerarFormato === (en ? 'Page {n} / {total}' : 'Página {n} / {total}')

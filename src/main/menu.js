@@ -36,11 +36,11 @@ export function construirMenu({ t = x => x, tema = 'sistema', alTema = () => {},
         { type: 'separator' },
         ajustes,
         { type: 'separator' },
-        { role: 'services' },
+        { role: 'services', label: t('Servicios') },
         { type: 'separator' },
-        { role: 'hide' }, { role: 'hideOthers' }, { role: 'unhide' },
+        { role: 'hide', label: t('Ocultar liberadoPDF') }, { role: 'hideOthers', label: t('Ocultar otros') }, { role: 'unhide', label: t('Mostrar todo') },
         { type: 'separator' },
-        { role: 'quit' },
+        { role: 'quit', label: t('Salir de liberadoPDF') },
       ],
     }] : []),
     {
@@ -57,10 +57,17 @@ export function construirMenu({ t = x => x, tema = 'sistema', alTema = () => {},
             ? [...submenuRecientes, { type: 'separator' }, { label: t('Vaciar lista'), click: () => alVaciarRecientes() }]
             : [{ label: t('(vacío)'), enabled: false }],
         },
-        ...(mac ? [{ type: 'separator' }, { role: 'close' }] : [{ type: 'separator' }, { label: t('Salir'), role: 'quit' }]),
+        ...(mac ? [{ type: 'separator' }, { role: 'close', label: t('Cerrar ventana') }] : [{ type: 'separator' }, { label: t('Salir'), role: 'quit' }]),
       ],
     },
-    ...(mac ? [{ role: 'editMenu' }] : []),
+    // Edición y Ventana con sus textos: los roles de Electron los dejan en inglés aunque la app esté en español.
+    ...(mac ? [{
+      label: t('Edición'),
+      submenu: [
+        { role: 'undo', label: t('Deshacer') }, { role: 'redo', label: t('Rehacer') }, { type: 'separator' },
+        { role: 'cut', label: t('Cortar') }, { role: 'copy', label: t('Copiar') }, { role: 'paste', label: t('Pegar') }, { role: 'selectAll', label: t('Seleccionar todo') },
+      ],
+    }] : []),
     {
       label: t('Ver'),
       submenu: [
@@ -87,7 +94,10 @@ export function construirMenu({ t = x => x, tema = 'sistema', alTema = () => {},
       label: t('Herramientas'),
       submenu: HERRAMIENTAS.map(([clave, etiqueta]) => ({ label: t(etiqueta), click: (item, win) => alHerramienta(win, clave) })),
     },
-    ...(mac ? [{ role: 'windowMenu' }] : []),
+    ...(mac ? [{
+      label: t('Ventana'), role: 'windowMenu',
+      submenu: [{ role: 'minimize', label: t('Minimizar') }, { role: 'zoom', label: t('Zoom') }, { type: 'separator' }, { role: 'front', label: t('Traer todo al frente') }],
+    }] : []),
     {
       label: t('Ayuda'),
       submenu: [
