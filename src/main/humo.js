@@ -181,14 +181,16 @@ async function fasePresentacionAnimada({ ruta, preload, salida }) {
   await espera(500);
   r.presentacion = await presentar();
   await espera(2000); // pdf.js vuelve a pintar la página a la escala de pantalla completa
-  const capturas = [];
-  for (let i = 0; i < 3; i++) {
-    if (i) await espera(400);
+  // Hasta 8 capturas separadas 400 ms; basta con que dos seguidas difieran (en una máquina sin GPU, como el Mac Intel
+  // virtual de GitHub, cada fotograma a 1920×1080 se pinta por software y dos capturas cercanas pueden coincidir).
+  const capturas = [await win.webContents.capturePage()];
+  for (let i = 1; i < 8 && !r.animacionEnPresentacion; i++) {
+    await espera(400);
     capturas.push(await win.webContents.capturePage());
+    r.animacionEnPresentacion = difieren(capturas[i - 1], capturas[i]);
   }
   writeFileSync(path.join(salida, 'p1.png'), capturas[0].toPNG());
-  writeFileSync(path.join(salida, 'p2.png'), capturas[2].toPNG());
-  r.animacionEnPresentacion = difieren(capturas[0], capturas[1]) || difieren(capturas[1], capturas[2]);
+  writeFileSync(path.join(salida, 'p2.png'), capturas.at(-1).toPNG());
   r.ok = r.presentacion && r.animacionEnPresentacion;
   return r;
 }
@@ -1160,6 +1162,17 @@ async function faseTema({ ruta, preload, salida }) {
   await js('window.liberadopdfAcciones.ajustes()');
   await espera(500);
   r.dialogo = Boolean(await js('document.querySelector(".liberadopdf-ajustes")'));
+  // Las capturas son para revisarlas a ojo: cada ventana se trae al frente (Windows no pinta las tapadas y capturePage
+  // falla con UnknownVizError) y un fallo al capturar no tumba la fase.
+  const capturar = async (w, archivo) => {
+    try {
+      w.moveTop();
+      await espera(300);
+      writeFileSync(path.join(salida, archivo), (await w.webContents.capturePage()).toPNG());
+    } catch (e) {
+      r.capturasFallidas = [...(r.capturasFallidas ?? []), `${archivo}: ${e.message}`];
+    }
+  };
   const luminancia = `(sel) => { const m = getComputedStyle(document.querySelector(sel)).backgroundColor.match(/\\d+(\\.\\d+)?/g).map(Number); return Math.round(0.2126 * m[0] + 0.7152 * m[1] + 0.0722 * m[2]); }`;
   const medir = async (nombre) => {
     await js(`(() => { const e = [...document.querySelectorAll('.liberadopdf-ajustes select')].find(s => [...s.options].some(o => o.value === 'oscuro')); e.value = '${nombre}'; e.dispatchEvent(new Event('change', { bubbles: true })); })()`);
@@ -1169,8 +1182,8 @@ async function faseTema({ ruta, preload, salida }) {
       barra: await js(`(${luminancia})('#toolbarContainer')`),
       dialogo: await js(`(${luminancia})('.liberadopdf-ajustes .caja')`),
     };
-    writeFileSync(path.join(salida, `tema-${nombre}-inicio.png`), (await inicio.webContents.capturePage()).toPNG());
-    writeFileSync(path.join(salida, `tema-${nombre}-visor.png`), (await win.webContents.capturePage()).toPNG());
+    await capturar(inicio, `tema-${nombre}-inicio.png`);
+    await capturar(win, `tema-${nombre}-visor.png`);
     return medida;
   };
   r.oscuro = await medir('oscuro');
@@ -1180,7 +1193,7 @@ async function faseTema({ ruta, preload, salida }) {
   win.setContentSize(870, 553);
   await espera(600);
   r.cabeEnAngosta = await js(`(() => { const el = document.querySelector('.liberadopdf-ajustes .caja'); const caja = el.getBoundingClientRect(); const dentro = caja.left >= 0 && caja.top >= 0 && caja.right <= innerWidth && caja.bottom <= innerHeight; return dentro && el.contains(document.elementFromPoint(caja.left + 12, caja.top + caja.height / 2)); })()`);
-  writeFileSync(path.join(salida, 'tema-angosta.png'), (await win.webContents.capturePage()).toPNG());
+  await capturar(win, 'tema-angosta.png');
   r.guardado = JSON.parse(readFileSync(path.join(salida, 'datos', 'config.json'), 'utf8')).tema === 'claro';
   const todos = (m, prueba) => Object.values(m).every(prueba);
   r.ok = r.dialogo && r.guardado && r.cabeEnAngosta && todos(r.oscuro, v => v < 90) && todos(r.claro, v => v > 170);
