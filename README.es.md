@@ -185,7 +185,7 @@ Los paquetes de macOS también se construyen en Linux (en una carpeta temporal d
 - Herramientas 54–59 del plan: PDF ↔ Office (Word, Excel, PowerPoint), editar texto, redactar (tachar contenido), comparar PDF, PDF/A y escanear desde cámara.
 - Abrir «Herramientas ▸ Reparar» desde la pantalla de inicio (hoy hace falta tener un PDF abierto y elegir el archivo roto desde el diálogo).
 - Fuera de alcance: leer en voz alta, audio, video externo por URL, Flash y 3D, validación de firmas digitales.
-- macOS: los paquetes se construyen pero aún no se han probado en un Mac real; la ayuda de teclas y los tooltips todavía dicen `Ctrl`.
+- macOS: los paquetes se construyen pero aún no se han probado en un Mac real.
 
 ## Licencia
 

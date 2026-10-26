@@ -1,11 +1,12 @@
 // Pantalla de inicio: abrir, recientes y arrastrar y soltar.
 import { t, idioma } from './i18n.mjs';
+import { conTeclasDeMac } from '/comun/teclas.mjs';
 const api = window.liberadopdf;
 document.documentElement.lang = idioma;
 document.getElementById('abrir').textContent = t('Abrir PDF');
 document.getElementById('arrastre').textContent = t('Arrastra un PDF aquí');
 document.querySelector('.liberadopdf-recientes h2').textContent = t('Recientes');
-document.querySelector('footer').textContent = t('F1: teclas · Ctrl+O: abrir · Ctrl+N: ventana nueva');
+document.querySelector('footer').textContent = conTeclasDeMac(t('F1: teclas · Ctrl+O: abrir · Ctrl+N: ventana nueva'), /Mac/.test(navigator.platform));
 const mensaje = new URLSearchParams(location.search).get('mensaje');
 const elMensaje = document.querySelector('.liberadopdf-mensaje');
 if (mensaje) { elMensaje.textContent = mensaje; elMensaje.hidden = false; }

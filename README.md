@@ -185,7 +185,7 @@ The macOS packages are built on Linux too (inside a temporary folder on the Linu
 - Tools 54–59 of the plan: PDF ↔ Office (Word, Excel, PowerPoint), edit text, redact (black out content), compare PDFs, PDF/A and scan from a camera.
 - Opening "Tools ▸ Repair" from the start page (today a PDF must be open and the broken file is chosen in the dialog).
 - Out of scope: read aloud, audio, external video by URL, Flash and 3D, digital signature validation.
-- macOS: the packages are built but have not yet been tried on a real Mac; the key help and tooltips still say `Ctrl`.
+- macOS: the packages are built but have not yet been tried on a real Mac.
 
 ## License
 

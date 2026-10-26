@@ -1,6 +1,9 @@
 // Ayuda de teclas (F1): tabla fija en español según §4.5 del diseño.
 import { raizDeCapas } from './capas.mjs';
 import { t } from './i18n.mjs';
+import { conTeclasDeMac } from '../comun/teclas.mjs';
+
+const MAC = /Mac/.test(navigator.platform);
 export const FILAS = [
   ['→ ↓ PgDn Espacio Enter', 'Página siguiente'],
   ['← ↑ PgUp Retroceso', 'Página anterior'],
@@ -35,8 +38,8 @@ export function mostrarAyuda() {
   const tabla = document.createElement('table');
   for (const [tecla, que] of FILAS) {
     const fila = tabla.insertRow();
-    fila.insertCell().textContent = t(tecla);
-    fila.insertCell().textContent = t(que);
+    fila.insertCell().textContent = conTeclasDeMac(t(tecla), MAC);
+    fila.insertCell().textContent = conTeclasDeMac(t(que), MAC);
   }
   const titulo = document.createElement('h2');
   titulo.textContent = t('Teclas de liberadoPDF');

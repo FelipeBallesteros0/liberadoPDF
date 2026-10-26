@@ -11,6 +11,7 @@ import { mismaRuta } from '../comun/rutas.mjs';
 import { rutaDeVideoPermitida } from '../comun/rutasVideo.mjs';
 import { errorDeRutaPdf } from '../comun/argumentos.mjs';
 import { elegirPantallas } from '../comun/pantallas.mjs';
+import { conTeclasDeMac } from '../comun/teclas.mjs';
 
 export const eventosHumo = new EventEmitter();
 const ENLACE_EXTERNO = /^(https?:|mailto:)/i;
@@ -254,7 +255,7 @@ export function instalarIpc({ idioma = 'en', t = x => x, traducirMensaje = x => 
     if (conEdiciones && !process.env.LIBERADOPDF_HUMO) {
       const { response } = await dialog.showMessageBox(win, {
         type: 'warning', title: t('Cambios sin guardar'), message: t('Hay anotaciones o campos modificados sin guardar.'),
-        detail: t('Si cambias el idioma ahora se perderán. Pulsa Cancelar y usa Guardar (Ctrl+S) para conservarlos.'),
+        detail: conTeclasDeMac(t('Si cambias el idioma ahora se perderán. Pulsa Cancelar y usa Guardar (Ctrl+S) para conservarlos.'), process.platform === 'darwin'),
         buttons: [t('Cambiar de idioma'), t('Cancelar')], defaultId: 1, cancelId: 1, noLink: true,
       });
       if (response !== 0) return false;

@@ -1,6 +1,7 @@
 // Ventanas de liberadoPDF: visor (un PDF por ventana) o pantalla de inicio.
 import { BrowserWindow, dialog, shell, session } from 'electron';
 import { rutaDeGuardadoComo } from '../comun/guardado.mjs';
+import { conTeclasDeMac } from '../comun/teclas.mjs';
 import { ESQUEMA, urlVisor, urlInicio } from './protocolo.js';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -42,7 +43,7 @@ export function crearVentana({ ruta, preload, mensaje, pagina = null }) {
       type: 'warning',
       title: t('Cambios sin guardar'),
       message: t('Hay anotaciones o campos modificados sin guardar.'),
-      detail: t('Si cierras ahora se perderán. Pulsa Cancelar y usa Guardar (Ctrl+S) para conservarlos.'),
+      detail: conTeclasDeMac(t('Si cierras ahora se perderán. Pulsa Cancelar y usa Guardar (Ctrl+S) para conservarlos.'), process.platform === 'darwin'),
       buttons: [t('Cerrar sin guardar'), t('Cancelar')],
       defaultId: 1,
       cancelId: 1,

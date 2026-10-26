@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { accionDeTecla } from '../src/comun/teclas.mjs';
+import { accionDeTecla, conTeclasDeMac } from '../src/comun/teclas.mjs';
 
 const ev = (key, extra = {}) => ({ key, code: key, shiftKey: false, ctrlKey: false, altKey: false, metaKey: false, ...extra });
 const ventana = { modo: 'ventana', enEntrada: false, digitos: '' };
@@ -90,4 +90,11 @@ test('macOS: los atajos van con Cmd (metaKey) y Ctrl deja de servir', () => {
   assert.equal(accionDeTecla(ev('p', { metaKey: true, shiftKey: true }), mac).accion, 'presentador');
   assert.equal(accionDeTecla(ev('s', { ctrlKey: true }), mac), null);
   assert.equal(accionDeTecla(ev('s', { metaKey: true }), { modo: 'ventana', enEntrada: false }), null);
+});
+
+test('conTeclasDeMac: Ctrl → Cmd solo en macOS, sin tocar palabras que contienen «Ctrl»', () => {
+  assert.equal(conTeclasDeMac('Ctrl + Mayús + P', true), 'Cmd + Mayús + P');
+  assert.equal(conTeclasDeMac('F1: keys · Ctrl+O: open · Ctrl+N: new window', true), 'F1: keys · Cmd+O: open · Cmd+N: new window');
+  assert.equal(conTeclasDeMac('Ctrl + S', false), 'Ctrl + S');
+  assert.equal(conTeclasDeMac('CtrlAlt', true), 'CtrlAlt');
 });

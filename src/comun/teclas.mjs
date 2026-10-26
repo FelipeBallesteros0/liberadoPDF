@@ -5,6 +5,11 @@ const SIGUIENTE = new Set(['ArrowRight', 'ArrowDown', 'PageDown', ' ']);
 const ANTERIOR = new Set(['ArrowLeft', 'ArrowUp', 'PageUp', 'Backspace']);
 const ANULADAS_EN_PRESENTACION = new Set(['r', 'h']); // rotar y mano de pdf.js (s pasa a ser foco)
 
+// Textos de ayuda: en macOS los atajos se escriben con Cmd (ya traducidos; «Ctrl» es igual en los dos idiomas).
+export function conTeclasDeMac(texto, mac) {
+  return mac ? texto.replace(/\bCtrl\b/g, 'Cmd') : texto;
+}
+
 // En macOS los atajos van con Cmd (metaKey) en lugar de Ctrl, como los muestra el menú (CmdOrCtrl).
 export function accionDeTecla(ev, { modo, enEntrada, digitos = '', mac = false }) {
   const { key, shiftKey, altKey } = ev;
