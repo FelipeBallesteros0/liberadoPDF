@@ -133,8 +133,12 @@ async function faseBucle({ ruta, preload, salida }) {
   await js('PDFViewerApplication.page = 4');
   await espera(300);
   r.presentacion = await presentar();
-  await espera(700); // 1000 ms de presentar + 700 > 1 s de avance
-  r.bucle = (await pagina()) === 1;
+  // Con avance cada 1 s, de la 4 se vuelve a la 1 y luego sigue a la 2: se consulta cada 100 ms en vez de una sola
+  // vez, porque la entrada a pantalla completa de macOS (animada) desplaza el momento exacto del salto.
+  for (let i = 0; i < 40 && !r.bucle; i++) {
+    r.bucle = (await pagina()) === 1;
+    if (!r.bucle) await espera(100);
+  }
   r.ok = r.presentacion && r.bucle;
   return r;
 }
