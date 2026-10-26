@@ -374,10 +374,14 @@ async function fasePunteros({ ruta, preload, salida }) {
   tecla('L');
   await espera(200);
   r.laser = Boolean(await js('document.querySelector(".liberadopdf-laser")'));
-  raton('mouseMove', 400, 300);
-  await espera(200);
-  const pos = JSON.parse(await js('JSON.stringify({ l: parseFloat(document.querySelector(".liberadopdf-laser")?.style.left), t: parseFloat(document.querySelector(".liberadopdf-laser")?.style.top) })'));
-  r.laserSigue = Math.abs(pos.l - 400) <= 2 && Math.abs(pos.t - 300) <= 2;
+  // El movimiento se repite hasta 2 s: en macOS la entrada a pantalla completa está animada y un evento enviado en
+  // medio de la transición puede perderse.
+  for (let i = 0; i < 20 && !r.laserSigue; i++) {
+    raton('mouseMove', 400, 300);
+    await espera(100);
+    const pos = JSON.parse(await js('JSON.stringify({ l: parseFloat(document.querySelector(".liberadopdf-laser")?.style.left), t: parseFloat(document.querySelector(".liberadopdf-laser")?.style.top) })'));
+    r.laserSigue = Math.abs(pos.l - 400) <= 2 && Math.abs(pos.t - 300) <= 2;
+  }
   tecla('D');
   await espera(200);
   r.dibujo = Boolean(await js('document.querySelector("canvas.liberadopdf-dibujo")')) && !(await js('document.querySelector(".liberadopdf-laser")'));
