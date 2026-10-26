@@ -1,0 +1,84 @@
+# Paquete de macOS: se construye, firma (ad-hoc) y prueba en Macs reales de GitHub, porque desde Linux el .app sale con
+# la firma rota. El .dmg queda como artefacto del run; se adjunta a mano a la release.
+name: macOS
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+    branches: ['mac/**']
+
+jobs:
+  construir:
+    runs-on: macos-15
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: brew install coreutils
+      # Pruebas unitarias + humo completo (40 fases) en desarrollo + .app universal firmado + .dmg
+      - run: bash scripts/construir.sh darwin
+      - name: Humo sobre el .app empaquetado
+        run: mkdir -p test/salida; for fase in basica tema presentacionAnimada presentador video ocr htmlAPdf idioma; do echo "== $fase"; if scripts/humo_linux.sh "$fase" > "test/salida/$fase.json"; then echo ok; else cat "test/salida/$fase.json"; fallo=1; fi; cp -R test/salida/humo_linux "test/salida/paquete-$fase"; done; exit ${fallo:-0}
+      - name: Arquitecturas y firma
+        run: |
+          APP=dist/liberadoPDF-darwin-universal/liberadoPDF.app
+          lipo -archs "$APP/Contents/MacOS/liberadoPDF"
+          codesign --verify --deep --strict --verbose=2 "$APP"
+          codesign -dv "$APP" 2>&1 | grep -E 'Signature|Identifier|Format'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: liberadoPDF-macos
+          path: dist/liberadoPDF-macos-universal.dmg
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: humo-construir
+          path: test/salida/
+          if-no-files-found: ignore
+
+  # El .dmg tal como lo baja un usuario: se monta, la app se copia a /Applications y se prueba desde ahí,
+  # en Apple Silicon y en Intel (la mitad x86_64 del binario universal).
+  probar:
+    needs: construir
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [macos-15, macos-15-intel]
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: brew install coreutils
+      - uses: actions/download-artifact@v4
+        with:
+          name: liberadoPDF-macos
+      - name: Instalar desde el .dmg
+        run: |
+          hdiutil attach liberadoPDF-macos-universal.dmg -mountpoint /Volumes/liberadoPDF -nobrowse
+          ls /Volumes/liberadoPDF
+          cp -R /Volumes/liberadoPDF/liberadoPDF.app /Applications/
+          hdiutil detach /Volumes/liberadoPDF
+          uname -m
+          codesign --verify --deep --strict --verbose=2 /Applications/liberadoPDF.app
+          spctl --assess --type execute -vv /Applications/liberadoPDF.app || echo "Gatekeeper la rechaza (esperado: sin Developer ID)"
+      - name: Humo sobre la app instalada
+        env:
+          LIBERADOPDF_LANZADOR: /Applications/liberadoPDF.app/Contents/MacOS/liberadoPDF
+        run: mkdir -p test/salida; for fase in basica tema presentacionAnimada ocr; do echo "== $fase"; if scripts/humo_linux.sh "$fase" > "test/salida/$fase.json"; then echo ok; else cat "test/salida/$fase.json"; fallo=1; fi; cp -R test/salida/humo_linux "test/salida/paquete-$fase"; done; exit ${fallo:-0}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: humo-${{ matrix.runner }}
+          path: test/salida/
+          if-no-files-found: ignore

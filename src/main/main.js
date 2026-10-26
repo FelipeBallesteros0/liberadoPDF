@@ -1,5 +1,5 @@
 // Proceso principal de liberadoPDF.
-import { app, BrowserWindow, dialog } from 'electron';
+import { app, BrowserWindow, dialog, nativeTheme } from 'electron';
 import path from 'node:path';
 import { existsSync } from 'node:fs';
 import { registrarEsquemaPrivilegiado, instalarProtocolo } from './protocolo.js';
@@ -64,6 +64,10 @@ if (!process.env.LIBERADOPDF_HUMO && !app.requestSingleInstanceLock()) {
   const traducirMensaje = crearTraductorDeMensajes(t);
   usarTraductor(t);
   app.commandLine.appendSwitch('lang', idioma === 'es' ? 'es-ES' : 'en-US');
+  // El tema de la interfaz manda sobre el de Electron: así prefers-color-scheme cambia en vivo en todas las páginas
+  // (inicio, diálogos propios, presentador y el visor de pdf.js, que lo sigue con viewerCssTheme 0).
+  const aplicarTema = () => { nativeTheme.themeSource = { claro: 'light', oscuro: 'dark' }[obtenerConfig().tema] ?? 'system'; };
+  aplicarTema();
   const guardar = (nueva) => {
     try {
       guardarConfig(archivo, nueva);
@@ -72,6 +76,8 @@ if (!process.env.LIBERADOPDF_HUMO && !app.requestSingleInstanceLock()) {
       console.warn('No se pudo guardar config.json:', e.message); // p. ej. pendrive retirado
       config = normalizarConfig(nueva);
     }
+    aplicarTema();
+    if (app.isReady()) menu(); // el submenú Ver ▸ Tema refleja el cambio aunque venga del diálogo de ajustes
   };
 
   const abrirNueva = ruta => crearVentana({ ruta, preload });
@@ -81,6 +87,8 @@ if (!process.env.LIBERADOPDF_HUMO && !app.requestSingleInstanceLock()) {
   };
   const menu = () => construirMenu({
     t,
+    tema: obtenerConfig().tema,
+    alTema: tema => guardar({ ...obtenerConfigBase(), tema }),
     recientes: obtenerConfig().recientes.filter(r => existsSync(r.ruta)),
     alAbrir: async (win) => { const r = await dialogoAbrir(win); if (r) { const destino = win ?? ventanaActiva(); destino ? abrirEnVentana(destino, r) : abrirNueva(r); } },
     alAbrirNueva: async () => { const r = await dialogoAbrir(ventanaActiva()); if (r) abrirNueva(r); },

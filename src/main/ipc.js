@@ -239,11 +239,10 @@ export function instalarIpc({ idioma = 'en', t = x => x, traducirMensaje = x => 
   ipcMain.handle('pantallas', () => screen.getAllDisplays().map((d, i) => ({
     id: d.id, etiqueta: d.label || t('Pantalla {n}', { n: i + 1 }), ancho: d.size.width, alto: d.size.height, principal: d.id === screen.getPrimaryDisplay().id,
   })));
-  // El preload lo pide de forma síncrona antes de que arranque pdf.js (viewerCssTheme: 0 sistema, 1 claro, 2 oscuro) y
-  // para el idioma de la capa propia.
+  // El preload lo pide de forma síncrona antes de que arranque pdf.js, para el idioma de la capa propia. El tema ya no
+  // va aquí: pdf.js queda en viewerCssTheme 0 (sigue prefers-color-scheme) y main fija nativeTheme.themeSource.
   ipcMain.on('config-inicial', (evento) => {
-    const tema = obtenerConfig().tema;
-    evento.returnValue = { tema: tema === 'claro' ? 1 : tema === 'oscuro' ? 2 : 0, idioma };
+    evento.returnValue = { idioma };
   });
   // Cambiar de idioma: se guarda y la app se relanza con el mismo documento (pdf.js solo cambia de idioma al arrancar).
   ipcMain.handle('cambiar-idioma', async (evento, nuevo, pagina) => {

@@ -1133,7 +1133,38 @@ async function faseCifrado({ ruta, preload, salida }) {
   return r;
 }
 
-const FASES = { video: faseVideo, idioma: faseIdioma, comprimir: faseComprimir, ocr: faseOcr, proteger: faseProteger, desbloquear: faseDesbloquear, reparar: faseReparar, htmlAPdf: faseHtmlAPdf, aImagenes: faseAImagenes, deImagenes: faseDeImagenes, recortar: faseRecortar, metadatos: faseMetadatos, aplanar: faseAplanar, numerar: faseNumerar, marcaDeAgua: faseMarcaDeAgua, organizar: faseOrganizar, unir: faseUnir, dividir: faseDividir, rotar: faseRotar, cifrado: faseCifrado, herramientasBase: faseHerramientasBase, basica: faseBasica, bucle: faseBucle, inexistente: faseInexistente, presentacionAnimada: fasePresentacionAnimada, cierre: faseCierre, corrupto: faseCorrupto, ajustes: faseAjustes, nocturno: faseNocturno, instantanea: faseInstantanea, guardar: faseGuardar, transiciones: faseTransiciones, punteros: fasePunteros, cuadricula: faseCuadricula, medicion: faseMedicion, presentador: fasePresentador, notasDerecha: faseNotasDerecha };
+// Tema: elegir «Oscuro» y luego «Claro» en Ajustes cambia en vivo la pantalla de inicio (otra ventana), la barra de
+// pdf.js y la caja del diálogo. Deja capturas (tema-*.png) para revisarlas a ojo.
+async function faseTema({ ruta, preload, salida }) {
+  const r = { dialogo: false };
+  const inicio = crearVentana({ preload });
+  const { win, js } = abrirVentanaDePrueba({ ruta, preload, salida });
+  await esperarEvento('primera-pagina', 10_000);
+  await js('window.liberadopdfAcciones.ajustes()');
+  await espera(500);
+  r.dialogo = Boolean(await js('document.querySelector(".liberadopdf-ajustes")'));
+  const luminancia = `(sel) => { const m = getComputedStyle(document.querySelector(sel)).backgroundColor.match(/\\d+(\\.\\d+)?/g).map(Number); return Math.round(0.2126 * m[0] + 0.7152 * m[1] + 0.0722 * m[2]); }`;
+  const medir = async (nombre) => {
+    await js(`(() => { const e = [...document.querySelectorAll('.liberadopdf-ajustes select')].find(s => [...s.options].some(o => o.value === 'oscuro')); e.value = '${nombre}'; e.dispatchEvent(new Event('change', { bubbles: true })); })()`);
+    await espera(800);
+    const medida = {
+      inicio: await inicio.webContents.executeJavaScript(`(${luminancia})('body')`),
+      barra: await js(`(${luminancia})('#toolbarContainer')`),
+      dialogo: await js(`(${luminancia})('.liberadopdf-ajustes .caja')`),
+    };
+    writeFileSync(path.join(salida, `tema-${nombre}-inicio.png`), (await inicio.webContents.capturePage()).toPNG());
+    writeFileSync(path.join(salida, `tema-${nombre}-visor.png`), (await win.webContents.capturePage()).toPNG());
+    return medida;
+  };
+  r.oscuro = await medir('oscuro');
+  r.claro = await medir('claro');
+  r.guardado = JSON.parse(readFileSync(path.join(salida, 'datos', 'config.json'), 'utf8')).tema === 'claro';
+  const todos = (m, prueba) => Object.values(m).every(prueba);
+  r.ok = r.dialogo && r.guardado && todos(r.oscuro, v => v < 90) && todos(r.claro, v => v > 170);
+  return r;
+}
+
+const FASES = { tema: faseTema, video: faseVideo, idioma: faseIdioma, comprimir: faseComprimir, ocr: faseOcr, proteger: faseProteger, desbloquear: faseDesbloquear, reparar: faseReparar, htmlAPdf: faseHtmlAPdf, aImagenes: faseAImagenes, deImagenes: faseDeImagenes, recortar: faseRecortar, metadatos: faseMetadatos, aplanar: faseAplanar, numerar: faseNumerar, marcaDeAgua: faseMarcaDeAgua, organizar: faseOrganizar, unir: faseUnir, dividir: faseDividir, rotar: faseRotar, cifrado: faseCifrado, herramientasBase: faseHerramientasBase, basica: faseBasica, bucle: faseBucle, inexistente: faseInexistente, presentacionAnimada: fasePresentacionAnimada, cierre: faseCierre, corrupto: faseCorrupto, ajustes: faseAjustes, nocturno: faseNocturno, instantanea: faseInstantanea, guardar: faseGuardar, transiciones: faseTransiciones, punteros: fasePunteros, cuadricula: faseCuadricula, medicion: faseMedicion, presentador: fasePresentador, notasDerecha: faseNotasDerecha };
 
 export async function ejecutarHumo({ ruta, salida, fase, preload }) {
   mkdirSync(salida, { recursive: true });

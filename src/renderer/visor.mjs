@@ -111,13 +111,12 @@ const abrirHerramienta = (clave) => {
   mostrarToast(t('Herramienta «{clave}»: próximamente', { clave }));
 };
 const barra = instalarBarra({ config, app, guardar: parcial => window.liberadopdf.guardarConfig(parcial) });
-// Aplicación en vivo de la configuración (ajustes, nocturno…)
-const aplicarTema = (tema) => { document.documentElement.style.colorScheme = tema === 'claro' ? 'light' : tema === 'oscuro' ? 'dark' : ''; };
+// Aplicación en vivo de la configuración (ajustes, nocturno…). El tema no se aplica aquí: main fija nativeTheme y
+// prefers-color-scheme cambia a la vez en todas las ventanas (un colorScheme propio de cada ventana quedaría desfasado).
 let aplicarNocturno = () => {};
 const aplicarConfig = (nueva) => {
   config = nueva;
   presentacion.actualizarConfig(nueva);
-  aplicarTema(nueva.tema);
   aplicarNocturno(nueva); // el módulo nocturno se crea más abajo
   window.liberadopdfAplicarDocumento?.();
 };
@@ -134,7 +133,6 @@ const ajustes = instalarAjustes({
     },
   } : null,
 });
-aplicarTema(config.tema);
 const nocturno = instalarNocturno({ obtenerConfig, guardar: nueva => { config = nueva; window.liberadopdf.guardarConfig(nueva); } });
 const instantanea = instalarInstantanea();
 const transiciones = instalarTransiciones({ app, obtenerConfig, modoActual });

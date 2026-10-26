@@ -1,5 +1,5 @@
 // Ventanas de liberadoPDF: visor (un PDF por ventana) o pantalla de inicio.
-import { BrowserWindow, dialog, shell, session } from 'electron';
+import { BrowserWindow, dialog, shell, session, screen, nativeTheme } from 'electron';
 import { rutaDeGuardadoComo } from '../comun/guardado.mjs';
 import { conTeclasDeMac } from '../comun/teclas.mjs';
 import { ESQUEMA, urlVisor, urlInicio } from './protocolo.js';
@@ -13,14 +13,22 @@ export function usarTraductor(fn) { t = fn; }
 
 const ICONO_LINUX = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', 'recursos', 'icono.png');
 
+// Tamaño inicial: 1280×800 como máximo, pero sin pasar del 85 % del área útil de la pantalla donde está el cursor
+// (en un portátil de 13" la ventana fija llenaba la pantalla y parecía pantalla completa).
+function tamanoInicial() {
+  const { width, height } = screen.getDisplayNearestPoint(screen.getCursorScreenPoint()).workAreaSize;
+  return { width: Math.min(1280, Math.round(width * 0.85)), height: Math.min(800, Math.round(height * 0.85)) };
+}
+
 export function crearVentana({ ruta, preload, mensaje, pagina = null }) {
   const win = new BrowserWindow({
     ...(process.platform === 'linux' ? { icon: ICONO_LINUX } : {}), // en Windows el icono va en el .exe
-    width: 1280,
-    height: 800,
+    ...tamanoInicial(),
+    minWidth: 480,
+    minHeight: 360,
     title: 'liberadoPDF',
     autoHideMenuBar: false,
-    backgroundColor: '#ffffff',
+    backgroundColor: nativeTheme.shouldUseDarkColors ? '#2a2a2e' : '#ffffff',
     // backgroundThrottling: false → las animaciones (temporizadores del sandbox de pdf.js) no se frenan
     // si la ventana queda tapada un momento (un diálogo, otra ventana) durante una presentación.
     webPreferences: { preload, contextIsolation: true, nodeIntegration: false, sandbox: true, backgroundThrottling: false },

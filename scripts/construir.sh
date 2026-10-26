@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Construye los paquetes portables desde WSL/Linux con @electron/packager: scripts/construir.sh [win32|linux|darwin|all] (all por defecto).
+# Construye los paquetes portables con @electron/packager: scripts/construir.sh [win32|linux|darwin|all] (all por defecto).
+# win32 y linux se construyen desde WSL/Linux; darwin solo en macOS (en GitHub Actions: .github/workflows/macos.yml).
 # Icono: con wine lo pone el packager; sin wine, se usa rcedit-x64.exe por interop de WSL si está
 # en ~/tools/rcedit/; si no hay ninguno, queda el icono por defecto de Electron (ver README).
 set -euo pipefail
@@ -52,55 +53,32 @@ if [ "$PLATAFORMAS" = "linux" ] || [ "$PLATAFORMAS" = "all" ]; then
   echo "Listo: $DESTINO_LINUX ($(du -sh "$DESTINO_LINUX" | cut -f1)) y dist/${NOMBRE}-linux-x64.tar.gz ($(du -sh "dist/${NOMBRE}-linux-x64.tar.gz" | cut -f1))"
 fi
 if [ "$PLATAFORMAS" = "darwin" ] || [ "$PLATAFORMAS" = "all" ]; then
-  # Se empaqueta en el sistema de archivos de Linux: los .framework de Electron están hechos de enlaces simbólicos y
-  # en /mnt/c se convertirían en copias (el .app dejaría de ser válido). Un zip por arquitectura (Apple Silicon e Intel).
-  ESCENARIO="$(mktemp -d)"
-  for ARQ in arm64 x64; do
-    npx @electron/packager . "$NOMBRE" --platform=darwin --arch="$ARQ" --out="$ESCENARIO" --overwrite --asar \
+  if [ "$(uname)" != "Darwin" ]; then
+    # Desde Linux el .app sale con la firma rota (macOS lo da por «dañado»): se construye en un Mac, o en GitHub
+    # Actions con .github/workflows/macos.yml, que además lo prueba.
+    echo "AVISO: el paquete de macOS solo se construye en macOS (ver .github/workflows/macos.yml); se omite."
+    [ "$PLATAFORMAS" = "darwin" ] && exit 1
+  else
+    # Un único .app universal (Apple Silicon e Intel), con firma ad-hoc válida y dentro de un .dmg.
+    DESTINO_MAC="dist/${NOMBRE}-darwin-universal"
+    APP="$DESTINO_MAC/$NOMBRE.app"
+    npx @electron/packager . "$NOMBRE" --platform=darwin --arch=universal --out=dist --overwrite --asar \
       --app-version="$VERSION" --app-copyright="MIT · liberadoPDF" --app-bundle-id=io.github.felipeballesteros0.liberadopdf \
       --app-category-type=public.app-category.productivity --icon=recursos/macos/icono.icns \
       --extend-info=recursos/macos/Info-extra.plist "${IGNORAR[@]}"
-    APP="$ESCENARIO/${NOMBRE}-darwin-$ARQ/$NOMBRE.app"
     verificar_asar "$APP/Contents/Resources/app.asar"
-    # Sin firma de Apple: firma ad-hoc con rcodesign si está (en Apple Silicon un binario modificado sin firmar no
-    # arranca); si no, el README explica cómo firmarla en el propio Mac con `codesign --sign -`.
-    if command -v rcodesign >/dev/null 2>&1; then
-      rcodesign sign "$APP" >/dev/null && echo "Firma ad-hoc ($ARQ) hecha con rcodesign."
-    else
-      echo "AVISO: sin rcodesign; la app ($ARQ) queda sin firma ad-hoc (ver README)."
-    fi
-    cp recursos/ejemplo_animado.pdf README.md README.es.md "$ESCENARIO/${NOMBRE}-darwin-$ARQ/"
-    chmod 644 "$ESCENARIO/${NOMBRE}-darwin-$ARQ"/{ejemplo_animado.pdf,README.md,README.es.md}
-    rm -f "dist/${NOMBRE}-darwin-$ARQ.zip"
-    # zip que conserva enlaces simbólicos y permisos (lo que hace `ditto -c -k` en un Mac).
-    python3 - "$ESCENARIO/${NOMBRE}-darwin-$ARQ" "dist/${NOMBRE}-darwin-$ARQ.zip" <<'PY'
-import sys, zipfile, os, stat
-origen, destino = sys.argv[1], sys.argv[2]
-base = os.path.dirname(origen)
-with zipfile.ZipFile(destino, 'w', zipfile.ZIP_DEFLATED) as z:
-    for raiz, dirs, archivos in os.walk(origen):
-        for nombre in sorted(dirs + archivos):
-            ruta = os.path.join(raiz, nombre)
-            rel = os.path.relpath(ruta, base)
-            modo = os.lstat(ruta).st_mode
-            if stat.S_ISLNK(modo):
-                info = zipfile.ZipInfo(rel)
-                info.create_system = 3
-                info.external_attr = (stat.S_IFLNK | 0o777) << 16
-                z.writestr(info, os.readlink(ruta))
-            elif stat.S_ISDIR(modo):
-                continue
-            else:
-                info = zipfile.ZipInfo.from_file(ruta, rel)
-                info.create_system = 3
-                info.external_attr = (stat.S_IFREG | (0o755 if modo & 0o111 else 0o644)) << 16
-                info.compress_type = zipfile.ZIP_DEFLATED
-                with open(ruta, 'rb') as f:
-                    z.writestr(info, f.read())
-PY
-    echo "Listo: dist/${NOMBRE}-darwin-$ARQ.zip ($(du -sh "dist/${NOMBRE}-darwin-$ARQ.zip" | cut -f1))"
-  done
-  rm -rf "$ESCENARIO"
+    codesign --force --deep --sign - "$APP"
+    codesign --verify --deep --strict --verbose=2 "$APP"
+    ESCENARIO="$(mktemp -d)"
+    cp -R "$APP" "$ESCENARIO/"
+    ln -s /Applications "$ESCENARIO/Applications"
+    cp recursos/ejemplo_animado.pdf "$ESCENARIO/"
+    DMG="dist/${NOMBRE}-macos-universal.dmg"
+    rm -f "$DMG"
+    hdiutil create -volname "$NOMBRE" -srcfolder "$ESCENARIO" -fs HFS+ -format UDZO -ov "$DMG" >/dev/null
+    rm -rf "$ESCENARIO"
+    echo "Listo: $APP ($(du -sh "$APP" | cut -f1)) y $DMG ($(du -sh "$DMG" | cut -f1))"
+  fi
 fi
 if [ "$PLATAFORMAS" = "linux" ] || [ "$PLATAFORMAS" = "darwin" ]; then exit 0; fi
 

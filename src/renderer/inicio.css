@@ -1,19 +1,30 @@
-:root { --acento: #0077b6; }
+:root {
+  color-scheme: light dark;
+  --acento: #0077b6; --texto: #222; --fondo: #fff; --suave: #555; --tenue: #888; --borde: #bbb; --resalte: #f1f5f8; --arrastre: #eef7fc;
+  --boton-texto: #fff; --error-borde: #c0392b; --error-fondo: #fdecea; --error-texto: #7b1e12;
+}
+/* Tema oscuro: sigue prefers-color-scheme, que main fija con el ajuste «Tema de la interfaz» */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --acento: #4fb3e8; --texto: #e6e6e6; --fondo: #1f1f23; --suave: #b0b0b0; --tenue: #8a8a8a; --borde: #555; --resalte: #2c2c32; --arrastre: #1d3a4a;
+    --boton-texto: #0d1b24; --error-fondo: #4a1f1a; --error-texto: #ffb4a8;
+  }
+}
 * { box-sizing: border-box; }
-body { margin: 0; font: 15px system-ui, sans-serif; color: #222; background: #fff; }
+body { margin: 0; font: 15px system-ui, sans-serif; color: var(--texto); background: var(--fondo); }
 .liberadopdf-inicio { max-width: 720px; margin: 0 auto; padding: 48px 24px; display: flex; flex-direction: column; gap: 20px; }
 h1 { margin: 0; font-size: 28px; color: var(--acento); }
-h2 { margin: 0 0 8px; font-size: 16px; color: #555; }
-.liberadopdf-mensaje { margin: 0; padding: 10px 14px; border-left: 4px solid #c0392b; background: #fdecea; color: #7b1e12; }
-button { align-self: flex-start; padding: 10px 22px; border: 0; border-radius: 6px; background: var(--acento); color: #fff; font: inherit; font-weight: 600; cursor: pointer; }
+h2 { margin: 0 0 8px; font-size: 16px; color: var(--suave); }
+.liberadopdf-mensaje { margin: 0; padding: 10px 14px; border-left: 4px solid var(--error-borde); background: var(--error-fondo); color: var(--error-texto); }
+button { align-self: flex-start; padding: 10px 22px; border: 0; border-radius: 6px; background: var(--acento); color: var(--boton-texto); font: inherit; font-weight: 600; cursor: pointer; }
 button:hover { filter: brightness(1.1); }
-.liberadopdf-arrastre { padding: 36px; border: 2px dashed #bbb; border-radius: 10px; text-align: center; color: #777; }
-.liberadopdf-arrastre.activa { border-color: var(--acento); color: var(--acento); background: #eef7fc; }
+.liberadopdf-arrastre { padding: 36px; border: 2px dashed var(--borde); border-radius: 10px; text-align: center; color: var(--tenue); }
+.liberadopdf-arrastre.activa { border-color: var(--acento); color: var(--acento); background: var(--arrastre); }
 ul { list-style: none; margin: 0; padding: 0; }
 li { display: flex; align-items: baseline; gap: 10px; padding: 8px 10px; border-radius: 6px; cursor: pointer; }
-li:hover { background: #f1f5f8; }
+li:hover { background: var(--resalte); }
 li .nombre { font-weight: 600; }
-li .carpeta { color: #888; font-size: 13px; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-li .fecha { color: #888; font-size: 13px; }
-li.vacio { color: #999; cursor: default; }
-footer { color: #888; font-size: 13px; }
+li .carpeta { color: var(--tenue); font-size: 13px; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+li .fecha { color: var(--tenue); font-size: 13px; }
+li.vacio { color: var(--tenue); cursor: default; }
+footer { color: var(--tenue); font-size: 13px; }

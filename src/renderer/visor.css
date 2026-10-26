@@ -208,3 +208,19 @@
 .liberadopdf-video { position: absolute; z-index: 6; background: #000; overflow: hidden; }
 .liberadopdf-video video { width: 100%; height: 100%; object-fit: contain; display: block; cursor: pointer; }
 .liberadopdf-video.aviso { display: flex; align-items: center; justify-content: center; padding: 8px; text-align: center; color: #fff; background: rgba(0, 0, 0, 0.75); font: 13px system-ui, sans-serif; }
+
+/* Tema oscuro de los diálogos propios: sigue prefers-color-scheme, que main fija con el ajuste «Tema de la interfaz» */
+@media (prefers-color-scheme: dark) {
+  .liberadopdf-barra-dialogo, .liberadopdf-dialogo { color: #e6e6e6; color-scheme: dark; }
+  .liberadopdf-barra-dialogo .caja, .liberadopdf-dialogo .caja { background: #2a2a2e; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6); }
+  .liberadopdf-barra-dialogo h2, .liberadopdf-dialogo h2 { color: #4fb3e8; }
+  .liberadopdf-barra-dialogo h3, .liberadopdf-dialogo h3, .liberadopdf-barra-dialogo p,
+  .liberadopdf-herramienta .progreso span, .liberadopdf-herramienta .aviso-partes { color: #b0b0b0; }
+  .liberadopdf-barra-dialogo .pie button, .liberadopdf-dialogo .pie button,
+  .liberadopdf-herramienta .lista button, .liberadopdf-herramienta .botones button { background: #3a3a3f; border-color: #555; color: #e6e6e6; }
+  .liberadopdf-barra-dialogo .pie button:last-child, .liberadopdf-dialogo .pie button:last-child { background: #0077b6; border-color: #0077b6; color: #fff; }
+  .liberadopdf-herramienta .mensaje { background: #1d3a4a; }
+  .liberadopdf-herramienta .mensaje.error { background: #4a1f1a; color: #ffb4a8; }
+  .liberadopdf-herramienta .lista .elemento { border-color: #555; }
+  .liberadopdf-herramienta .rejilla-organizar .celda { background: #333338; border-color: #555; }
+}

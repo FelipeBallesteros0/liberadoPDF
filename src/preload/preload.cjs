@@ -2,17 +2,16 @@
 // sobre el visor genérico de pdf.js (que se carga tal cual, sin modificar).
 const { contextBridge, ipcRenderer, webUtils } = require('electron');
 
-// Tema e idioma iniciales, de una sola vez y de forma síncrona (antes de que arranque pdf.js).
-let configInicial = { tema: 0, idioma: 'en' };
+// Idioma inicial, de una sola vez y de forma síncrona (antes de que arranque pdf.js).
+let configInicial = { idioma: 'en' };
 try { configInicial = ipcRenderer.sendSync('config-inicial') ?? configInicial; } catch { /* sin main: valores por defecto */ }
 
 // Preferencias de pdf.js que deben estar fijadas antes de que el visor arranque.
 try {
   const actuales = JSON.parse(localStorage.getItem('pdfjs.preferences') || '{}');
-  const viewerCssTheme = configInicial.tema ?? 0;
   localStorage.setItem('pdfjs.preferences', JSON.stringify({
     ...actuales,
-    viewerCssTheme,
+    viewerCssTheme: 0, // como prefers-color-scheme, que main controla con nativeTheme según el ajuste «tema»
     enableScripting: true,
     enableXfa: true,
     enableComment: true,

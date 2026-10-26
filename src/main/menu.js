@@ -13,7 +13,7 @@ export const HERRAMIENTAS = [
   ['ocr', 'OCR (texto en PDF escaneado)…'], ['comprimir', 'Comprimir…'],
 ];
 
-export function construirMenu({ t = x => x, recientes, alAbrir, alAbrirNueva, alReciente, alVaciarRecientes, alAccion, alHerramienta = () => {}, plataforma = process.platform }) {
+export function construirMenu({ t = x => x, tema = 'sistema', alTema = () => {}, recientes, alAbrir, alAbrirNueva, alReciente, alVaciarRecientes, alAccion, alHerramienta = () => {}, plataforma = process.platform }) {
   // En macOS el primer menú es el de la aplicación (Acerca de, Ajustes, Salir) y hace falta Edición: sin sus roles
   // Cmd+C/Cmd+V/Cmd+A no funcionan en los campos de texto.
   const mac = plataforma === 'darwin';
@@ -68,6 +68,11 @@ export function construirMenu({ t = x => x, recientes, alAbrir, alAbrirNueva, al
         { label: t('Pantalla completa'), role: 'togglefullscreen' },
         { label: t('Vista de presentador'), accelerator: 'CmdOrCtrl+Shift+P', registerAccelerator: false, click: (item, win) => alAccion(win, 'presentador') },
         { type: 'separator' },
+        {
+          label: t('Tema de la interfaz'),
+          submenu: [['sistema', 'Como el sistema'], ['claro', 'Claro'], ['oscuro', 'Oscuro']]
+            .map(([valor, etiqueta]) => ({ label: t(etiqueta), type: 'radio', checked: tema === valor, click: () => alTema(valor) })),
+        },
         { label: t('Personalizar barra…'), click: (item, win) => alAccion(win, 'personalizarBarra') },
         { label: t('Cuadrícula de láminas'), accelerator: 'G', registerAccelerator: false, click: (item, win) => alAccion(win, 'cuadricula') },
         { label: t('Instantánea al portapapeles'), accelerator: 'CmdOrCtrl+Shift+S', registerAccelerator: false, click: (item, win) => alAccion(win, 'instantanea') },
