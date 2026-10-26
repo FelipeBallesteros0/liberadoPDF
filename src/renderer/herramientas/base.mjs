@@ -1,5 +1,5 @@
 // Diálogo genérico de herramienta: campos, botón Ejecutar, progreso, cancelación y guardado del resultado.
-import { raizDeCapas } from '../capas.mjs';
+import { raizDeCapas, raizDeDialogos } from '../capas.mjs';
 import { mostrarToast } from '../instantanea.mjs';
 import { analizarRangos } from '../comun/herramientas/rangos.mjs';
 import { t } from '../i18n.mjs';
@@ -64,7 +64,7 @@ function crearCampo(campo, valores, totalPaginas) {
 
 export function dialogoHerramienta({ clave, titulo, descripcion, campos = [], totalPaginas = 0, cuerpo = null, alEjecutar }) {
   // Una sola instancia por herramienta: si ya está abierta, se trae al frente en vez de apilar otra.
-  const abierta = raizDeCapas().querySelector(`.liberadopdf-herramienta[data-herramienta="${clave}"]`);
+  const abierta = document.querySelector(`.liberadopdf-herramienta[data-herramienta="${clave}"]`);
   if (abierta) { abierta.hidden = false; abierta.querySelector('input, select, button')?.focus(); return { cerrar: () => abierta.remove(), capa: abierta }; }
   const capa = document.createElement('div');
   capa.className = 'liberadopdf-dialogo liberadopdf-herramienta';
@@ -179,7 +179,7 @@ export function dialogoHerramienta({ clave, titulo, descripcion, campos = [], to
     }
   }
 
-  raizDeCapas().append(capa);
+  raizDeDialogos().append(capa);
   caja.querySelector('input, select, button')?.focus();
   return { cerrar, capa };
 }

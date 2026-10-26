@@ -2,7 +2,7 @@
 // menú «»» (secondaryToolbar) y oculta los que el usuario no quiera. Los botones conservan sus
 // manejadores porque solo cambian de sitio en el DOM.
 import { decidirBarra, alternarBarra } from '../comun/barra.mjs';
-import { raizDeCapas } from './capas.mjs';
+import { raizDeDialogos } from './capas.mjs';
 import { t } from './i18n.mjs';
 
 const ID_GRUPO = 'liberadopdfBotones';
@@ -142,7 +142,7 @@ export function instalarBarra({ config, guardar, app }) {
     dialogo.append(caja);
     dialogo.addEventListener('click', (ev) => { if (ev.target === dialogo) cerrarDialogo(); });
     dialogo.addEventListener('keydown', (ev) => { if (ev.key === 'Escape') { ev.stopPropagation(); cerrarDialogo(); } });
-    raizDeCapas().append(dialogo);
+    raizDeDialogos().append(dialogo);
     caja.querySelector('input')?.focus();
   };
 

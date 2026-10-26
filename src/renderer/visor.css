@@ -90,7 +90,8 @@
   font: 14px system-ui, sans-serif;
   color: #222;
 }
-.liberadopdf-barra-dialogo .caja, .liberadopdf-dialogo .caja { width: min(640px, 92vw); max-height: 86vh; overflow: auto; padding: 18px 22px; border-radius: 10px; background: #fff; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35); }
+/* Medidas en % de la capa (la ventana o, en pantalla completa, el visor) para que la caja siempre quepa en ella */
+.liberadopdf-barra-dialogo .caja, .liberadopdf-dialogo .caja { width: min(640px, 92%); max-height: 86%; overflow: auto; padding: 18px 22px; border-radius: 10px; background: #fff; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35); }
 .liberadopdf-barra-dialogo h2, .liberadopdf-dialogo h2 { margin: 0 0 6px; font-size: 18px; color: #0077b6; }
 .liberadopdf-barra-dialogo h3, .liberadopdf-dialogo h3 { margin: 14px 0 6px; font-size: 14px; color: #555; }
 .liberadopdf-barra-dialogo p { margin: 0 0 6px; color: #555; }

@@ -1,7 +1,7 @@
 // Herramienta de medición (modo ventana): distancia (dos clics), área (clics, doble clic cierra) y calibración.
 // Dibuja en un SVG sobre la página; nada se escribe en el PDF. Esc borra y sale.
 import { puntosAPdf, distanciaPdf, areaPoligonoPdf, aUnidad, formatear, factorDeCalibracion, escalaEfectiva } from '../comun/medicion.mjs';
-import { raizDeCapas } from './capas.mjs';
+import { raizDeDialogos } from './capas.mjs';
 import { t } from './i18n.mjs';
 
 const NS = 'http://www.w3.org/2000/svg';
@@ -104,7 +104,7 @@ export function instalarMedicion({ app, obtenerConfig, guardarPorDocumento, ruta
       cerrar();
     });
     capa.addEventListener('keydown', (ev) => { ev.stopPropagation(); if (ev.key === 'Enter') aceptar.click(); if (ev.key === 'Escape') cerrar(); });
-    raizDeCapas().append(capa);
+    raizDeDialogos().append(capa);
     entrada.focus();
   };
 

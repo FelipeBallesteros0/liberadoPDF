@@ -1,7 +1,7 @@
 // Diálogo de ajustes (Ctrl+,): un control por campo de CAMPOS; cada cambio se guarda y se aplica en vivo.
 import { CAMPOS, leerCampo, escribirCampo, opcionesDePantalla } from '../comun/ajustes.mjs';
 import { valoresPorDefecto } from '../comun/config.mjs';
-import { raizDeCapas } from './capas.mjs';
+import { raizDeDialogos } from './capas.mjs';
 import { t } from './i18n.mjs';
 
 export function instalarAjustes({ obtenerConfig, guardar, aplicar, pantallas, documento = null }) {
@@ -113,7 +113,7 @@ export function instalarAjustes({ obtenerConfig, guardar, aplicar, pantallas, do
     dialogo.append(caja);
     dialogo.addEventListener('click', (ev) => { if (ev.target === dialogo) cerrar(); });
     dialogo.addEventListener('keydown', (ev) => { if (ev.key === 'Escape') { ev.stopPropagation(); cerrar(); } });
-    raizDeCapas().append(dialogo);
+    raizDeDialogos().append(dialogo);
     caja.querySelector('input, select')?.focus();
   };
 

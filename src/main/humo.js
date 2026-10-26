@@ -1175,9 +1175,15 @@ async function faseTema({ ruta, preload, salida }) {
   };
   r.oscuro = await medir('oscuro');
   r.claro = await medir('claro');
+  // En una ventana angosta (la del Mac de GitHub: 870×553) la caja del diálogo debe caber entera en la ventana y nada
+  // debe taparla: el punto junto a su borde izquierdo es de la caja (antes lo tapaba el panel de miniaturas).
+  win.setContentSize(870, 553);
+  await espera(600);
+  r.cabeEnAngosta = await js(`(() => { const el = document.querySelector('.liberadopdf-ajustes .caja'); const caja = el.getBoundingClientRect(); const dentro = caja.left >= 0 && caja.top >= 0 && caja.right <= innerWidth && caja.bottom <= innerHeight; return dentro && el.contains(document.elementFromPoint(caja.left + 12, caja.top + caja.height / 2)); })()`);
+  writeFileSync(path.join(salida, 'tema-angosta.png'), (await win.webContents.capturePage()).toPNG());
   r.guardado = JSON.parse(readFileSync(path.join(salida, 'datos', 'config.json'), 'utf8')).tema === 'claro';
   const todos = (m, prueba) => Object.values(m).every(prueba);
-  r.ok = r.dialogo && r.guardado && todos(r.oscuro, v => v < 90) && todos(r.claro, v => v > 170);
+  r.ok = r.dialogo && r.guardado && r.cabeEnAngosta && todos(r.oscuro, v => v < 90) && todos(r.claro, v => v > 170);
   return r;
 }
 

@@ -1,6 +1,6 @@
 // Cuadrícula de láminas (G / Tab): rejilla de miniaturas para saltar a una página; teclado y ratón.
 import { moverSeleccion } from '../comun/cuadricula.mjs';
-import { raizDeCapas } from './capas.mjs';
+import { raizDeDialogos } from './capas.mjs';
 import { t } from './i18n.mjs';
 
 export function instalarCuadricula({ app, miniaturas, obtenerGrupos }) {
@@ -46,7 +46,7 @@ export function instalarCuadricula({ app, miniaturas, obtenerGrupos }) {
     }
     capa.append(rejilla);
     capa.addEventListener('click', (ev) => { if (ev.target === capa) cerrar(); });
-    raizDeCapas().append(capa);
+    raizDeDialogos().append(capa);
     seleccion = app.page - 1;
     marcar();
   };

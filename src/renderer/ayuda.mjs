@@ -1,5 +1,5 @@
 // Ayuda de teclas (F1): tabla fija en español según §4.5 del diseño.
-import { raizDeCapas } from './capas.mjs';
+import { raizDeDialogos } from './capas.mjs';
 import { t } from './i18n.mjs';
 import { conTeclasDeMac } from '../comun/teclas.mjs';
 
@@ -47,7 +47,7 @@ export function mostrarAyuda() {
   pie.textContent = t('Esc o clic para cerrar. Los clickers envían PgUp / PgDn.');
   capa.append(titulo, tabla, pie);
   capa.addEventListener('click', ocultarAyuda);
-  raizDeCapas().append(capa);
+  raizDeDialogos().append(capa);
   window.addEventListener('keydown', cerrarConEscape, { capture: true });
 }
 
