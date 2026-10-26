@@ -82,3 +82,12 @@ test('Tab en un campo de texto no abre la cuadrícula (I1) y Ctrl+S en presentac
   assert.equal(accionDeTecla(ev('Tab', { shiftKey: true }), { ...ventana, enEntrada: true }), null);
   assert.equal(accionDeTecla(ev('s', { ctrlKey: true }), presentacion).accion, 'nada');
 });
+
+test('macOS: los atajos van con Cmd (metaKey) y Ctrl deja de servir', () => {
+  const mac = { modo: 'ventana', enEntrada: false, mac: true };
+  assert.equal(accionDeTecla(ev('s', { metaKey: true }), mac).accion, 'guardar');
+  assert.equal(accionDeTecla(ev(',', { metaKey: true }), mac).accion, 'ajustes');
+  assert.equal(accionDeTecla(ev('p', { metaKey: true, shiftKey: true }), mac).accion, 'presentador');
+  assert.equal(accionDeTecla(ev('s', { ctrlKey: true }), mac), null);
+  assert.equal(accionDeTecla(ev('s', { metaKey: true }), { modo: 'ventana', enEntrada: false }), null);
+});

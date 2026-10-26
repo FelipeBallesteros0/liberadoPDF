@@ -2,7 +2,7 @@
 
 *English: see [README.md](README.md).*
 
-Visor y presentador de PDF para Windows y Linux, portable, que reproduce las animaciones del paquete LaTeX `animate` igual que Adobe Acrobat Reader y los videos incrustados o enlazados en el PDF (sin audio). Por dentro lleva el visor de pdf.js, cuyo sandbox de JavaScript ejecuta las animaciones; liberadoPDF le añade la experiencia de presentación: pantalla completa, teclas y clicker, láminas con pasos, pantalla en negro, reloj, avance automático y recientes.
+Visor y presentador de PDF para Windows, Linux y macOS, portable, que reproduce las animaciones del paquete LaTeX `animate` igual que Adobe Acrobat Reader y los videos incrustados o enlazados en el PDF (sin audio). Por dentro lleva el visor de pdf.js, cuyo sandbox de JavaScript ejecuta las animaciones; liberadoPDF le añade la experiencia de presentación: pantalla completa, teclas y clicker, láminas con pasos, pantalla en negro, reloj, avance automático y recientes.
 
 Nació para dar una charla con una presentación de Beamer que lleva un video incrustado con `animate`, que ningún visor instalado reproducía. Desde la entrega 3 trae además un menú «Herramientas» con 17 operaciones de archivo (unir, dividir, OCR, comprimir…) que funcionan sin conexión y sin instalar nada.
 
@@ -21,6 +21,17 @@ Nació para dar una charla con una presentación de Beamer que lleva un video in
 ## Linux
 
 Hay un paquete portable para Linux x64 (`liberadoPDF-linux-x64.tar.gz`): descomprímelo y ejecuta `./liberadoPDF.sh`. El lanzador usa el sandbox de Chromium si el sistema lo permite (user namespaces sin privilegios, o `chrome-sandbox` con setuid root: `sudo chown root chrome-sandbox && sudo chmod 4755 chrome-sandbox`) y, si no, arranca sin sandbox avisándolo por la terminal. Los datos van en `data/` junto al programa, igual que en Windows. Para «Abrir con…» desde el escritorio, apunta a `liberadoPDF.sh`.
+
+## macOS
+
+Hay dos zip: `liberadoPDF-darwin-arm64.zip` (Apple Silicon, M1 en adelante) y `liberadoPDF-darwin-x64.zip` (Intel); macOS 12 o posterior. Descomprímelo y arrastra `liberadoPDF.app` a Aplicaciones. La app no está firmada por Apple, así que la primera vez macOS dirá que «está dañada» o que «no se puede verificar». Se arregla una vez en la Terminal:
+
+```bash
+xattr -cr /Applications/liberadoPDF.app
+codesign --force --deep --sign - /Applications/liberadoPDF.app
+```
+
+La primera línea quita la marca de cuarentena; la segunda le pone una firma ad-hoc, necesaria en Apple Silicon (se puede omitir si el paquete se construyó con `rcodesign`). Después abre con doble clic, aparece en «Abrir con…» de los PDF y acepta PDF soltados sobre su icono del Dock. Los atajos van con `Cmd` en lugar de `Ctrl` (`Cmd+S`, `Cmd+,`, `Cmd+Mayús+P`…). Dentro de un `.app` no hay modo portable: los datos van en `~/Library/Application Support/liberadoPDF`.
 
 ## Teclas
 
@@ -147,7 +158,7 @@ En Linux/WSLg Electron se lanza con `ELECTRON_DISABLE_SANDBOX=1` (lo ponen `npm 
 npm install
 npm test            # pruebas unitarias (node --test)
 npm run humo        # prueba de humo (39 fases): visor, presentación, presentador, idioma, video y una fase por herramienta; genera sus PDF de prueba
-npm run construir   # dist/liberadoPDF-win32-x64(.zip) y dist/liberadoPDF-linux-x64(.tar.gz); scripts/construir.sh win32|linux para uno solo
+npm run construir   # dist/liberadoPDF-win32-x64(.zip), dist/liberadoPDF-linux-x64(.tar.gz) y dist/liberadoPDF-darwin-{arm64,x64}.zip; scripts/construir.sh win32|linux|darwin para uno solo
 scripts/humo_windows.sh                                         # prueba de humo sobre el .exe, lanzado desde WSL
 scripts/humo_windows.sh presentacionAnimada "ruta/al/pdf" 11    # ¿la animación de la página 11 corre en presentación?
 scripts/humo_windows.sh guardar | cuadricula | presentador | cierre   # otras fases sobre el .exe
@@ -157,13 +168,15 @@ scripts/humo_linux.sh basica | video | …                                # las 
 
 El icono del `.exe` lo pone `wine` (si está instalado) o `rcedit-x64.exe` en `~/tools/rcedit/` ejecutado por interop de WSL ([electron/rcedit](https://github.com/electron/rcedit/releases)). Sin ninguno de los dos, el ejecutable queda con el icono por defecto de Electron.
 
+Los paquetes de macOS también se construyen en Linux (en una carpeta temporal del sistema de archivos de Linux, porque los frameworks de Electron están hechos de enlaces simbólicos que `/mnt/c` rompería). Si [`rcodesign`](https://github.com/indygreg/apple-platform-rs/releases) está en el `PATH`, el script los firma ad-hoc; sin él, cada usuario los firma en su Mac como se explica arriba. No hay notarización de Apple (exige una cuenta de desarrollador de pago).
+
 ## Estructura
 
 - `src/main/`: proceso principal de Electron (protocolo `liberadopdf://`, ventanas, menú, IPC, configuración, prueba de humo).
 - `src/preload/preload.cjs`: puente seguro hacia el renderer e inyección de la capa propia sobre el visor de pdf.js.
 - `src/renderer/`: la capa de liberadoPDF sobre el visor (teclas, presentación, contador, ayuda) y la pantalla de inicio; `herramientas/` tiene un módulo por herramienta, el diálogo base y el worker (`trabajador.mjs`, con pdf-lib y qpdf).
 - `src/comun/`: lógica pura, probada con `node --test` (`herramientas/` para rangos, nombres, estampado, recorte, imágenes, reparación, OCR y compresión; `i18n.mjs` + `i18n/en.mjs` para el idioma; `video.mjs` para los videos).
-- `recursos/`: PDF de ejemplo (animado, transiciones, notas, escaneado, fotos), icono y `tessdata/` (idiomas del OCR).
+- `recursos/`: PDF de ejemplo (animado, transiciones, notas, escaneado, fotos), icono, `linux/` (lanzador), `macos/` (icono `.icns` y `Info.plist` extra) y `tessdata/` (idiomas del OCR).
 - `vendor/pdfjs/`: pdf.js 6.4.299 tal cual (no se modifica).
 - `docs/superpowers/`: diseño y planes.
 
@@ -171,7 +184,8 @@ El icono del `.exe` lo pone `wine` (si está instalado) o `rcedit-x64.exe` en `~
 
 - Herramientas 54–59 del plan: PDF ↔ Office (Word, Excel, PowerPoint), editar texto, redactar (tachar contenido), comparar PDF, PDF/A y escanear desde cámara.
 - Abrir «Herramientas ▸ Reparar» desde la pantalla de inicio (hoy hace falta tener un PDF abierto y elegir el archivo roto desde el diálogo).
-- Fuera de alcance: leer en voz alta, audio, video externo por URL, Flash y 3D, validación de firmas digitales, empaquetado para macOS.
+- Fuera de alcance: leer en voz alta, audio, video externo por URL, Flash y 3D, validación de firmas digitales.
+- macOS: los paquetes se construyen pero aún no se han probado en un Mac real; la ayuda de teclas y los tooltips todavía dicen `Ctrl`.
 
 ## Licencia
 

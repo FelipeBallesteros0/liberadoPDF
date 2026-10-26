@@ -36,7 +36,7 @@ for (const r of recientes) {
   const spanFecha = document.createElement('span'); spanFecha.className = 'fecha'; spanFecha.textContent = r.fecha ? new Date(r.fecha).toLocaleString(idioma) : '';
   li.append(spanNombre, spanCarpeta, spanFecha);
   li.title = r.ruta;
-  li.addEventListener('click', (ev) => { if (ev.ctrlKey) api.abrirEnVentanaNueva(r.ruta); else api.abrirEnEstaVentana(r.ruta); });
+  li.addEventListener('click', (ev) => { if (ev.ctrlKey || ev.metaKey) api.abrirEnVentanaNueva(r.ruta); else api.abrirEnEstaVentana(r.ruta); });
   lista.append(li);
 }
 

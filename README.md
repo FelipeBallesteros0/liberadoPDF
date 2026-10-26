@@ -2,7 +2,7 @@
 
 *Español: véase [README.es.md](README.es.md).*
 
-Portable PDF viewer and presenter for Windows and Linux that plays the animations of the LaTeX `animate` package just like Adobe Acrobat Reader, and the videos embedded in or linked from a PDF (without audio). Inside it runs the pdf.js viewer, whose JavaScript sandbox executes the animations; liberadoPDF adds the presentation experience: full screen, keys and clickers, slides with steps, black screen, clock, auto-advance and recent files.
+Portable PDF viewer and presenter for Windows, Linux and macOS that plays the animations of the LaTeX `animate` package just like Adobe Acrobat Reader, and the videos embedded in or linked from a PDF (without audio). Inside it runs the pdf.js viewer, whose JavaScript sandbox executes the animations; liberadoPDF adds the presentation experience: full screen, keys and clickers, slides with steps, black screen, clock, auto-advance and recent files.
 
 It was born to give a talk with a Beamer presentation that carries a video embedded with `animate`, which no installed viewer would play. It also brings a **Tools** menu with 17 file operations (merge, split, OCR, compress…) that work offline, without installing anything.
 
@@ -21,6 +21,17 @@ It was born to give a talk with a Beamer presentation that carries a video embed
 ## Linux
 
 There is a portable Linux x64 package (`liberadoPDF-linux-x64.tar.gz`): extract it and run `./liberadoPDF.sh`. The launcher uses Chromium's sandbox when the system allows it (unprivileged user namespaces, or `chrome-sandbox` with setuid root: `sudo chown root chrome-sandbox && sudo chmod 4755 chrome-sandbox`) and otherwise starts without it, saying so on the terminal. Data lives in `data/` next to the program, as on Windows. For "Open with…" from the desktop, point it at `liberadoPDF.sh`.
+
+## macOS
+
+There are two zips: `liberadoPDF-darwin-arm64.zip` (Apple Silicon, M1 and later) and `liberadoPDF-darwin-x64.zip` (Intel); macOS 12 or later. Unzip it and drag `liberadoPDF.app` to Applications. The app is not signed by Apple, so the first time macOS will say it "is damaged" or "cannot be verified". Fix it once in Terminal:
+
+```bash
+xattr -cr /Applications/liberadoPDF.app
+codesign --force --deep --sign - /Applications/liberadoPDF.app
+```
+
+The first line removes the quarantine mark; the second gives it an ad-hoc signature, needed on Apple Silicon (it can be skipped if the package was built with `rcodesign`). After that it opens with a double click, appears under "Open with…" for PDFs and accepts PDFs dropped on its Dock icon. Shortcuts use `Cmd` instead of `Ctrl` (`Cmd+S`, `Cmd+,`, `Cmd+Shift+P`…). Inside a `.app` there is no portable mode: data lives in `~/Library/Application Support/liberadoPDF`.
 
 ## Keys
 
@@ -147,7 +158,7 @@ On Linux/WSLg, Electron is launched with `ELECTRON_DISABLE_SANDBOX=1` (set by `n
 npm install
 npm test            # unit tests (node --test)
 npm run humo        # smoke test (39 phases): viewer, presentation, presenter, language, video and one phase per tool; generates its test PDFs
-npm run construir   # dist/liberadoPDF-win32-x64(.zip) and dist/liberadoPDF-linux-x64(.tar.gz); scripts/construir.sh win32|linux for one
+npm run construir   # dist/liberadoPDF-win32-x64(.zip), dist/liberadoPDF-linux-x64(.tar.gz) and dist/liberadoPDF-darwin-{arm64,x64}.zip; scripts/construir.sh win32|linux|darwin for one
 scripts/humo_windows.sh                                         # smoke test on the .exe, launched from WSL
 scripts/humo_windows.sh presentacionAnimada "path/to/pdf" 11    # does the animation on page 11 run in presentation?
 scripts/humo_windows.sh guardar | cuadricula | presentador | cierre   # other phases on the .exe
@@ -157,13 +168,15 @@ scripts/humo_linux.sh basica | video | …                                # the 
 
 The `.exe` icon is set by `wine` (if installed) or by `rcedit-x64.exe` in `~/tools/rcedit/` run through WSL interop ([electron/rcedit](https://github.com/electron/rcedit/releases)). Without either, the executable keeps Electron's default icon.
 
+The macOS packages are built on Linux too (inside a temporary folder on the Linux file system, because Electron's frameworks are made of symbolic links that `/mnt/c` would break). If [`rcodesign`](https://github.com/indygreg/apple-platform-rs/releases) is on the `PATH`, the script signs them ad hoc; without it, each user signs them on their Mac as explained above. There is no Apple notarization (it needs a paid developer account).
+
 ## Structure
 
 - `src/main/`: Electron main process (`liberadopdf://` protocol, windows, menu, IPC, configuration, smoke test).
 - `src/preload/preload.cjs`: safe bridge to the renderer and injection of liberadoPDF's own layer over the pdf.js viewer.
 - `src/renderer/`: liberadoPDF's layer over the viewer (keys, presentation, counter, help) and the start page; `herramientas/` has one module per tool, the base dialog and the worker (`trabajador.mjs`, with pdf-lib and qpdf).
 - `src/comun/`: pure logic, tested with `node --test` (`herramientas/` for ranges, names, stamping, cropping, images, repair, OCR and compression; `i18n.mjs` + `i18n/en.mjs` for the language; `video.mjs` for the videos).
-- `recursos/`: sample PDFs (animated, transitions, notes, scanned, photos), icon, `linux/` (launcher) and `tessdata/` (OCR languages).
+- `recursos/`: sample PDFs (animated, transitions, notes, scanned, photos), icon, `linux/` (launcher), `macos/` (`.icns` icon and extra `Info.plist`) and `tessdata/` (OCR languages).
 - `vendor/pdfjs/`: pdf.js 6.4.299 as is (not modified).
 - `docs/superpowers/`: design and plans (in Spanish).
 
@@ -171,7 +184,8 @@ The `.exe` icon is set by `wine` (if installed) or by `rcedit-x64.exe` in `~/too
 
 - Tools 54–59 of the plan: PDF ↔ Office (Word, Excel, PowerPoint), edit text, redact (black out content), compare PDFs, PDF/A and scan from a camera.
 - Opening "Tools ▸ Repair" from the start page (today a PDF must be open and the broken file is chosen in the dialog).
-- Out of scope: read aloud, audio, external video by URL, Flash and 3D, digital signature validation, macOS packaging.
+- Out of scope: read aloud, audio, external video by URL, Flash and 3D, digital signature validation.
+- macOS: the packages are built but have not yet been tried on a real Mac; the key help and tooltips still say `Ctrl`.
 
 ## License
 

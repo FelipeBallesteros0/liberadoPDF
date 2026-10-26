@@ -5,6 +5,7 @@ import { existsSync } from 'node:fs';
 import { registrarEsquemaPrivilegiado, instalarProtocolo } from './protocolo.js';
 import { crearVentana, ventanaActiva, abrirEnVentana, instalarGuardado, usarTraductor } from './ventanas.js';
 import { abrirDesdeArgumentos } from './apertura.js';
+import { errorDeRutaPdf } from '../comun/argumentos.mjs';
 import { construirMenu } from './menu.js';
 import { instalarIpc } from './ipc.js';
 import { carpetaDatos, puedeEscribirCarpeta, cargarConfig, guardarConfig, archivoConfig } from './config.js';
@@ -94,6 +95,19 @@ if (!process.env.LIBERADOPDF_HUMO && !app.requestSingleInstanceLock()) {
     },
   });
 
+  // macOS no pasa los archivos por argv: Finder («Abrir con», doble clic, arrastrar al Dock) emite open-file, a veces
+  // antes de `ready`. Esos se guardan y se abren al arrancar en lugar de la pantalla de inicio.
+  let listo = false;
+  const pendientes = [];
+  const abrirDesdeFinder = ruta => {
+    const error = errorDeRutaPdf(ruta, existsSync);
+    return crearVentana({ preload, ...(error ? { mensaje: traducirMensaje(error) } : { ruta }) });
+  };
+  app.on('open-file', (evento, ruta) => {
+    evento.preventDefault();
+    if (listo) abrirDesdeFinder(ruta).focus(); else pendientes.push(ruta);
+  });
+
   app.whenReady().then(() => {
     instalarProtocolo({ raices });
     instalarGuardado();
@@ -103,8 +117,13 @@ if (!process.env.LIBERADOPDF_HUMO && !app.requestSingleInstanceLock()) {
       ejecutarHumo({ ruta: process.env.LIBERADOPDF_PDF, salida: process.env.LIBERADOPDF_HUMO, fase: process.env.LIBERADOPDF_HUMO_FASE || 'basica', preload });
       return;
     }
-    abrirDesdeArgumentos({ argv: process.argv, cwd: process.cwd(), empaquetada: app.isPackaged, preload, traducir: traducirMensaje });
+    listo = true;
+    if (pendientes.length) pendientes.splice(0).forEach(abrirDesdeFinder);
+    else abrirDesdeArgumentos({ argv: process.argv, cwd: process.cwd(), empaquetada: app.isPackaged, preload, traducir: traducirMensaje });
   });
+
+  // En macOS la aplicación sigue viva sin ventanas (convención del sistema); el clic en el Dock abre la de inicio.
+  app.on('activate', () => { if (listo && BrowserWindow.getAllWindows().length === 0) crearVentana({ preload }); });
 
   app.on('second-instance', (evento, argv, directorio) => {
     const { ventanas } = abrirDesdeArgumentos({ argv, cwd: directorio, empaquetada: app.isPackaged, preload, traducir: traducirMensaje });
@@ -112,5 +131,5 @@ if (!process.env.LIBERADOPDF_HUMO && !app.requestSingleInstanceLock()) {
   });
 
   // En modo humo la prueba cierra ventanas a propósito y termina ella misma con app.exit().
-  app.on('window-all-closed', () => { if (!process.env.LIBERADOPDF_HUMO) app.quit(); });
+  app.on('window-all-closed', () => { if (!process.env.LIBERADOPDF_HUMO && process.platform !== 'darwin') app.quit(); });
 }

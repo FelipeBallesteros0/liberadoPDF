@@ -5,8 +5,11 @@ const SIGUIENTE = new Set(['ArrowRight', 'ArrowDown', 'PageDown', ' ']);
 const ANTERIOR = new Set(['ArrowLeft', 'ArrowUp', 'PageUp', 'Backspace']);
 const ANULADAS_EN_PRESENTACION = new Set(['r', 'h']); // rotar y mano de pdf.js (s pasa a ser foco)
 
-export function accionDeTecla(ev, { modo, enEntrada, digitos = '' }) {
-  const { key, shiftKey, ctrlKey, altKey, metaKey } = ev;
+// En macOS los atajos van con Cmd (metaKey) en lugar de Ctrl, como los muestra el menú (CmdOrCtrl).
+export function accionDeTecla(ev, { modo, enEntrada, digitos = '', mac = false }) {
+  const { key, shiftKey, altKey } = ev;
+  const ctrlKey = mac ? ev.metaKey : ev.ctrlKey;
+  const metaKey = mac ? ev.ctrlKey : ev.metaKey;
   const minuscula = typeof key === 'string' ? key.toLowerCase() : '';
 
   if (ctrlKey && shiftKey && !altKey && !metaKey) {

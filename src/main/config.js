@@ -9,8 +9,11 @@ function sabor(ruta) {
   return /^[A-Za-z]:[\\/]/.test(ruta) ? path.win32 : path;
 }
 
-export function carpetaDatos({ ejecutable, empaquetada, raizProyecto, userData, puedeEscribir }) {
+// En macOS el ejecutable vive dentro de liberadoPDF.app: escribir ahí rompe la firma del paquete (y con la «traslocación»
+// de Gatekeeper ni siquiera se puede), así que allí se usa siempre userData (~/Library/Application Support/liberadoPDF).
+export function carpetaDatos({ ejecutable, empaquetada, raizProyecto, userData, puedeEscribir, plataforma = process.platform }) {
   if (!empaquetada) return path.join(raizProyecto, 'data');
+  if (plataforma === 'darwin') return userData;
   const p = sabor(ejecutable);
   const portable = p.join(p.dirname(ejecutable), 'data');
   return puedeEscribir(portable) ? portable : userData;

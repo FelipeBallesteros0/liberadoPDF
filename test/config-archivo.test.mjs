@@ -6,9 +6,15 @@ import path from 'node:path';
 import { carpetaDatos, cargarConfig, guardarConfig } from '../src/main/config.js';
 
 test('carpetaDatos: portable si se puede escribir junto al ejecutable, si no userData, y en desarrollo data/ del proyecto', () => {
-  const base = { ejecutable: 'C:\\u\\liberadoPDF.exe', raizProyecto: '/p', userData: '/ud' };
+  const base = { ejecutable: 'C:\\u\\liberadoPDF.exe', raizProyecto: '/p', userData: '/ud', plataforma: 'win32' };
   assert.equal(carpetaDatos({ ...base, empaquetada: true, puedeEscribir: () => true }), path.win32.join('C:\\u', 'data'));
   assert.equal(carpetaDatos({ ...base, empaquetada: true, puedeEscribir: () => false }), '/ud');
+  assert.equal(carpetaDatos({ ...base, empaquetada: false, puedeEscribir: () => true }), path.join('/p', 'data'));
+});
+
+test('carpetaDatos en macOS: nunca dentro del .app (rompería la firma), siempre userData', () => {
+  const base = { ejecutable: '/Applications/liberadoPDF.app/Contents/MacOS/liberadoPDF', raizProyecto: '/p', userData: '/ud', plataforma: 'darwin' };
+  assert.equal(carpetaDatos({ ...base, empaquetada: true, puedeEscribir: () => true }), '/ud');
   assert.equal(carpetaDatos({ ...base, empaquetada: false, puedeEscribir: () => true }), path.join('/p', 'data'));
 });
 

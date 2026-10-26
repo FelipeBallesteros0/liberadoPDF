@@ -2,6 +2,8 @@
 import { accionDeTecla } from '../comun/teclas.mjs';
 import { raizDeCapas } from './capas.mjs';
 
+const MAC = /Mac/.test(navigator.platform); // atajos con Cmd en lugar de Ctrl
+
 const ESPERA_DIGITOS_MS = 1500;
 
 function enCampoDeTexto(objetivo) {
@@ -27,7 +29,7 @@ export function instalarTeclas({ acciones, modoActual, interceptores = [] }) {
   window.addEventListener('keydown', (ev) => {
     if (interceptores.some(i => i(ev))) { ev.preventDefault(); ev.stopImmediatePropagation(); return; }
     if (ev.key === 'Escape') { limpiar(); return; }
-    const resultado = accionDeTecla(ev, { modo: modoActual(), enEntrada: enCampoDeTexto(ev.target), digitos });
+    const resultado = accionDeTecla(ev, { modo: modoActual(), enEntrada: enCampoDeTexto(ev.target), digitos, mac: MAC });
     if (!resultado) return;
     ev.preventDefault();
     ev.stopImmediatePropagation();
