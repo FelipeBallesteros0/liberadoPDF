@@ -12,6 +12,8 @@ export const FILAS = [
   ['número + Enter', 'Ir a esa lámina'],
   ['F5 / doble clic', 'Entrar en presentación'],
   ['Esc', 'Salir de presentación, cerrar esta ayuda'],
+  ['Clic (en presentación)', 'Página siguiente pasados 0,5 s (por si es un doble clic); Mayús + clic, la anterior'],
+  ['Doble clic (en presentación)', 'Salir de presentación'],
   ['T', 'Reloj y cronómetro (en presentación)'],
   ['B / W', 'Pantalla en negro / en blanco (en presentación)'],
   ['L / S / D', 'Puntero láser / foco / dibujo (en presentación); C limpia, Ctrl+Z deshace'],

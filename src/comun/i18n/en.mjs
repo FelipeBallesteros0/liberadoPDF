@@ -43,6 +43,8 @@ export const en = {
   'Teclas de liberadoPDF': 'liberadoPDF keys', 'Esc o clic para cerrar. Los clickers envían PgUp / PgDn.': 'Esc or click to close. Clickers send PgUp / PgDn.',
   'Página siguiente': 'Next page', 'Página anterior': 'Previous page', 'Lámina siguiente / anterior (salta los pasos)': 'Next / previous slide (skips the steps)',
   'Primera / última página': 'First / last page', 'Ir a esa lámina': 'Go to that slide', 'Entrar en presentación': 'Enter presentation',
+  'Clic (en presentación)': 'Click (in presentation)', 'Página siguiente pasados 0,5 s (por si es un doble clic); Mayús + clic, la anterior': 'Next page after 0.5 s (in case it is a double click); Shift + click, the previous one',
+  'Doble clic (en presentación)': 'Double click (in presentation)', 'Salir de presentación': 'Leave presentation',
   'Salir de presentación, cerrar esta ayuda': 'Leave presentation, close this help', 'Reloj y cronómetro (en presentación)': 'Clock and stopwatch (in presentation)',
   'Pantalla en negro / en blanco (en presentación)': 'Black / white screen (in presentation)',
   'Puntero láser / foco / dibujo (en presentación); C limpia, Ctrl+Z deshace': 'Laser pointer / spotlight / drawing (in presentation); C clears, Ctrl+Z undoes',

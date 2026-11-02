@@ -11,7 +11,7 @@ Nació para dar una charla con una presentación de Beamer que lleva un video in
 1. Copia la carpeta `liberadoPDF-win32-x64` (o descomprime el `.zip`) al disco o a un pendrive. No hay que instalar nada.
 2. Doble clic en `liberadoPDF.exe` abre la pantalla de inicio: «Abrir PDF», los últimos archivos abiertos y una zona para arrastrar un PDF.
 3. También puedes usar «Abrir con…» sobre un PDF, arrastrar un PDF sobre el ejecutable o sobre la ventana, o pasarlo por línea de comandos.
-4. `F5` o doble clic entran en presentación; `Esc` sale.
+4. `F5` o doble clic entran en presentación; `Esc` u otro doble clic salen. En presentación un clic pasa a la página siguiente a los 0,5 s (por si es un doble clic); las teclas y los clickers son instantáneos.
 5. **Modo presentación** está en la barra principal (icono de pantalla junto a «»»). Con Ver ▸ «Personalizar barra…» o la última entrada del menú «»» eliges qué botones van en la barra y cuáles no; se recuerda en `config.json` (`barra`).
 6. La X cierra la ventana sin preguntar, salvo que hayas anotado o rellenado campos sin guardar: entonces pregunta. (Las animaciones también modifican el PDF por dentro; eso no cuenta.)
 7. **Idioma**: la interfaz arranca en inglés. En Ajustes (`Ctrl+,`) ▸ «Idioma / Language» se elige Español; al cambiarlo la aplicación se reinicia sola con el mismo documento (también cambia el idioma del visor pdf.js).
@@ -40,7 +40,8 @@ Después abre con doble clic normal, aparece en «Abrir con…» de los PDF y ac
 | `Mayús+→` / `Mayús+←` | lámina siguiente / anterior (salta los pasos de Beamer) | igual |
 | `Inicio` / `Fin` | primera / última | igual |
 | número + `Enter` | ir a esa lámina | igual |
-| `F5` / doble clic | entrar en presentación | — |
+| `F5` / doble clic | entrar en presentación | doble clic: salir de presentación |
+| clic / `Mayús`+clic | — | página siguiente / anterior, a los 0,5 s (por si es un doble clic) |
 | `Esc` | cerrar la ayuda | salir de presentación |
 | `T` | — | reloj y cronómetro |
 | `B` / `W` | — | pantalla en negro / en blanco |
@@ -155,7 +156,7 @@ En Linux/WSLg Electron se lanza con `ELECTRON_DISABLE_SANDBOX=1` (lo ponen `npm 
 ```bash
 npm install
 npm test            # pruebas unitarias (node --test)
-npm run humo        # prueba de humo (41 fases): visor, presentación, presentador, pantallas, idioma, video y una fase por herramienta; genera sus PDF de prueba
+npm run humo        # prueba de humo (42 fases): visor, presentación, presentador, pantallas, idioma, video y una fase por herramienta; genera sus PDF de prueba
 npm run construir   # dist/liberadoPDF-win32-x64(.zip), dist/liberadoPDF-linux-x64(.tar.gz) ; en macOS, scripts/construir.sh darwin → dist/liberadoPDF-macos-universal.dmg
 scripts/humo_windows.sh                                         # prueba de humo sobre el .exe, lanzado desde WSL
 scripts/humo_windows.sh presentacionAnimada "ruta/al/pdf" 11    # ¿la animación de la página 11 corre en presentación?

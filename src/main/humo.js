@@ -527,6 +527,58 @@ async function fasePantallas({ ruta, preload, salida }) {
   return r;
 }
 
+// Doble clic: en ventana entra en presentación; en presentación un clic navega pasada la espera del doble clic (0,5 s),
+// Mayús + clic retrocede, dos clics que el sistema no junta navegan dos veces y un doble clic sale en la misma página
+// sin volver a entrar (el dblclick del mismo gesto llega cuando la ventana ya salió).
+async function faseDobleClic({ ruta, preload, salida }) {
+  const r = { entra: false, esperaAntes: false, clicAvanza: false, mayusRetrocede: false, dosClicsSueltos: false, sale: false, mismaPagina: false, noVuelveAEntrar: false };
+  const { win, js, pagina } = abrirVentanaDePrueba({ ruta, preload, salida });
+  await esperarEvento('primera-pagina', 10_000);
+  win.show(); win.focus();
+  const enPresentacion = async () => Boolean(await js('PDFViewerApplication.pdfPresentationMode.active')) && win.isFullScreen();
+  // Un punto de la página sin enlaces ni anotaciones (en el PDF de prueba la página 2 tiene un enlace en el centro, y los
+  // clics sobre enlaces los sigue pdf.js): rejilla de 9×9 sobre la página visible, el primero libre.
+  const puntoLibre = async () => JSON.parse(await js(`JSON.stringify((() => {
+    const pagina = document.querySelector('.page[data-page-number="' + PDFViewerApplication.page + '"]');
+    const r = pagina.getBoundingClientRect();
+    for (let j = 1; j < 10; j++) for (let i = 1; i < 10; i++) {
+      const x = Math.round(r.left + (r.width * i) / 10), y = Math.round(r.top + (r.height * j) / 10);
+      const el = document.elementFromPoint(x, y);
+      if (el && pagina.contains(el) && !el.closest('a, section, .mediaAnnotation, button, input')) return { x, y };
+    }
+    return { x: Math.round(r.left + 5), y: Math.round(r.top + 5) };
+  })())`));
+  const clic = async (veces = 1, modifiers = [], punto = null) => {
+    const { x, y } = punto ?? await puntoLibre();
+    for (const type of ['mouseDown', 'mouseUp']) win.webContents.sendInputEvent({ type, x, y, button: 'left', clickCount: veces, modifiers });
+    return { x, y };
+  };
+  const dobleClic = async () => { const punto = await clic(1); await clic(2, [], punto); };
+  await dobleClic();
+  for (let i = 0; i < 30 && !(await enPresentacion()); i++) await espera(100);
+  r.entra = await enPresentacion();
+  await espera(1500); // pdf.js vuelve a pintar a la escala de pantalla completa
+  const p0 = await pagina();
+  await clic(1); await espera(200);
+  r.esperaAntes = (await pagina()) === p0;
+  await espera(600);
+  r.clicAvanza = (await pagina()) === p0 + 1;
+  await clic(1, ['shift']); await espera(800);
+  r.mayusRetrocede = (await pagina()) === p0;
+  await clic(1); await espera(250); await clic(1); await espera(900);
+  r.dosClicsSueltos = (await pagina()) === p0 + 2;
+  const antes = await pagina();
+  await dobleClic();
+  for (let i = 0; i < 30 && (await enPresentacion()); i++) await espera(100);
+  r.sale = !(await enPresentacion());
+  r.mismaPagina = (await pagina()) === antes;
+  await espera(1000);
+  r.noVuelveAEntrar = !(await enPresentacion()) && (await pagina()) === antes;
+  r.paginas = { p0, antes, final: await pagina() };
+  r.ok = r.entra && r.esperaAntes && r.clicAvanza && r.mayusRetrocede && r.dosClicsSueltos && r.sale && r.mismaPagina && r.noVuelveAEntrar;
+  return r;
+}
+
 // Notas a la derecha (ejemplo_notas.pdf + config de prueba): en presentación la mitad derecha de la pantalla cambia
 // al quitar la clase (ampliación de la mitad izquierda frente a la nota), y el presentador pinta la mitad derecha en 16:9.
 async function faseNotasDerecha({ ruta, preload, salida }) {
@@ -1235,7 +1287,7 @@ async function faseTema({ ruta, preload, salida }) {
   return r;
 }
 
-const FASES = { tema: faseTema, video: faseVideo, idioma: faseIdioma, comprimir: faseComprimir, ocr: faseOcr, proteger: faseProteger, desbloquear: faseDesbloquear, reparar: faseReparar, htmlAPdf: faseHtmlAPdf, aImagenes: faseAImagenes, deImagenes: faseDeImagenes, recortar: faseRecortar, metadatos: faseMetadatos, aplanar: faseAplanar, numerar: faseNumerar, marcaDeAgua: faseMarcaDeAgua, organizar: faseOrganizar, unir: faseUnir, dividir: faseDividir, rotar: faseRotar, cifrado: faseCifrado, herramientasBase: faseHerramientasBase, basica: faseBasica, bucle: faseBucle, inexistente: faseInexistente, presentacionAnimada: fasePresentacionAnimada, cierre: faseCierre, corrupto: faseCorrupto, ajustes: faseAjustes, nocturno: faseNocturno, instantanea: faseInstantanea, guardar: faseGuardar, transiciones: faseTransiciones, punteros: fasePunteros, cuadricula: faseCuadricula, medicion: faseMedicion, presentador: fasePresentador, pantallas: fasePantallas, notasDerecha: faseNotasDerecha };
+const FASES = { tema: faseTema, video: faseVideo, idioma: faseIdioma, comprimir: faseComprimir, ocr: faseOcr, proteger: faseProteger, desbloquear: faseDesbloquear, reparar: faseReparar, htmlAPdf: faseHtmlAPdf, aImagenes: faseAImagenes, deImagenes: faseDeImagenes, recortar: faseRecortar, metadatos: faseMetadatos, aplanar: faseAplanar, numerar: faseNumerar, marcaDeAgua: faseMarcaDeAgua, organizar: faseOrganizar, unir: faseUnir, dividir: faseDividir, rotar: faseRotar, cifrado: faseCifrado, herramientasBase: faseHerramientasBase, basica: faseBasica, bucle: faseBucle, inexistente: faseInexistente, presentacionAnimada: fasePresentacionAnimada, cierre: faseCierre, corrupto: faseCorrupto, ajustes: faseAjustes, nocturno: faseNocturno, instantanea: faseInstantanea, guardar: faseGuardar, transiciones: faseTransiciones, punteros: fasePunteros, cuadricula: faseCuadricula, medicion: faseMedicion, presentador: fasePresentador, pantallas: fasePantallas, dobleClic: faseDobleClic, notasDerecha: faseNotasDerecha };
 
 export async function ejecutarHumo({ ruta, salida, fase, preload }) {
   mkdirSync(salida, { recursive: true });

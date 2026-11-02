@@ -11,7 +11,7 @@ It was born to give a talk with a Beamer presentation that carries a video embed
 1. Copy the `liberadoPDF-win32-x64` folder (or unzip the `.zip`) to a disk or a USB stick. Nothing to install.
 2. Double-click `liberadoPDF.exe`: the start page offers "Open PDF", the recent files and a zone to drop a PDF.
 3. You can also use "Open with…" on a PDF, drag a PDF onto the executable or the window, or pass it on the command line.
-4. `F5` or a double click enters the presentation; `Esc` leaves it.
+4. `F5` or a double click enters the presentation; `Esc` or another double click leaves it. In the presentation a click goes to the next page after 0.5 s (in case it is a double click); keys and clickers are instant.
 5. **Presentation mode** is on the main toolbar (screen icon next to "»"). View ▸ "Customize toolbar…" (or the last entry of the "»" menu) chooses which buttons are shown; it is remembered in `config.json` (`barra`).
 6. The X closes the window without asking, unless you have annotated or filled fields without saving: then it asks. (Animations also modify the PDF internally; that does not count.)
 7. **Language**: the interface starts in English. Settings (`Ctrl+,`) ▸ "Language / Idioma" switches to Spanish; on change the app restarts by itself with the same document (the pdf.js viewer changes language too).
@@ -40,7 +40,8 @@ After that it opens with a normal double click, appears under "Open with…" for
 | `Shift+→` / `Shift+←` | next / previous slide (skips Beamer steps) | same |
 | `Home` / `End` | first / last | same |
 | number + `Enter` | go to that slide | same |
-| `F5` / double click | enter presentation | — |
+| `F5` / double click | enter presentation | double click: leave presentation |
+| click / `Shift`+click | — | next / previous page, after 0.5 s (in case it is a double click) |
 | `Esc` | close the help | leave presentation |
 | `T` | — | clock and stopwatch |
 | `B` / `W` | — | black / white screen |
@@ -155,7 +156,7 @@ On Linux/WSLg, Electron is launched with `ELECTRON_DISABLE_SANDBOX=1` (set by `n
 ```bash
 npm install
 npm test            # unit tests (node --test)
-npm run humo        # smoke test (41 phases): viewer, presentation, presenter, displays, language, video and one phase per tool; generates its test PDFs
+npm run humo        # smoke test (42 phases): viewer, presentation, presenter, displays, language, video and one phase per tool; generates its test PDFs
 npm run construir   # dist/liberadoPDF-win32-x64(.zip), dist/liberadoPDF-linux-x64(.tar.gz) ; on macOS, scripts/construir.sh darwin → dist/liberadoPDF-macos-universal.dmg
 scripts/humo_windows.sh                                         # smoke test on the .exe, launched from WSL
 scripts/humo_windows.sh presentacionAnimada "path/to/pdf" 11    # does the animation on page 11 run in presentation?
