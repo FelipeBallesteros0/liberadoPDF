@@ -500,16 +500,22 @@ async function fasePantallas({ ruta, preload, salida }) {
   const r = { pantallas: screen.getAllDisplays().length, principal, inicial: null, sinPresentador: null, conPresentador: null, presentador: null, vuelta: null };
   const { win, js, presentar } = abrirVentanaDePrueba({ ruta, preload, salida });
   const pantallaDe = w => screen.getDisplayMatching(w.getBounds()).id;
+  const t0 = Date.now(); r.ms = {}; // cuánto tarda cada paso (en el Mac virtual de GitHub las transiciones de pantalla completa son lentas)
+  const marca = (paso) => { r.ms[paso] = Date.now() - t0; };
+  // Sin esperar la promesa de exitFullscreen (en macOS puede quedar pendiente mucho rato); se consulta el estado con tope.
   const salir = async () => {
-    await js('document.fullscreenElement ? document.exitFullscreen() : null');
-    for (let i = 0; i < 30 && (win.isFullScreen() || await js('PDFViewerApplication.pdfPresentationMode.active')); i++) await espera(100);
+    await js('document.fullscreenElement ? void document.exitFullscreen().catch(() => {}) : null');
+    for (let i = 0; i < 50 && (win.isFullScreen() || await js('PDFViewerApplication.pdfPresentationMode.active')); i++) await espera(100);
     await espera(1200); // despues-de-presentar corre 400 ms tras el cambio de modo
   };
   await esperarEvento('primera-pagina', 10_000);
+  marca('primeraPagina');
   win.show(); win.focus();
   r.inicial = pantallaDe(win);
   r.sinPresentador = { presentacion: await presentar(), pantalla: pantallaDe(win) };
+  marca('presentar');
   await salir();
+  marca('salir');
   r.sinPresentador.salio = !win.isFullScreen();
   if (r.pantallas >= 2) {
     await js('window.liberadopdfAcciones.presentador()');
@@ -518,7 +524,9 @@ async function fasePantallas({ ruta, preload, salida }) {
     r.presentador = p ? pantallaDe(p) : null;
     win.focus();
     r.conPresentador = { presentacion: await presentar(), pantalla: pantallaDe(win) };
+    marca('presentarConPresentador');
     await salir();
+    marca('salirConPresentador');
     r.vuelta = pantallaDe(win);
     p?.close();
   }
