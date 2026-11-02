@@ -492,6 +492,41 @@ async function fasePresentador({ ruta, preload, salida }) {
   return r;
 }
 
+// Pantallas (config por defecto, «Automático»): sin vista de presentador la presentación se queda en la pantalla de la
+// ventana; con dos o más pantallas y el presentador abierto, la ventana se va a otra pantalla, el presentador queda en
+// la principal y al salir la ventana vuelve a su pantalla. Con una sola pantalla solo se comprueba lo primero.
+async function fasePantallas({ ruta, preload, salida }) {
+  const principal = screen.getPrimaryDisplay().id;
+  const r = { pantallas: screen.getAllDisplays().length, principal, inicial: null, sinPresentador: null, conPresentador: null, presentador: null, vuelta: null };
+  const { win, js, presentar } = abrirVentanaDePrueba({ ruta, preload, salida });
+  const pantallaDe = w => screen.getDisplayMatching(w.getBounds()).id;
+  const salir = async () => {
+    await js('document.fullscreenElement ? document.exitFullscreen() : null');
+    for (let i = 0; i < 30 && (win.isFullScreen() || await js('PDFViewerApplication.pdfPresentationMode.active')); i++) await espera(100);
+    await espera(1200); // despues-de-presentar corre 400 ms tras el cambio de modo
+  };
+  await esperarEvento('primera-pagina', 10_000);
+  win.show(); win.focus();
+  r.inicial = pantallaDe(win);
+  r.sinPresentador = { presentacion: await presentar(), pantalla: pantallaDe(win) };
+  await salir();
+  r.sinPresentador.salio = !win.isFullScreen();
+  if (r.pantallas >= 2) {
+    await js('window.liberadopdfAcciones.presentador()');
+    await espera(2500);
+    const p = BrowserWindow.getAllWindows().find(w => w !== win && w.webContents.getURL().includes('presentador.html'));
+    r.presentador = p ? pantallaDe(p) : null;
+    win.focus();
+    r.conPresentador = { presentacion: await presentar(), pantalla: pantallaDe(win) };
+    await salir();
+    r.vuelta = pantallaDe(win);
+    p?.close();
+  }
+  r.ok = Boolean(r.sinPresentador.presentacion && r.sinPresentador.pantalla === r.inicial && r.sinPresentador.salio
+    && (r.pantallas < 2 || (r.conPresentador?.presentacion && r.conPresentador.pantalla !== r.presentador && r.presentador === principal && r.vuelta === r.inicial)));
+  return r;
+}
+
 // Notas a la derecha (ejemplo_notas.pdf + config de prueba): en presentación la mitad derecha de la pantalla cambia
 // al quitar la clase (ampliación de la mitad izquierda frente a la nota), y el presentador pinta la mitad derecha en 16:9.
 async function faseNotasDerecha({ ruta, preload, salida }) {
@@ -1200,7 +1235,7 @@ async function faseTema({ ruta, preload, salida }) {
   return r;
 }
 
-const FASES = { tema: faseTema, video: faseVideo, idioma: faseIdioma, comprimir: faseComprimir, ocr: faseOcr, proteger: faseProteger, desbloquear: faseDesbloquear, reparar: faseReparar, htmlAPdf: faseHtmlAPdf, aImagenes: faseAImagenes, deImagenes: faseDeImagenes, recortar: faseRecortar, metadatos: faseMetadatos, aplanar: faseAplanar, numerar: faseNumerar, marcaDeAgua: faseMarcaDeAgua, organizar: faseOrganizar, unir: faseUnir, dividir: faseDividir, rotar: faseRotar, cifrado: faseCifrado, herramientasBase: faseHerramientasBase, basica: faseBasica, bucle: faseBucle, inexistente: faseInexistente, presentacionAnimada: fasePresentacionAnimada, cierre: faseCierre, corrupto: faseCorrupto, ajustes: faseAjustes, nocturno: faseNocturno, instantanea: faseInstantanea, guardar: faseGuardar, transiciones: faseTransiciones, punteros: fasePunteros, cuadricula: faseCuadricula, medicion: faseMedicion, presentador: fasePresentador, notasDerecha: faseNotasDerecha };
+const FASES = { tema: faseTema, video: faseVideo, idioma: faseIdioma, comprimir: faseComprimir, ocr: faseOcr, proteger: faseProteger, desbloquear: faseDesbloquear, reparar: faseReparar, htmlAPdf: faseHtmlAPdf, aImagenes: faseAImagenes, deImagenes: faseDeImagenes, recortar: faseRecortar, metadatos: faseMetadatos, aplanar: faseAplanar, numerar: faseNumerar, marcaDeAgua: faseMarcaDeAgua, organizar: faseOrganizar, unir: faseUnir, dividir: faseDividir, rotar: faseRotar, cifrado: faseCifrado, herramientasBase: faseHerramientasBase, basica: faseBasica, bucle: faseBucle, inexistente: faseInexistente, presentacionAnimada: fasePresentacionAnimada, cierre: faseCierre, corrupto: faseCorrupto, ajustes: faseAjustes, nocturno: faseNocturno, instantanea: faseInstantanea, guardar: faseGuardar, transiciones: faseTransiciones, punteros: fasePunteros, cuadricula: faseCuadricula, medicion: faseMedicion, presentador: fasePresentador, pantallas: fasePantallas, notasDerecha: faseNotasDerecha };
 
 export async function ejecutarHumo({ ruta, salida, fase, preload }) {
   mkdirSync(salida, { recursive: true });

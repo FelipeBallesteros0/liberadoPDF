@@ -16,23 +16,39 @@ import { conTeclasDeMac } from '../comun/teclas.mjs';
 export const eventosHumo = new EventEmitter();
 const ENLACE_EXTERNO = /^(https?:|mailto:)/i;
 
+// En Linux el gestor de ventanas aplica el movimiento unos milisegundos después de setBounds (getBounds ya devuelve la
+// posición pedida, y los `move` que emite el propio setBounds también): si la pantalla completa se pide antes, queda en
+// la pantalla de origen y el movimiento llega al salir. Se espera el primer `move` del gestor que deja la ventana en el
+// destino, como mucho 1 s. En Windows y macOS setBounds es sincrónico.
+function esperarEnPantalla(win, id, ms = 1000) {
+  return new Promise((resolver) => {
+    const terminar = (llego) => { clearTimeout(temporizador); if (!win.isDestroyed()) win.off('move', alMover); resolver(llego); };
+    const alMover = () => { if (!win.isDestroyed() && screen.getDisplayMatching(win.getBounds()).id === id) terminar(true); };
+    const temporizador = setTimeout(() => terminar(false), ms);
+    win.on('move', alMover);
+  });
+}
+
 export function instalarIpc({ idioma = 'en', t = x => x, traducirMensaje = x => x, obtenerConfig, obtenerConfigBase = obtenerConfig, guardar, abrirEnNueva, alCambiarRecientes = () => {}, preload }) {
   const ventanaDe = evento => BrowserWindow.fromWebContents(evento.sender);
   const pantallasSimples = () => { const principal = screen.getPrimaryDisplay().id; return screen.getAllDisplays().map(d => ({ id: d.id, principal: d.id === principal })); };
   const pantallaPorId = id => screen.getAllDisplays().find(d => d.id === id);
-  const pantallaDelPresentador = () => { const { presentador } = elegirPantallas(pantallasSimples(), obtenerConfig()); return presentador === null ? undefined : pantallaPorId(presentador); };
+  const pantallaDelPresentador = () => { const { presentador } = elegirPantallas(pantallasSimples(), obtenerConfig(), { presentadorAbierto: true }); return presentador === null ? undefined : pantallaPorId(presentador); };
+  const presentadorAbierto = win => Boolean(win.liberadopdfPresentador && !win.liberadopdfPresentador.isDestroyed());
 
-  // Antes de pedir pantalla completa: con dos o más pantallas, la ventana del visor va a la del proyector.
-  ipcMain.handle('antes-de-presentar', (evento) => {
+  // Antes de pedir pantalla completa: con dos o más pantallas, la ventana del visor va a la del proyector si se eligió
+  // en Ajustes o, en automático, si la vista de presentador está abierta (si no, se queda en su pantalla).
+  ipcMain.handle('antes-de-presentar', async (evento) => {
     const win = ventanaDe(evento);
     if (!win) return false;
-    const { presentacion } = elegirPantallas(pantallasSimples(), obtenerConfig());
+    const { presentacion } = elegirPantallas(pantallasSimples(), obtenerConfig(), { presentadorAbierto: presentadorAbierto(win) });
     const destino = presentacion === null ? null : pantallaPorId(presentacion);
     if (!destino) return false;
     if (screen.getDisplayMatching(win.getBounds()).id !== destino.id) {
       win.liberadopdfBoundsPrevios = { bounds: win.getBounds(), maximizada: win.isMaximized() }; // para volver al salir de presentación
       if (win.isMaximized()) win.unmaximize();
       win.setBounds(destino.workArea);
+      if (process.platform === 'linux') await esperarEnPantalla(win, destino.id);
     }
     return true;
   });

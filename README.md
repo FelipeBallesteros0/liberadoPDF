@@ -62,7 +62,7 @@ Common clickers send `PgUp`/`PgDn`: they work without any setup. In presentation
 - `Ctrl+Shift+P` (or View ▸ Presenter view) opens a second window with the current slide, the next one, the clock, a stopwatch (`R` resets it) and the notes. The arrow keys in that window also change the slide.
 - **Notes**: a text file next to the PDF called `<name>.pdf.notas.txt` with `## N` blocks (N = slide number, as Beamer prints it in the footer), for example `## 3` followed by the text.
 - **Beamer with notes on the right half** (`\setbeameroption{show notes on second screen=right}`): in Settings ▸ This document tick "Pages with the notes on the right"; the presentation shows only the left half, enlarged, and the presenter view shows the right half (limitation: the left half is scaled to twice the page-fit size, so it loses some sharpness).
-- **Two displays**: entering the presentation moves the window to the non-primary display (the projector) and the presenter view to the primary one. It can be fixed in Settings ▸ Displays.
+- **Two displays**: with the presenter view open, entering the presentation moves the window to the non-primary display (the projector) and the presenter view goes to the primary one. Without the presenter view, the presentation stays on the display the window is on. A fixed display can be chosen in Settings ▸ Displays (if it is not connected, liberadoPDF falls back to automatic).
 
 ## Transitions, measurements and snapshot
 
@@ -155,11 +155,11 @@ On Linux/WSLg, Electron is launched with `ELECTRON_DISABLE_SANDBOX=1` (set by `n
 ```bash
 npm install
 npm test            # unit tests (node --test)
-npm run humo        # smoke test (40 phases): viewer, presentation, presenter, language, video and one phase per tool; generates its test PDFs
+npm run humo        # smoke test (41 phases): viewer, presentation, presenter, displays, language, video and one phase per tool; generates its test PDFs
 npm run construir   # dist/liberadoPDF-win32-x64(.zip), dist/liberadoPDF-linux-x64(.tar.gz) ; on macOS, scripts/construir.sh darwin → dist/liberadoPDF-macos-universal.dmg
 scripts/humo_windows.sh                                         # smoke test on the .exe, launched from WSL
 scripts/humo_windows.sh presentacionAnimada "path/to/pdf" 11    # does the animation on page 11 run in presentation?
-scripts/humo_windows.sh guardar | cuadricula | presentador | cierre   # other phases on the .exe
+scripts/humo_windows.sh guardar | cuadricula | presentador | pantallas | cierre   # other phases on the .exe (pantallas: with two displays, where the presentation goes)
 scripts/humo_windows.sh unir | proteger | ocr | comprimir               # tools on the .exe
 scripts/humo_linux.sh basica | video | …                                # the same phases on the Linux package
 ```

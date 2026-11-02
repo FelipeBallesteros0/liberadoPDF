@@ -29,6 +29,7 @@ const FASES = [
   { nombre: 'cuadricula', env: {} },
   { nombre: 'medicion', env: {} },
   { nombre: 'presentador', env: {} },
+  { nombre: 'pantallas', env: {} },
   { nombre: 'notasDerecha', env: { LIBERADOPDF_PDF: path.join(raiz, 'recursos', 'ejemplo_notas.pdf'), LIBERADOPDF_CONFIG_PRUEBA: JSON.stringify({ porDocumento: { [path.join(raiz, 'recursos', 'ejemplo_notas.pdf')]: { notasDerecha: true } } }) } },
   { nombre: 'herramientasBase', env: {} },
   { nombre: 'unir', env: { LIBERADOPDF_HUMO_GUARDAR: path.join(carpetaHumo, 'unir', 'unido.pdf'), LIBERADOPDF_HUMO_ELEGIR: pdfPrueba } },

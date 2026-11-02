@@ -62,7 +62,7 @@ Los clickers habituales envían `PgUp`/`PgDn`: funcionan sin configurar nada. En
 - `Ctrl+Mayús+P` (o Ver ▸ Vista de presentador) abre una segunda ventana con la lámina actual, la siguiente, el reloj, un cronómetro (`R` lo reinicia) y las notas. Las flechas en esa ventana también cambian de lámina.
 - **Notas**: un archivo de texto junto al PDF llamado `<nombre>.pdf.notas.txt` con bloques `## N` (N = número de lámina, como lo imprime Beamer al pie), por ejemplo `## 3` seguido del texto.
 - **Beamer con notas en la mitad derecha** (`\setbeameroption{show notes on second screen=right}`): en Ajustes ▸ Este documento marca «Páginas con las notas a la derecha»; en presentación se ve solo la mitad izquierda ampliada y el presentador muestra la derecha (limitación: la mitad izquierda se amplía al doble desde el ajuste de página, así que pierde algo de nitidez).
-- **Dos pantallas**: al entrar en presentación la ventana se va sola a la pantalla que no es la principal (el proyector) y el presentador a la principal. Se puede fijar en Ajustes ▸ Pantallas.
+- **Dos pantallas**: con la vista de presentador abierta, al entrar en presentación la ventana se va sola a la pantalla que no es la principal (el proyector) y el presentador a la principal. Sin vista de presentador, la presentación se queda en la pantalla donde está la ventana. Se puede fijar una pantalla en Ajustes ▸ Pantallas (si no está conectada, se vuelve al modo automático).
 
 ## Transiciones, medidas e instantánea
 
@@ -155,11 +155,11 @@ En Linux/WSLg Electron se lanza con `ELECTRON_DISABLE_SANDBOX=1` (lo ponen `npm 
 ```bash
 npm install
 npm test            # pruebas unitarias (node --test)
-npm run humo        # prueba de humo (40 fases): visor, presentación, presentador, idioma, video y una fase por herramienta; genera sus PDF de prueba
+npm run humo        # prueba de humo (41 fases): visor, presentación, presentador, pantallas, idioma, video y una fase por herramienta; genera sus PDF de prueba
 npm run construir   # dist/liberadoPDF-win32-x64(.zip), dist/liberadoPDF-linux-x64(.tar.gz) ; en macOS, scripts/construir.sh darwin → dist/liberadoPDF-macos-universal.dmg
 scripts/humo_windows.sh                                         # prueba de humo sobre el .exe, lanzado desde WSL
 scripts/humo_windows.sh presentacionAnimada "ruta/al/pdf" 11    # ¿la animación de la página 11 corre en presentación?
-scripts/humo_windows.sh guardar | cuadricula | presentador | cierre   # otras fases sobre el .exe
+scripts/humo_windows.sh guardar | cuadricula | presentador | pantallas | cierre   # otras fases sobre el .exe (pantallas: con dos pantallas, adónde va la presentación)
 scripts/humo_windows.sh unir | proteger | ocr | comprimir               # herramientas sobre el .exe
 scripts/humo_linux.sh basica | video | …                                # las mismas fases sobre el paquete de Linux
 ```
